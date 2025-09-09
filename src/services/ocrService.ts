@@ -136,11 +136,14 @@ function extractTournamentData(text: string): Partial<TournamentFormData> {
 }
 
 // Мок функция OCR с симуляцией обработки
-export async function processTicketImage(file: File): Promise<OCRResult> {
+export async function processTicketImage(file: File | string): Promise<OCRResult> {
   return new Promise((resolve) => {
     // Симуляция времени обработки
     setTimeout(() => {
       try {
+        // Логируем информацию о файле
+        console.log('🔍 OCR: Обработка изображения:', typeof file === 'string' ? file : file.name)
+        
         // Мок извлечения текста из изображения
         // В реальном приложении здесь был бы вызов Tesseract.js или Google Cloud Vision API
         const mockExtractedText = `

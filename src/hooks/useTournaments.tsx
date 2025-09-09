@@ -38,11 +38,19 @@ export function useTournaments(userId?: string) {
     // Подписываемся на обновления
     tournamentsUpdateCallbacks.push(refreshTournaments)
     
+    // Слушаем события добавления турниров
+    const handleTournamentAdded = () => {
+      refreshTournaments()
+    }
+    
+    window.addEventListener('tournamentAdded', handleTournamentAdded)
+    
     return () => {
       // Отписываемся при размонтировании
       tournamentsUpdateCallbacks = tournamentsUpdateCallbacks.filter(
         callback => callback !== refreshTournaments
       )
+      window.removeEventListener('tournamentAdded', handleTournamentAdded)
     }
   }, [userId])
 

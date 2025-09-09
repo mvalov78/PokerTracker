@@ -26,7 +26,6 @@ export interface Tournament {
   startingStack: number | null
   ticketImageUrl: string | null
   notes: string | null
-  status: 'registered' | 'playing' | 'finished' | 'cancelled'
   createdAt: string
   updatedAt: string
   result?: TournamentResult
@@ -38,8 +37,14 @@ export interface TournamentResult {
   tournamentId: string
   position: number
   payout: number
+  profit: number
   roi: number
   notes: string | null
+  knockouts?: number
+  rebuyCount?: number
+  addonCount?: number
+  timeEliminated?: string
+  finalTableReached?: boolean
   createdAt: string
 }
 
@@ -93,12 +98,6 @@ export interface TournamentFormData {
   prizePool?: number
   blindLevels?: string
   startingStack?: number
-  notes?: string
-}
-
-export interface TournamentResultFormData {
-  position: number
-  payout: number
   notes?: string
 }
 
@@ -158,16 +157,72 @@ export interface FilterParams {
   maxBuyin?: number
 }
 
-export interface TournamentFormData {
-  name: string
-  date: string
-  venue?: string
-  buyin: number
-  tournamentType: string
-  structure?: string
-  participants?: number
-  prizePool?: number
-  blindLevels?: string
-  startingStack?: number
+export interface TournamentResultFormData {
+  position: number
+  payout: number
   notes?: string
+  knockouts?: number
+  rebuyCount?: number
+  addonCount?: number
+  timeEliminated?: string
+  finalTableReached?: boolean
+}
+
+// Типы для банкролла
+export interface BankrollTransaction {
+  id: string
+  userId: string
+  type: 'deposit' | 'withdrawal' | 'tournament_buyin' | 'tournament_payout' | 'adjustment'
+  amount: number
+  description: string
+  date: string
+  tournamentId?: string
+  category?: 'poker' | 'expenses' | 'other'
+  createdAt: string
+}
+
+export interface BankrollSettings {
+  userId: string
+  initialBankroll: number
+  riskManagement: {
+    maxBuyinPercentage: number // Максимальный процент банкролла на один турнир
+    stopLossPercentage: number // При каком проценте потерь остановиться
+    conservativeMode: boolean // Консервативный режим управления
+  }
+  alerts: {
+    lowBankrollWarning: boolean // Предупреждение при низком банкролле
+    highRiskTournament: boolean // Предупреждение при высоком риске
+    profitMilestones: boolean // Уведомления о достижении целей
+  }
+  goals: {
+    targetBankroll: number
+    monthlyProfitTarget: number
+  }
+}
+
+export interface BankrollSummary {
+  currentBankroll: number
+  totalDeposits: number
+  totalWithdrawals: number
+  tournamentInvestments: number
+  tournamentWinnings: number
+  netProfit: number
+  roi: number
+  biggestWin: number
+  biggestLoss: number
+  lastUpdated: string
+}
+
+export interface ResultChangeHistory {
+  id: string
+  tournamentId: string
+  userId: string
+  changeType: 'created' | 'updated' | 'deleted'
+  oldData?: Partial<Tournament['result']>
+  newData?: Partial<Tournament['result']>
+  changedFields: string[]
+  reason?: string
+  timestamp: string
+  userAgent?: string
+  ipAddress?: string
 }
