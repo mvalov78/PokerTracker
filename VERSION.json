@@ -4,7 +4,7 @@
   "releaseDate": "2025-09-10",
   "features": [
     "Complete user authentication system",
-    "Google OAuth integration", 
+    "Google OAuth integration",
     "Telegram bot integration",
     "User data isolation",
     "Admin panel",
@@ -23,17 +23,28 @@
     "development": {
       "branch": "dev",
       "database": "development",
-      "features": ["debug", "hot-reload", "mock-data"]
+      "features": [
+        "debug",
+        "hot-reload",
+        "mock-data"
+      ]
     },
     "staging": {
-      "branch": "staging", 
+      "branch": "staging",
       "database": "staging",
-      "features": ["testing", "performance-monitoring"]
+      "features": [
+        "testing",
+        "performance-monitoring"
+      ]
     },
     "production": {
       "branch": "main",
-      "database": "production", 
-      "features": ["monitoring", "analytics", "backup"]
+      "database": "production",
+      "features": [
+        "monitoring",
+        "analytics",
+        "backup"
+      ]
     }
   },
   "rollbackInfo": {
