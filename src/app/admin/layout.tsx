@@ -11,6 +11,7 @@ interface AdminLayoutProps {
 
 const adminNavItems = [
   { href: '/admin', label: 'Обзор', exact: true },
+  { href: '/admin/bot-management', label: '🤖 Управление ботом' },
   { href: '/admin/users', label: 'Пользователи' },
   { href: '/admin/tournaments', label: 'Турниры' },
   { href: '/admin/analytics', label: 'Аналитика' },

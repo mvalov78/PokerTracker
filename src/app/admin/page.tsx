@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/hooks/useAuth'
 import Card, { CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
-import BotModeManager from '@/components/admin/BotModeManager'
+import Link from 'next/link'
 import { 
   Users, 
   Calendar, 
@@ -172,9 +172,6 @@ export default function AdminDashboard() {
         </Card>
       </div>
 
-      {/* Управление Telegram ботом */}
-      <BotModeManager />
-
       {/* Быстрые ссылки */}
       <Card className="bg-gray-800/50 border-gray-700">
         <CardHeader>
@@ -200,11 +197,13 @@ export default function AdminDashboard() {
               <div className="text-gray-400 text-sm">Детальные отчеты</div>
             </button>
             
-            <button className="p-4 bg-gray-700 hover:bg-gray-600 rounded-lg text-left transition-colors">
-              <Bot className="h-6 w-6 text-cyan-400 mb-2" />
-              <div className="text-white font-medium">Управление ботом</div>
-              <div className="text-gray-400 text-sm">Режимы и настройки</div>
-            </button>
+            <Link href="/admin/bot-management" className="block">
+              <div className="p-4 bg-gray-700 hover:bg-gray-600 rounded-lg text-left transition-colors">
+                <Bot className="h-6 w-6 text-cyan-400 mb-2" />
+                <div className="text-white font-medium">Управление ботом</div>
+                <div className="text-gray-400 text-sm">Режимы и настройки</div>
+              </div>
+            </Link>
           </div>
         </CardContent>
       </Card>
