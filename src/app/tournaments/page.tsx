@@ -2,42 +2,58 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { getAllTournaments, deleteTournament } from '@/data/mockData'
+import { useAuth } from '@/hooks/useAuth'
 import type { Tournament } from '@/types'
 
 export default function TournamentsPage() {
   const router = useRouter()
   const [searchTerm, setSearchTerm] = useState('')
   const [tournaments, setTournaments] = useState<Tournament[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  
+  const { user, isAuthenticated } = useAuth()
 
   // Загружаем турниры при монтировании компонента
   useEffect(() => {
     const loadTournaments = async () => {
+      if (!isAuthenticated || !user) {
+        setError('Требуется авторизация')
+        setIsLoading(false)
+        return
+      }
+
       try {
-        // Сначала пробуем загрузить через API
-        const response = await fetch('/api/tournaments')
+        setIsLoading(true)
+        setError(null)
+        
+        // Загружаем турниры текущего пользователя
+        const response = await fetch(`/api/tournaments?userId=${user.id}`)
         if (response.ok) {
           const data = await response.json()
           if (data.success) {
             setTournaments(data.tournaments)
             return
+          } else {
+            throw new Error(data.error || 'Ошибка загрузки турниров')
           }
+        } else {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`)
         }
       } catch (error) {
         console.error('Ошибка загрузки турниров через API:', error)
+        setError(error instanceof Error ? error.message : 'Ошибка загрузки турниров')
+      } finally {
+        setIsLoading(false)
       }
-      
-      // Fallback на localStorage
-      const allTournaments = getAllTournaments()
-      setTournaments(allTournaments)
     }
     
     loadTournaments()
     
-    // Обновляем каждые 2 секунды для синхронизации с ботом
-    const interval = setInterval(loadTournaments, 2000)
-    return () => clearInterval(interval)
-  }, [])
+    // Убираем автообновление - будем обновлять только при необходимости
+    // const interval = setInterval(loadTournaments, 2000)
+    // return () => clearInterval(interval)
+  }, [isAuthenticated, user])
 
   // Обработчик удаления турнира
   const handleDeleteTournament = async (tournament: Tournament) => {
@@ -85,17 +101,65 @@ export default function TournamentsPage() {
     tournament.venue.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
+  // Показываем состояние загрузки
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Загрузка турниров...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Показываем ошибку авторизации
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Требуется авторизация</h2>
+          <p className="text-gray-600 mb-6">Пожалуйста, войдите в систему для просмотра турниров</p>
+          <button
+            onClick={() => router.push('/auth')}
+            className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600"
+          >
+            Войти в систему
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // Показываем ошибку загрузки
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-red-600 mb-4">Ошибка загрузки</h2>
+          <p className="text-gray-600 mb-6">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600"
+          >
+            Попробовать снова
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gray-100 p-8">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            🎰 Мои турниры
+            🎰 Мои турниры ({user?.email})
           </h1>
-          <p className="text-gray-600">
+          <div className="text-gray-600">
             Управление и отслеживание ваших покерных турниров
-          </p>
+          </div>
         </div>
 
         {/* Search and Actions */}
@@ -109,6 +173,13 @@ export default function TournamentsPage() {
               className="w-full sm:w-96 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
             <div className="flex gap-3">
+              <button
+                onClick={() => window.location.reload()}
+                className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+                title="Обновить список турниров"
+              >
+                🔄 Обновить
+              </button>
               <button
                 onClick={() => router.push('/tournaments/add')}
                 className="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition-colors"

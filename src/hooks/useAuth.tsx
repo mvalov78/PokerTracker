@@ -1,150 +1,219 @@
 'use client'
 
-import { createContext, useContext, useReducer, useEffect, ReactNode } from 'react'
-import { mockUser } from '@/data/mockData'
-import type { User } from '@/types'
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import { createClientComponentClient } from '@/lib/supabase'
+import { User } from '@supabase/supabase-js'
+import { Database } from '@/lib/supabase'
+import { useRouter } from 'next/navigation'
 
-// Типы для аутентификации
-interface AuthState {
-  user: User | null
-  isLoading: boolean
-  isAuthenticated: boolean
+type Profile = Database['public']['Tables']['profiles']['Row']
+
+interface AuthUser extends User {
+  profile?: Profile
 }
 
-type AuthAction = 
-  | { type: 'SET_LOADING'; loading: boolean }
-  | { type: 'SET_USER'; user: User | null }
-  | { type: 'LOGOUT' }
-
-// Reducer для управления состоянием аутентификации
-function authReducer(state: AuthState, action: AuthAction): AuthState {
-  switch (action.type) {
-    case 'SET_LOADING':
-      return { ...state, isLoading: action.loading }
-    case 'SET_USER':
-      return {
-        ...state,
-        user: action.user,
-        isAuthenticated: !!action.user,
-        isLoading: false
-      }
-    case 'LOGOUT':
-      return {
-        ...state,
-        user: null,
-        isAuthenticated: false,
-        isLoading: false
-      }
-    default:
-      return state
-  }
-}
-
-// Интерфейс для контекста аутентификации
 interface AuthContextType {
-  user: User | null
+  user: AuthUser | null
+  profile: Profile | null
   isLoading: boolean
   isAuthenticated: boolean
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
-  register: (email: string, password: string, username: string) => Promise<{ success: boolean; error?: string }>
-  logout: () => void
+  isAdmin: boolean
+  signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
+  signUp: (email: string, password: string, username?: string) => Promise<{ success: boolean; error?: string }>
+  signInWithGoogle: () => Promise<{ success: boolean; error?: string }>
+  signOut: () => Promise<void>
+  updateProfile: (updates: Partial<Profile>) => Promise<{ success: boolean; error?: string }>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-// Provider компонент
 interface AuthProviderProps {
   children: ReactNode
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [state, dispatch] = useReducer(authReducer, {
-    user: null,
-    isLoading: true,
-    isAuthenticated: false
-  })
+  const [user, setUser] = useState<AuthUser | null>(null)
+  const [profile, setProfile] = useState<Profile | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const supabase = createClientComponentClient()
+  const router = useRouter()
 
-  // Проверка аутентификации при загрузке
+  // Get user profile
+  const fetchProfile = async (userId: string) => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single()
+
+    if (error) {
+      console.error('Error fetching profile:', error)
+      return null
+    }
+
+    return data
+  }
+
+  // Initialize auth state
   useEffect(() => {
-    const checkAuth = () => {
-      const storedUser = localStorage.getItem('poker-tracker-user')
-      if (storedUser) {
-        try {
-          const user = JSON.parse(storedUser)
-          dispatch({ type: 'SET_USER', user })
-        } catch (error) {
-          console.error('Error parsing stored user:', error)
-          localStorage.removeItem('poker-tracker-user')
-          dispatch({ type: 'SET_USER', user: null })
+    const initializeAuth = async () => {
+      try {
+        // Get initial session
+        const { data: { session } } = await supabase.auth.getSession()
+        
+        if (session?.user) {
+          const userProfile = await fetchProfile(session.user.id)
+          setUser({ ...session.user, profile: userProfile })
+          setProfile(userProfile)
         }
-      } else {
-        dispatch({ type: 'SET_USER', user: null })
+      } catch (error) {
+        console.error('Error initializing auth:', error)
+      } finally {
+        setIsLoading(false)
       }
     }
 
-    checkAuth()
-  }, [])
+    initializeAuth()
 
-  // Мок функция входа
-  const login = async (email: string, password: string) => {
-    dispatch({ type: 'SET_LOADING', loading: true })
-    
-    // Симуляция API запроса
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
-    // Простая валидация для демо
-    if (email === 'player@example.com' && password === 'password123') {
-      const user = { ...mockUser, email }
-      localStorage.setItem('poker-tracker-user', JSON.stringify(user))
-      dispatch({ type: 'SET_USER', user })
-      return { success: true }
-    } else {
-      dispatch({ type: 'SET_LOADING', loading: false })
-      return { success: false, error: 'Неверный email или пароль' }
-    }
-  }
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'SIGNED_IN' && session?.user) {
+          const userProfile = await fetchProfile(session.user.id)
+          setUser({ ...session.user, profile: userProfile })
+          setProfile(userProfile)
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null)
+          setProfile(null)
+        }
+        setIsLoading(false)
+      }
+    )
 
-  // Мок функция регистрации
-  const register = async (email: string, password: string, username: string) => {
-    dispatch({ type: 'SET_LOADING', loading: true })
-    
-    // Симуляция API запроса
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
-    // Простая валидация для демо
-    if (email && password && username) {
-      const user = {
-        ...mockUser,
+    return () => subscription.unsubscribe()
+  }, [supabase])
+
+  // Sign in with email/password
+  const signIn = async (email: string, password: string) => {
+    try {
+      setIsLoading(true)
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
-        username,
-        id: `user-${Date.now()}`,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        password,
+      })
+
+      if (error) {
+        return { success: false, error: error.message }
       }
-      localStorage.setItem('poker-tracker-user', JSON.stringify(user))
-      dispatch({ type: 'SET_USER', user })
+
       return { success: true }
-    } else {
-      dispatch({ type: 'SET_LOADING', loading: false })
-      return { success: false, error: 'Заполните все поля' }
+    } catch (error) {
+      return { success: false, error: 'Произошла непредвиденная ошибка' }
+    } finally {
+      setIsLoading(false)
     }
   }
 
-  // Функция выхода
-  const logout = () => {
-    localStorage.removeItem('poker-tracker-user')
-    dispatch({ type: 'LOGOUT' })
+  // Sign up with email/password
+  const signUp = async (email: string, password: string, username?: string) => {
+    try {
+      setIsLoading(true)
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            username: username || email.split('@')[0],
+          },
+        },
+      })
+
+      if (error) {
+        return { success: false, error: error.message }
+      }
+
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: 'Произошла непредвиденная ошибка' }
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Sign in with Google
+  const signInWithGoogle = async () => {
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      })
+
+      if (error) {
+        return { success: false, error: error.message }
+      }
+
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: 'Произошла непредвиденная ошибка' }
+    }
+  }
+
+  // Sign out
+  const signOut = async () => {
+    try {
+      await supabase.auth.signOut()
+      router.push('/auth')
+    } catch (error) {
+      console.error('Error signing out:', error)
+    }
+  }
+
+  // Update profile
+  const updateProfile = async (updates: Partial<Profile>) => {
+    if (!user) {
+      return { success: false, error: 'Пользователь не авторизован' }
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', user.id)
+        .select()
+        .single()
+
+      if (error) {
+        return { success: false, error: error.message }
+      }
+
+      setProfile(data)
+      setUser({ ...user, profile: data })
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: 'Произошла непредвиденная ошибка' }
+    }
+  }
+
+  const value: AuthContextType = {
+    user,
+    profile,
+    isLoading,
+    isAuthenticated: !!user,
+    isAdmin: profile?.role === 'admin',
+    signIn,
+    signUp,
+    signInWithGoogle,
+    signOut,
+    updateProfile,
   }
 
   return (
-    <AuthContext.Provider value={{
-      user: state.user,
-      isLoading: state.isLoading,
-      isAuthenticated: state.isAuthenticated,
-      login,
-      register,
-      logout
-    }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   )
@@ -163,10 +232,11 @@ export function useAuth() {
 interface ProtectedRouteProps {
   children: ReactNode
   fallback?: ReactNode
+  requireAdmin?: boolean
 }
 
-export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
-  const { isAuthenticated, isLoading } = useAuth()
+export function ProtectedRoute({ children, fallback, requireAdmin = false }: ProtectedRouteProps) {
+  const { isAuthenticated, isLoading, isAdmin } = useAuth()
 
   if (isLoading) {
     return (
@@ -197,5 +267,32 @@ export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
     )
   }
 
+  if (requireAdmin && !isAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+            Доступ запрещен
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
+            У вас нет прав для доступа к этой странице
+          </p>
+          <a
+            href="/"
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-poker-green-600 hover:bg-poker-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-poker-green-500"
+          >
+            На главную
+          </a>
+        </div>
+      </div>
+    )
+  }
+
   return <>{children}</>
+}
+
+// Hook для проверки админ прав
+export function useAdmin() {
+  const { isAdmin, isAuthenticated } = useAuth()
+  return isAuthenticated && isAdmin
 }

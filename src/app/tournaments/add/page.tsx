@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '@/hooks/useAuth'
 
 interface TournamentFormData {
   name: string
@@ -20,6 +21,7 @@ interface TournamentFormData {
 export default function AddTournamentPage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+  const { user, isAuthenticated } = useAuth()
   const [formData, setFormData] = useState<TournamentFormData>({
     name: '',
     date: '',
@@ -43,22 +45,49 @@ export default function AddTournamentPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    if (!isAuthenticated || !user) {
+      alert('Требуется авторизация для создания турнира')
+      router.push('/auth')
+      return
+    }
+    
     setIsLoading(true)
 
     try {
-      // Имитация сохранения
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      console.log('Создание турнира:', formData)
-      
-      // Показываем успешное сообщение
-      alert('Турнир успешно создан!')
-      
-      // Возвращаемся к списку турниров
-      router.push('/tournaments')
+      // Реальное создание турнира через API
+      const response = await fetch('/api/tournaments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...formData,
+          userId: user.id
+        })
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || `HTTP ${response.status}`)
+      }
+
+      if (result.success) {
+        console.log('Турнир успешно создан:', result.tournament)
+        alert('Турнир успешно создан!')
+        
+        // Уведомляем о создании турнира
+        window.dispatchEvent(new Event('tournamentAdded'))
+        
+        // Возвращаемся к списку турниров
+        router.push('/tournaments')
+      } else {
+        throw new Error(result.error || 'Не удалось создать турнир')
+      }
     } catch (error) {
       console.error('Ошибка при создании турнира:', error)
-      alert('Ошибка при создании турнира')
+      alert(`Ошибка при создании турнира: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`)
     } finally {
       setIsLoading(false)
     }

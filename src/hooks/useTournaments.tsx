@@ -16,14 +16,18 @@ export function useTournaments(userId?: string) {
   const [error, setError] = useState<string | null>(null)
 
   const refreshTournaments = async () => {
+    if (!userId) {
+      setError('Требуется авторизация')
+      setIsLoading(false)
+      return
+    }
+
     setIsLoading(true)
     setError(null)
     
     try {
-      // Формируем URL для API запроса
-      const url = userId 
-        ? `/api/tournaments?userId=${userId}`
-        : '/api/tournaments'
+      // Всегда требуем userId
+      const url = `/api/tournaments?userId=${userId}`
       
       const response = await fetch(url, {
         method: 'GET',

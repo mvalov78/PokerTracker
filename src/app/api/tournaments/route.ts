@@ -38,15 +38,12 @@ export async function GET(request: NextRequest) {
         tournaments = await TournamentService.getTournamentsByUserId(userId)
       }
     } else {
-      // Для демо - показываем турниры тестового пользователя
-      try {
-        const testUser = await getUserOrCreate(49767276, 'test_user')
-        tournaments = await TournamentService.getTournamentsByUserId(testUser.id)
-      } catch (userError) {
-        console.log('⚠️  Не удалось получить тестового пользователя, используем фиксированный UUID')
-        // Используем фиксированный UUID для тестового пользователя
-        tournaments = await TournamentService.getTournamentsByUserId('00000000-0000-0000-0000-000000000001')
-      }
+      // Без userId возвращаем ошибку - нужна авторизация
+      return NextResponse.json({
+        success: false,
+        error: 'Требуется авторизация. Пожалуйста, войдите в систему.',
+        code: 'UNAUTHORIZED'
+      }, { status: 401 })
     }
 
     return NextResponse.json({

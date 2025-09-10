@@ -24,6 +24,24 @@ jest.mock('next/navigation', () => ({
 // Mock environment variables
 process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://localhost:54321'
 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key'
+process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key'
+
+// Mock Next.js server APIs
+jest.mock('next/server', () => ({
+  NextRequest: jest.fn().mockImplementation((url, init) => ({
+    url: url || 'http://localhost:3000',
+    method: init?.method || 'GET',
+    headers: new Map(),
+    json: jest.fn(() => Promise.resolve({})),
+    ...init
+  })),
+  NextResponse: {
+    json: jest.fn((data, init) => ({
+      status: init?.status || 200,
+      json: () => Promise.resolve(data)
+    }))
+  }
+}))
 
 // Простая система мокирования Supabase
 let mockData = null
@@ -49,7 +67,37 @@ const createMockChain = () => ({
 const mockSupabaseClient = createMockChain()
 
 jest.mock('@/lib/supabase', () => ({
+  createClientComponentClient: jest.fn(() => mockSupabaseClient),
+  createServerComponentClient: jest.fn(() => mockSupabaseClient),
+  createAdminClient: jest.fn(() => mockSupabaseClient),
   supabase: mockSupabaseClient,
+  supabaseAdmin: mockSupabaseClient,
+  getProfile: jest.fn(() => Promise.resolve({
+    id: 'mock-user-id',
+    username: 'testuser',
+    role: 'player',
+    telegram_id: null
+  })),
+  createProfile: jest.fn(() => Promise.resolve({
+    id: 'mock-user-id',
+    username: 'testuser',
+    role: 'player',
+    telegram_id: null
+  })),
+  updateProfile: jest.fn(() => Promise.resolve({
+    id: 'mock-user-id',
+    username: 'testuser',
+    role: 'player',
+    telegram_id: null
+  })),
+  getProfileByTelegramId: jest.fn(() => Promise.resolve(null)),
+  isAdmin: jest.fn(() => Promise.resolve(false)),
+  getUserOrCreate: jest.fn(() => Promise.resolve({
+    id: 'mock-user-id',
+    username: 'testuser',
+    role: 'player',
+    telegram_id: 123456789
+  }))
 }))
 
 // Глобальные функции для управления моками

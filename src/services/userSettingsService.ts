@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase'
+import { createAdminClient } from '@/lib/supabase'
 
 export interface UserSettings {
   id: string
@@ -13,12 +13,12 @@ export class UserSettingsService {
    * Получить настройки пользователя
    */
   static async getUserSettings(userId: string): Promise<UserSettings | null> {
-    if (!supabase) {
-      console.warn('Supabase client not available, returning null settings')
-      return null
-    }
-
     try {
+      const supabase = createAdminClient()
+      if (!supabase) {
+        console.warn('Admin client not available, returning null settings')
+        return null
+      }
       const { data, error } = await supabase
         .from('user_settings')
         .select('*')
@@ -45,12 +45,12 @@ export class UserSettingsService {
    * Создать настройки пользователя
    */
   static async createUserSettings(userId: string): Promise<UserSettings | null> {
-    if (!supabase) {
-      console.warn('Supabase client not available, cannot create settings')
-      return null
-    }
-
     try {
+      const supabase = createAdminClient()
+      if (!supabase) {
+        console.warn('Admin client not available, returning null settings')
+        return null
+      }
       const { data, error } = await supabase
         .from('user_settings')
         .insert({
@@ -76,12 +76,12 @@ export class UserSettingsService {
    * Обновить текущую площадку пользователя
    */
   static async updateCurrentVenue(userId: string, venue: string): Promise<UserSettings | null> {
-    if (!supabase) {
-      console.warn('Supabase client not available, cannot update venue')
-      return null
-    }
-
     try {
+      const supabase = createAdminClient()
+      if (!supabase) {
+        console.warn('Admin client not available, returning null settings')
+        return null
+      }
       const { data, error } = await supabase
         .from('user_settings')
         .upsert({

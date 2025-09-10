@@ -1,12 +1,10 @@
-import { supabase, supabaseAdmin } from '@/lib/supabase'
+import { createClientComponentClient, createAdminClient } from '@/lib/supabase'
 import type { Tournament, TournamentResult } from '@/types'
 
 export class TournamentService {
   // Получить все турниры пользователя
   static async getTournamentsByUserId(userId: string): Promise<Tournament[]> {
-    if (!supabase) {
-      throw new Error('Supabase not configured')
-    }
+    const supabase = createClientComponentClient()
     
     const { data, error } = await supabase
       .from('tournaments')
@@ -37,6 +35,7 @@ export class TournamentService {
 
   // Получить турнир по ID
   static async getTournamentById(tournamentId: string): Promise<Tournament | null> {
+    const supabase = createClientComponentClient()
     const { data, error } = await supabase
       .from('tournaments')
       .select(`
@@ -63,6 +62,7 @@ export class TournamentService {
 
   // Создать новый турнир
   static async createTournament(tournament: Omit<Tournament, 'id' | 'createdAt' | 'updatedAt'>): Promise<Tournament> {
+    const supabase = createClientComponentClient()
     const { data, error } = await supabase
       .from('tournaments')
       .insert({
@@ -96,10 +96,10 @@ export class TournamentService {
 
   // Создать турнир через админский клиент (для бота)
   static async createTournamentAsAdmin(tournament: Omit<Tournament, 'id' | 'createdAt' | 'updatedAt'>): Promise<Tournament> {
+    const supabaseAdmin = createAdminClient()
     if (!supabaseAdmin) {
-      throw new Error('Supabase not configured')
+      throw new Error('Admin client not available')
     }
-    
     const { data, error } = await supabaseAdmin
       .from('tournaments')
       .insert({
@@ -148,6 +148,7 @@ export class TournamentService {
     if (updates.ticketImageUrl !== undefined) updateData.ticket_image_url = updates.ticketImageUrl
     if (updates.notes !== undefined) updateData.notes = updates.notes
 
+    const supabase = createClientComponentClient()
     const { data, error } = await supabase
       .from('tournaments')
       .update(updateData)
@@ -168,6 +169,7 @@ export class TournamentService {
 
   // Удалить турнир
   static async deleteTournament(tournamentId: string): Promise<boolean> {
+    const supabase = createClientComponentClient()
     const { error } = await supabase
       .from('tournaments')
       .delete()
@@ -182,6 +184,7 @@ export class TournamentService {
 
   // Добавить результат турнира (UPSERT - INSERT или UPDATE)
   static async addTournamentResult(tournamentId: string, result: Omit<TournamentResult, 'id' | 'tournamentId' | 'createdAt'>): Promise<TournamentResult> {
+    const supabase = createClientComponentClient()
     const { data, error } = await supabase
       .from('tournament_results')
       .upsert({
@@ -224,6 +227,7 @@ export class TournamentService {
     if (result.timeEliminated !== undefined) updateData.time_eliminated = result.timeEliminated
     if (result.finalTableReached !== undefined) updateData.final_table_reached = result.finalTableReached
 
+    const supabase = createClientComponentClient()
     const { data, error } = await supabase
       .from('tournament_results')
       .update(updateData)
@@ -240,6 +244,11 @@ export class TournamentService {
 
   // Получить турниры без результатов для пользователя (для бота)
   static async getTournamentsWithoutResults(userId: string): Promise<Tournament[]> {
+    const supabase = createClientComponentClient()
+    const supabaseAdmin = createAdminClient()
+    if (!supabaseAdmin) {
+      throw new Error('Admin client not available')
+    }
     const { data, error } = await supabaseAdmin
       .from('tournaments')
       .select(`

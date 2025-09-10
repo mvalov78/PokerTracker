@@ -109,6 +109,15 @@ class PokerTrackerBot {
         await ctx.reply('❌ Произошла ошибка при обработке команды /start')
       }
     })
+    this.bot.command('link', async (ctx) => {
+      try {
+        console.log('🤖 Получена команда /link')
+        await this.commands.link(ctx)
+      } catch (error) {
+        console.error('❌ Ошибка при обработке команды /link:', error)
+        await ctx.reply('❌ Произошла ошибка при обработке команды /link')
+      }
+    })
     this.bot.command('help', async (ctx) => {
       try {
         console.log('🤖 Получена команда /help')

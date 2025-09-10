@@ -1,0 +1,48 @@
+{
+  "version": "1.0.0",
+  "codename": "Poker Authorization Release",
+  "releaseDate": "2025-09-10",
+  "features": [
+    "Complete user authentication system",
+    "Google OAuth integration", 
+    "Telegram bot integration",
+    "User data isolation",
+    "Admin panel",
+    "OCR ticket recognition",
+    "Tournament management",
+    "Telegram account linking"
+  ],
+  "databaseVersion": "1.0.0",
+  "apiVersion": "1.0.0",
+  "compatibility": {
+    "minimumNodeVersion": "18.0.0",
+    "minimumNextJSVersion": "15.0.0",
+    "supabaseVersion": "2.0.0"
+  },
+  "environments": {
+    "development": {
+      "branch": "dev",
+      "database": "development",
+      "features": ["debug", "hot-reload", "mock-data"]
+    },
+    "staging": {
+      "branch": "staging", 
+      "database": "staging",
+      "features": ["testing", "performance-monitoring"]
+    },
+    "production": {
+      "branch": "main",
+      "database": "production", 
+      "features": ["monitoring", "analytics", "backup"]
+    }
+  },
+  "rollbackInfo": {
+    "previousVersion": null,
+    "rollbackAvailable": false,
+    "criticalChanges": [
+      "Database schema migration",
+      "Authentication system overhaul",
+      "API structure changes"
+    ]
+  }
+}

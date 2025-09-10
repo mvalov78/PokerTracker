@@ -1,29 +1,27 @@
-import { supabase } from '@/lib/supabase'
+import { createClientComponentClient } from '@/lib/supabase'
 
 export class UserService {
   /**
    * Получить UUID пользователя по Telegram ID
    */
   static async getUserUuidByTelegramId(telegramId: string): Promise<string | null> {
-    if (!supabase) {
-      console.warn('Supabase client not available')
-      return null
-    }
-
     try {
+      const supabase = createClientComponentClient()
+      
+      // Ищем в таблице profiles, а не users
       const { data, error } = await supabase
-        .from('users')
+        .from('profiles')
         .select('id')
         .eq('telegram_id', parseInt(telegramId))
         .single()
 
       if (error) {
         if (error.code === 'PGRST116') {
-          // Пользователь не найден - создаем нового
-          const newUser = await this.createUserFromTelegramId(telegramId)
-          return newUser?.id || null
+          // Пользователь не найден - используем getUserOrCreate из lib/supabase
+          console.log(`Profile with Telegram ID ${telegramId} not found, will create via getUserOrCreate`)
+          return null // Пусть бот передаст telegram_id в API, где сработает getUserOrCreate
         }
-        console.error('Error fetching user by telegram_id:', error)
+        console.error('Error fetching profile by telegram_id:', error)
         return null
       }
 
@@ -44,7 +42,8 @@ export class UserService {
     }
 
     try {
-      const { data, error } = await supabase
+      const supabase = createClientComponentClient()
+    const { data, error } = await supabase
         .from('users')
         .insert({
           telegram_id: parseInt(telegramId)

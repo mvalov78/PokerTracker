@@ -1,12 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth, ProtectedRoute } from '@/hooks/useAuth'
 import Button from '@/components/ui/Button'
 import Card, { CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import Input, { Select, Textarea } from '@/components/ui/Input'
 import { Breadcrumbs } from '@/components/ui/Navigation'
 import { useToast } from '@/components/ui/Toast'
+import TelegramIntegration from '@/components/TelegramIntegration'
 
 function SettingsContent() {
   const { user } = useAuth()
@@ -24,6 +25,14 @@ function SettingsContent() {
     location: user?.location || '',
     timezone: user?.timezone || 'UTC',
     language: user?.language || 'ru'
+  })
+
+  // Telegram Integration
+  const [telegramSettings, setTelegramSettings] = useState({
+    telegramId: null as string | null,
+    isLinked: false,
+    linkingCode: '',
+    isGeneratingCode: false
   })
 
   // Notification Settings
@@ -108,6 +117,95 @@ function SettingsContent() {
       setIsLoading(false)
     }
   }
+
+  // Telegram Integration Functions
+  const generateLinkingCode = async () => {
+    setTelegramSettings(prev => ({ ...prev, isGeneratingCode: true }))
+    try {
+      const response = await fetch('/api/telegram/generate-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user?.id })
+      })
+      
+      const result = await response.json()
+      if (result.success) {
+        setTelegramSettings(prev => ({ 
+          ...prev, 
+          linkingCode: result.code,
+          isGeneratingCode: false
+        }))
+        addToast({
+          type: 'success',
+          message: 'Код для связывания создан! Отправьте его боту в Telegram'
+        })
+      } else {
+        throw new Error(result.error)
+      }
+    } catch (error) {
+      addToast({
+        type: 'error',
+        message: 'Ошибка при создании кода связывания'
+      })
+      setTelegramSettings(prev => ({ ...prev, isGeneratingCode: false }))
+    }
+  }
+
+  const unlinkTelegram = async () => {
+    if (!confirm('Вы уверены, что хотите отвязать Telegram аккаунт?')) return
+    
+    try {
+      const response = await fetch('/api/telegram/unlink', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user?.id })
+      })
+      
+      const result = await response.json()
+      if (result.success) {
+        setTelegramSettings({
+          telegramId: null,
+          isLinked: false,
+          linkingCode: '',
+          isGeneratingCode: false
+        })
+        addToast({
+          type: 'success',
+          message: 'Telegram аккаунт успешно отвязан'
+        })
+      } else {
+        throw new Error(result.error)
+      }
+    } catch (error) {
+      addToast({
+        type: 'error',
+        message: 'Ошибка при отвязке Telegram аккаунта'
+      })
+    }
+  }
+
+  const checkTelegramStatus = async () => {
+    try {
+      const response = await fetch(`/api/telegram/status?userId=${user?.id}`)
+      const result = await response.json()
+      if (result.success && result.telegram) {
+        setTelegramSettings(prev => ({
+          ...prev,
+          telegramId: result.telegram.telegramId,
+          isLinked: true
+        }))
+      }
+    } catch (error) {
+      console.error('Error checking Telegram status:', error)
+    }
+  }
+
+  // Load Telegram status on component mount
+  useEffect(() => {
+    if (user?.id) {
+      checkTelegramStatus()
+    }
+  }, [user?.id])
 
   const handleExportData = async () => {
     try {
@@ -276,6 +374,9 @@ function SettingsContent() {
               />
             </CardContent>
           </Card>
+
+          {/* Telegram Integration */}
+          <TelegramIntegration />
 
           {/* App Settings */}
           <Card>

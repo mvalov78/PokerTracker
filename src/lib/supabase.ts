@@ -1,69 +1,114 @@
+import { createBrowserClient, createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 
-// Supabase configuration
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+// Environment variables
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
-// Временная заглушка для демонстрации (замените на реальные значения)
+// Check for required environment variables
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('⚠️  Supabase переменные окружения не настроены. Используется fallback к mockData.')
+  console.warn('Missing Supabase environment variables, using fallback mode')
 }
 
-// Client-side Supabase client (for authenticated users)
-export const supabase = supabaseUrl && supabaseAnonKey 
-  ? createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: true
-      }
-    })
-  : null
+// Client-side Supabase client (for browser usage)
+export const createClientComponentClient = () => {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Supabase credentials missing')
+  }
+  return createBrowserClient<Database>(supabaseUrl, supabaseAnonKey)
+}
 
-// Server-side Supabase client (with service role for bot operations)
-export const supabaseAdmin = supabaseUrl && supabaseServiceKey
-  ? createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    })
-  : null
+// Backward compatibility exports
+export const supabase = (() => {
+  try {
+    return createClientComponentClient()
+  } catch {
+    return null
+  }
+})()
+
+export const supabaseAdmin = (() => {
+  try {
+    return createAdminClient()
+  } catch {
+    return null
+  }
+})()
+
+// Server-side Supabase client (for server components and API routes)
+// This should only be used in server components or API routes
+export const createServerComponentClient = (cookieStore: any) => {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Supabase credentials missing')
+  }
+  
+  return createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll() {
+        return cookieStore.getAll()
+      },
+      setAll(cookiesToSet) {
+        try {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            cookieStore.set(name, value, options)
+          })
+        } catch (error) {
+          // The `setAll` method was called from a Server Component.
+          // This can be ignored if you have middleware refreshing
+          // user sessions.
+        }
+      },
+    },
+  })
+}
+
+// Admin client (for server-side operations with service role key)
+export const createAdminClient = () => {
+  if (!supabaseUrl || !supabaseServiceKey || supabaseServiceKey === 'YOUR_SERVICE_ROLE_KEY_HERE') {
+    console.warn('Admin client not available: missing service role key')
+    return null
+  }
+  
+  return createClient<Database>(supabaseUrl, supabaseServiceKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  })
+}
 
 // Database types (based on our schema)
 export interface Database {
   public: {
     Tables: {
-      users: {
+      profiles: {
         Row: {
-          id: string
+          id: string // references auth.users(id)
           username: string | null
-          email: string | null
           avatar_url: string | null
           telegram_id: number | null
+          role: 'player' | 'admin'
           preferences: Record<string, any>
           created_at: string
           updated_at: string
         }
         Insert: {
-          id?: string
+          id: string // references auth.users(id) 
           username?: string | null
-          email?: string | null
           avatar_url?: string | null
           telegram_id?: number | null
+          role?: 'player' | 'admin'
           preferences?: Record<string, any>
           created_at?: string
           updated_at?: string
         }
         Update: {
-          id?: string
           username?: string | null
-          email?: string | null
           avatar_url?: string | null
           telegram_id?: number | null
+          role?: 'player' | 'admin'
           preferences?: Record<string, any>
-          created_at?: string
           updated_at?: string
         }
       }
@@ -268,14 +313,74 @@ export interface Database {
   }
 }
 
-// Helper functions
-export async function getUserByTelegramId(telegramId: number) {
-  if (!supabaseAdmin) {
-    throw new Error('Supabase not configured')
+// Helper functions for profile management
+export async function getProfile(userId: string) {
+  const supabase = createAdminClient()
+  if (!supabase) {
+    throw new Error('Admin client not available')
   }
   
-  const { data, error } = await supabaseAdmin
-    .from('users')
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', userId)
+    .single()
+
+  if (error && error.code !== 'PGRST116') {
+    throw error
+  }
+
+  return data
+}
+
+export async function createProfile(userId: string, profileData: Database['public']['Tables']['profiles']['Insert']) {
+  const supabase = createAdminClient()
+  if (!supabase) {
+    throw new Error('Admin client not available')
+  }
+  
+  const { data, error } = await supabase
+    .from('profiles')
+    .insert({
+      id: userId,
+      role: 'player', // Default role
+      ...profileData
+    })
+    .select()
+    .single()
+
+  if (error) {
+    throw error
+  }
+
+  return data
+}
+
+export async function updateProfile(userId: string, updates: Database['public']['Tables']['profiles']['Update']) {
+  const supabase = createAdminClient()
+  
+  const { data, error } = await supabase
+    .from('profiles')
+    .update({
+      ...updates,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', userId)
+    .select()
+    .single()
+
+  if (error) {
+    throw error
+  }
+
+  return data
+}
+
+export async function getProfileByTelegramId(telegramId: number) {
+  const supabase = createAdminClient()
+  
+  const { data, error } = await supabase
+    .from('profiles')
     .select('*')
     .eq('telegram_id', telegramId)
     .single()
@@ -287,62 +392,57 @@ export async function getUserByTelegramId(telegramId: number) {
   return data
 }
 
-export async function createUserFromTelegram(telegramId: number, username?: string) {
-  if (!supabaseAdmin) {
-    throw new Error('Supabase not configured')
-  }
-  
-  const { data, error } = await supabaseAdmin.rpc('create_user_from_telegram', {
-    telegram_user_id: telegramId,
-    telegram_username: username
-  })
-
-  if (error) {
-    throw error
-  }
-
-  return data
+export async function isAdmin(userId: string): Promise<boolean> {
+  const profile = await getProfile(userId)
+  return profile?.role === 'admin'
 }
 
 export async function getUserOrCreate(telegramId: number, username?: string) {
-  if (!supabaseAdmin) {
-    throw new Error('Supabase not configured')
+  const adminClient = createAdminClient()
+  if (!adminClient) {
+    throw new Error('Supabase admin client not configured')
   }
+
+  // Сначала попробуем найти существующего пользователя
+  let profile = await getProfileByTelegramId(telegramId)
   
+  if (profile) {
+    return profile
+  }
+
+  // Для тестирования - ищем любого существующего пользователя из auth.users
   try {
-    let user = await getUserByTelegramId(telegramId)
+    const { data: users, error: usersError } = await adminClient.auth.admin.listUsers()
     
-    if (!user) {
-      // Пытаемся создать пользователя
-      try {
-        const userId = await createUserFromTelegram(telegramId, username)
-        user = await getUserByTelegramId(telegramId)
-      } catch (createError) {
-        console.log('⚠️  Не удалось создать пользователя через функцию, пробуем прямую вставку:', createError.message)
-        
-        // Пробуем создать пользователя напрямую
-        const { data: newUser, error: insertError } = await supabaseAdmin
-          .from('users')
-          .insert({
-            telegram_id: telegramId,
-            username: username || `user_${telegramId}`,
-            email: `${telegramId}@telegram.local`
-          })
-          .select()
-          .single()
-        
-        if (insertError) {
-          console.log('⚠️  Прямая вставка тоже не удалась:', insertError.message)
-          throw new Error('Cannot create user in Supabase')
-        }
-        
-        user = newUser
-      }
+    if (usersError) {
+      console.error('Error fetching users:', usersError)
+      throw usersError
     }
 
-    return user
+    if (users && users.users.length > 0) {
+      // Берем первого пользователя (или ищем по email)
+      const existingUser = users.users.find(u => u.email === 'mvalov78@gmail.com') || users.users[0]
+      
+      // Проверяем есть ли уже профиль для этого пользователя
+      const existingProfile = await getProfile(existingUser.id)
+      if (existingProfile) {
+        return existingProfile
+      }
+      
+      // Создаем профиль для существующего пользователя
+      const newProfile = {
+        telegram_id: telegramId,
+        username: username || existingUser.email?.split('@')[0] || `user_${telegramId}`,
+        role: 'player' as const
+      }
+
+      profile = await createProfile(existingUser.id, newProfile)
+      return profile
+    } else {
+      throw new Error('No users found in auth.users')
+    }
   } catch (error) {
-    console.log('⚠️  Ошибка работы с пользователем Supabase:', error.message)
+    console.error('Error creating user profile:', error)
     throw error
   }
 }

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { getTournamentById, updateTournament } from '@/data/mockData'
+// Убираем импорт mock данных - используем только Supabase
 import type { Tournament, TournamentFormData } from '@/types'
 
 export default function EditTournamentPage() {
@@ -58,32 +58,13 @@ export default function EditTournamentPage() {
         }
       } catch (error) {
         console.error('Ошибка загрузки турнира через API:', error)
-      }
-      
-      // Fallback на localStorage
-      const foundTournament = getTournamentById(tournamentId)
-      
-      if (!foundTournament) {
         // Турнир не найден, перенаправляем на список
         router.push('/tournaments')
         return
       }
       
-      setTournament(foundTournament)
-      setFormData({
-        name: foundTournament.name,
-        date: foundTournament.date.split('T')[0], // Конвертируем в формат YYYY-MM-DD
-        venue: foundTournament.venue,
-        buyin: foundTournament.buyin,
-        tournamentType: foundTournament.tournamentType,
-        structure: foundTournament.structure || '',
-        participants: foundTournament.participants || undefined,
-        prizePool: foundTournament.prizePool || undefined,
-        blindLevels: foundTournament.blindLevels || '',
-        startingStack: foundTournament.startingStack || undefined,
-        notes: foundTournament.notes || ''
-      })
-      setIsLoading(false)
+      // Если API не вернул данные, турнир не найден
+      router.push('/tournaments')
     }
     
     loadTournament()
@@ -142,20 +123,10 @@ export default function EditTournamentPage() {
           }
         }
         
-        throw new Error('API update failed')
+        throw new Error('Не удалось обновить турнир через API')
       } catch (apiError) {
-        console.error('Ошибка обновления через API, пробуем fallback:', apiError)
-        
-        // Fallback на localStorage
-        const updatedTournament = updateTournament(tournamentId, updateData)
-        
-        if (updatedTournament) {
-          console.log('Турнир успешно обновлен через localStorage:', updatedTournament)
-          alert('Турнир успешно обновлен!')
-          router.push('/tournaments')
-        } else {
-          throw new Error('Не удалось обновить турнир')
-        }
+        console.error('Ошибка обновления через API:', apiError)
+        throw apiError
       }
     } catch (error) {
       console.error('Ошибка при сохранении:', error)

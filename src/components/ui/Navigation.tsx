@@ -61,11 +61,11 @@ export default function Navigation({ className }: NavigationProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const pathname = usePathname()
-  const { user, logout } = useAuth()
+  const { user, profile, signOut, isAdmin } = useAuth()
   const { addToast } = useToast()
 
-  const handleLogout = () => {
-    logout()
+  const handleLogout = async () => {
+    await signOut()
     addToast({
       type: 'success',
       message: 'Вы успешно вышли из системы'
@@ -124,10 +124,10 @@ export default function Navigation({ className }: NavigationProps) {
                 className="flex items-center space-x-2 text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-poker-green-500"
               >
                 <div className="w-8 h-8 bg-poker-green-500 rounded-full flex items-center justify-center text-white font-semibold">
-                  {user ? getInitials(user.username || user.email) : 'U'}
+                  {user ? getInitials(profile?.username || user.email || '') : 'U'}
                 </div>
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  {user?.username || 'Пользователь'}
+                  {profile?.username || user?.email || 'Пользователь'}
                 </span>
                 <span className="text-gray-400">▼</span>
               </button>
@@ -149,6 +149,18 @@ export default function Navigation({ className }: NavigationProps) {
                   >
                     ⚙️ Настройки
                   </Link>
+                  {isAdmin && (
+                    <>
+                      <div className="border-t border-gray-200 dark:border-gray-600 my-1"></div>
+                      <Link
+                        href="/admin"
+                        className="block px-4 py-2 text-sm text-emerald-600 dark:text-emerald-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        onClick={() => setUserMenuOpen(false)}
+                      >
+                        🛡️ Админ-панель
+                      </Link>
+                    </>
+                  )}
                   <hr className="my-1 border-gray-200 dark:border-gray-600" />
                   <button
                     onClick={handleLogout}
@@ -213,11 +225,11 @@ export default function Navigation({ className }: NavigationProps) {
           <div className="pt-4 pb-3 border-t border-gray-200 dark:border-gray-600">
             <div className="flex items-center px-5">
               <div className="w-10 h-10 bg-poker-green-500 rounded-full flex items-center justify-center text-white font-semibold">
-                {user ? getInitials(user.username || user.email) : 'U'}
+                {user ? getInitials(profile?.username || user.email || '') : 'U'}
               </div>
               <div className="ml-3">
                 <div className="text-base font-medium text-gray-800 dark:text-gray-200">
-                  {user?.username || 'Пользователь'}
+                  {profile?.username || user?.email || 'Пользователь'}
                 </div>
                 <div className="text-sm font-medium text-gray-500 dark:text-gray-400">
                   {user?.email || 'user@example.com'}

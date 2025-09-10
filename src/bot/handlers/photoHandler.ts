@@ -273,10 +273,9 @@ export class PhotoHandler {
       const userUuid = await UserService.getUserUuidByTelegramId(telegramId)
       console.log('🔍 [confirmTournament] UUID пользователя:', userUuid)
       
-      if (!userUuid) {
-        await ctx.reply('❌ Ошибка получения данных пользователя. Попробуйте еще раз.')
-        return
-      }
+      // Если UUID не найден, используем Telegram ID - API создаст пользователя через getUserOrCreate
+      const finalUserId = userUuid || telegramId
+      console.log('🔍 [confirmTournament] Финальный ID для создания турнира:', finalUserId)
       
       // Используем текущую площадку пользователя, если установлена, иначе берем из OCR
       console.log('🔍 [confirmTournament] Получаем текущую площадку пользователя:', telegramId)
@@ -287,7 +286,7 @@ export class PhotoHandler {
       console.log('🏨 [confirmTournament] Финальная площадка для создания турнира:', venue)
       
       const tournamentData = {
-        userId: userUuid,
+        userId: finalUserId,
         name: data.name || 'Турнир из билета',
         date: data.date || new Date().toISOString(),
         buyin: data.buyin || 0,
