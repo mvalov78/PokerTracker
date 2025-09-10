@@ -17,6 +17,7 @@ import { BotCommands } from './commands'
 import { PhotoHandler } from './handlers/photoHandler'
 import { NotificationService } from './services/notificationService'
 import { getBotConfig } from './config'
+import { BotSettingsService } from '@/services/botSettingsService'
 
 export interface SessionData {
   userId?: string
@@ -346,31 +347,50 @@ class PokerTrackerBot {
   }
 
   /**
-   * Запуск бота в polling режиме
+   * Запуск бота с проверкой режима из базы данных
    */
   public async start() {
     try {
-      console.log('🤖 Запуск Telegram бота в polling режиме...')
+      console.log('🤖 Запуск Telegram бота...')
       
       if (this.isRunning) {
         console.log('⚠️ Бот уже запущен')
         return
       }
 
+      // Проверяем режим работы из базы данных
+      const botMode = await BotSettingsService.getBotMode()
+      console.log(`🔍 Режим бота из БД: ${botMode}`)
+
       this.isRunning = true
       
-      // В реальном приложении здесь был бы запуск polling
+      // Обновляем статус в БД
+      await BotSettingsService.updateBotStatus('active')
+      
+      // Запускаем в соответствующем режиме
       if (this.config.token && this.config.token !== 'mock-bot-token') {
-        await this.startRealPolling()
+        if (botMode === 'webhook') {
+          console.log('🔗 Запуск в webhook режиме...')
+          await this.startWebhookMode()
+        } else {
+          console.log('🔄 Запуск в polling режиме...')
+          await this.startRealPolling()
+        }
       } else {
+        console.log('🧪 Запуск в мок режиме...')
         await this.startMockPolling()
       }
       
-      console.log('✅ Telegram бот успешно запущен в polling режиме!')
+      console.log('✅ Telegram бот успешно запущен!')
       
     } catch (error) {
       console.error('❌ Ошибка запуска бота:', error)
       this.isRunning = false
+      
+      // Обновляем статус ошибки в БД
+      await BotSettingsService.updateBotStatus('error')
+      await BotSettingsService.incrementErrorCount()
+      
       throw error
     }
   }
@@ -431,6 +451,53 @@ class PokerTrackerBot {
   }
 
   /**
+   * Запуск в webhook режиме
+   */
+  private async startWebhookMode() {
+    if (!this.bot) {
+      throw new Error('Bot not initialized with token')
+    }
+
+    try {
+      console.log('🔗 Настройка webhook режима...')
+      
+      // Получаем URL webhook из настроек
+      const webhookUrl = await BotSettingsService.getWebhookUrl()
+      
+      if (!webhookUrl) {
+        throw new Error('Webhook URL not configured')
+      }
+
+      // Устанавливаем webhook в Telegram
+      const result = await this.bot.telegram.setWebhook(webhookUrl, {
+        allowed_updates: ['message', 'callback_query']
+      })
+
+      if (result) {
+        console.log(`✅ Webhook установлен: ${webhookUrl}`)
+        
+        // Обновляем настройки в БД
+        await BotSettingsService.updateSetting('webhook_enabled', true)
+        await BotSettingsService.updateSetting('polling_enabled', false)
+        await BotSettingsService.updateLastUpdateTime()
+        
+        console.log('✅ Webhook режим активирован!')
+      } else {
+        throw new Error('Failed to set webhook')
+      }
+      
+    } catch (error) {
+      console.error('❌ Ошибка настройки webhook режима:', error)
+      
+      // Обновляем статус ошибки
+      await BotSettingsService.updateBotStatus('error')
+      await BotSettingsService.incrementErrorCount()
+      
+      throw error
+    }
+  }
+
+  /**
    * Запуск мок polling для разработки
    */
   private async startMockPolling() {
@@ -479,24 +546,45 @@ class PokerTrackerBot {
     
     this.isRunning = false
     
-    // Останавливаем реального бота если он есть
-    if (this.bot) {
-      try {
-        this.bot.stop()
-        console.log('✅ Реальный Telegram бот остановлен')
-      } catch (error) {
-        console.error('Ошибка остановки реального бота:', error)
+    try {
+      // Обновляем статус в БД
+      await BotSettingsService.updateBotStatus('inactive')
+      
+      // Останавливаем реального бота если он есть
+      if (this.bot) {
+        try {
+          // Проверяем текущий режим
+          const botMode = await BotSettingsService.getBotMode()
+          
+          if (botMode === 'webhook') {
+            // Удаляем webhook
+            console.log('🔗 Удаление webhook...')
+            await this.bot.telegram.deleteWebhook()
+            await BotSettingsService.updateSetting('webhook_enabled', false)
+            console.log('✅ Webhook удален')
+          }
+          
+          this.bot.stop()
+          console.log('✅ Реальный Telegram бот остановлен')
+        } catch (error) {
+          console.error('Ошибка остановки реального бота:', error)
+          await BotSettingsService.incrementErrorCount()
+        }
       }
+      
+      // Останавливаем мок polling
+      if (this.pollingInterval) {
+        clearInterval(this.pollingInterval)
+        this.pollingInterval = undefined
+        console.log('✅ Мок polling остановлен')
+      }
+      
+      console.log('✅ Telegram бот полностью остановлен')
+      
+    } catch (error) {
+      console.error('Ошибка остановки бота:', error)
+      await BotSettingsService.updateBotStatus('error')
     }
-    
-    // Останавливаем мок polling
-    if (this.pollingInterval) {
-      clearInterval(this.pollingInterval)
-      this.pollingInterval = undefined
-      console.log('✅ Мок polling остановлен')
-    }
-    
-    console.log('✅ Telegram бот полностью остановлен')
   }
 
   /**

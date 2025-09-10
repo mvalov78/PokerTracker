@@ -2,13 +2,15 @@
 
 import { useAuth } from '@/hooks/useAuth'
 import Card, { CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
+import BotModeManager from '@/components/admin/BotModeManager'
 import { 
   Users, 
   Calendar, 
   TrendingUp, 
   Shield,
   Activity,
-  Database
+  Database,
+  Bot
 } from 'lucide-react'
 
 // Мок данные для демонстрации (в продакшене будем получать из API)
@@ -170,6 +172,9 @@ export default function AdminDashboard() {
         </Card>
       </div>
 
+      {/* Управление Telegram ботом */}
+      <BotModeManager />
+
       {/* Быстрые ссылки */}
       <Card className="bg-gray-800/50 border-gray-700">
         <CardHeader>
@@ -196,9 +201,9 @@ export default function AdminDashboard() {
             </button>
             
             <button className="p-4 bg-gray-700 hover:bg-gray-600 rounded-lg text-left transition-colors">
-              <Database className="h-6 w-6 text-purple-400 mb-2" />
-              <div className="text-white font-medium">Настройки системы</div>
-              <div className="text-gray-400 text-sm">Конфигурация и безопасность</div>
+              <Bot className="h-6 w-6 text-cyan-400 mb-2" />
+              <div className="text-white font-medium">Управление ботом</div>
+              <div className="text-gray-400 text-sm">Режимы и настройки</div>
             </button>
           </div>
         </CardContent>
