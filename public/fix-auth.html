@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Исправление авторизации</title>
+</head>
+<body>
+    <h1>🔧 Исправление авторизации</h1>
+    <p>Этот скрипт обновит данные пользователя в localStorage с правильным UUID.</p>
+    
+    <button onclick="fixAuth()">Исправить авторизацию</button>
+    <div id="result"></div>
+
+    <script>
+        function fixAuth() {
+            const testUser = {
+                id: '00000000-0000-0000-0000-000000000001',
+                username: 'pokerking',
+                email: 'player@example.com',
+                avatarUrl: null,
+                telegramId: 49767276,
+                preferences: {
+                    theme: 'dark',
+                    language: 'ru'
+                },
+                createdAt: '2024-01-01T00:00:00Z',
+                updatedAt: '2024-01-01T00:00:00Z'
+            };
+            
+            localStorage.setItem('poker-tracker-user', JSON.stringify(testUser));
+            document.getElementById('result').innerHTML = '<p style="color: green;">✅ Авторизация исправлена! Теперь перейдите на <a href="/">главную страницу</a></p>';
+        }
+    </script>
+</body>
+</html>

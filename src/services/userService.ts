@@ -20,7 +20,8 @@ export class UserService {
       if (error) {
         if (error.code === 'PGRST116') {
           // Пользователь не найден - создаем нового
-          return await this.createUserFromTelegramId(telegramId)
+          const newUser = await this.createUserFromTelegramId(telegramId)
+          return newUser?.id || null
         }
         console.error('Error fetching user by telegram_id:', error)
         return null
@@ -36,7 +37,7 @@ export class UserService {
   /**
    * Создать нового пользователя по Telegram ID
    */
-  static async createUserFromTelegramId(telegramId: string): Promise<string | null> {
+  static async createUserFromTelegramId(telegramId: string): Promise<any | null> {
     if (!supabase) {
       console.warn('Supabase client not available')
       return null
@@ -48,7 +49,7 @@ export class UserService {
         .insert({
           telegram_id: parseInt(telegramId)
         })
-        .select('id')
+        .select('*')
         .single()
 
       if (error) {
@@ -57,11 +58,12 @@ export class UserService {
       }
 
       console.log('✅ Создан новый пользователь:', data.id, 'для Telegram ID:', telegramId)
-      return data.id
+      return data
     } catch (error) {
       console.error('Error in createUserFromTelegramId:', error)
       return null
     }
   }
 }
+
 

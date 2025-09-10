@@ -22,7 +22,17 @@ export class TournamentService {
       throw new Error(`Failed to fetch tournaments: ${error.message}`)
     }
 
-    return data.map(this.mapDbTournamentToType)
+    // Дополнительная проверка: убеждаемся, что все турниры действительно существуют
+    const validTournaments = data.filter(tournament => {
+      // Проверяем, что у турнира есть обязательные поля
+      return tournament.id && tournament.name && tournament.user_id === userId
+    })
+
+    if (validTournaments.length !== data.length) {
+      console.warn(`⚠️ Отфильтровано ${data.length - validTournaments.length} некорректных турниров`)
+    }
+
+    return validTournaments.map(this.mapDbTournamentToType)
   }
 
   // Получить турнир по ID
@@ -42,6 +52,10 @@ export class TournamentService {
         return null
       }
       throw new Error(`Failed to fetch tournament: ${error.message}`)
+    }
+
+    if (!data) {
+      return null
     }
 
     return this.mapDbTournamentToType(data)
@@ -294,5 +308,71 @@ export class TournamentService {
       finalTableReached: dbResult.final_table_reached,
       createdAt: dbResult.created_at
     }
+  }
+
+  // Проверить и очистить сиротские данные
+  static async cleanupOrphanedData(): Promise<{
+    orphanedResults: number,
+    orphanedPhotos: number,
+    orphanedTransactions: number
+  }> {
+    const results = {
+      orphanedResults: 0,
+      orphanedPhotos: 0,
+      orphanedTransactions: 0
+    }
+
+    try {
+      // Найти и удалить сиротские результаты турниров
+      const { data: orphanedResults, error: resultsError } = await supabase
+        .from('tournament_results')
+        .select('id, tournament_id')
+        .not('tournament_id', 'in', `(SELECT id FROM tournaments)`)
+      
+      if (!resultsError && orphanedResults?.length > 0) {
+        const orphanedIds = orphanedResults.map(r => r.id)
+        await supabase
+          .from('tournament_results')
+          .delete()
+          .in('id', orphanedIds)
+        results.orphanedResults = orphanedResults.length
+      }
+
+      // Найти и удалить сиротские фотографии
+      const { data: orphanedPhotos, error: photosError } = await supabase
+        .from('tournament_photos')
+        .select('id, tournament_id')
+        .not('tournament_id', 'in', `(SELECT id FROM tournaments)`)
+      
+      if (!photosError && orphanedPhotos?.length > 0) {
+        const orphanedIds = orphanedPhotos.map(p => p.id)
+        await supabase
+          .from('tournament_photos')
+          .delete()
+          .in('id', orphanedIds)
+        results.orphanedPhotos = orphanedPhotos.length
+      }
+
+      // Очистить ссылки на несуществующие турниры в транзакциях
+      const { data: orphanedTransactions, error: transactionsError } = await supabase
+        .from('bankroll_transactions')
+        .select('id, tournament_id')
+        .not('tournament_id', 'is', null)
+        .not('tournament_id', 'in', `(SELECT id FROM tournaments)`)
+      
+      if (!transactionsError && orphanedTransactions?.length > 0) {
+        const orphanedIds = orphanedTransactions.map(t => t.id)
+        await supabase
+          .from('bankroll_transactions')
+          .update({ tournament_id: null })
+          .in('id', orphanedIds)
+        results.orphanedTransactions = orphanedTransactions.length
+      }
+
+    } catch (error) {
+      console.error('Error cleaning orphaned data:', error)
+    }
+
+    return results
   }
 }

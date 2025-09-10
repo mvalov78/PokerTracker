@@ -1,45 +1,199 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import { useAuth, ProtectedRoute } from '@/hooks/useAuth'
+import { useTournaments } from '@/hooks/useTournaments'
+import Button from '@/components/ui/Button'
+import Card, { CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
+import { Tournament } from '@/types'
 
-export default function AnalyticsPage() {
+function AnalyticsContent() {
   const router = useRouter()
+  const { user } = useAuth()
+  const { tournaments, isLoading, error } = useTournaments(user?.id)
   const [timeRange, setTimeRange] = useState('all')
 
-  // Мок данные для аналитики
-  const mockStats = {
-    totalTournaments: 15,
-    totalBuyins: 3250,
-    totalWinnings: 4150,
-    profit: 900,
-    roi: 27.7,
-    itm: 40, // In The Money %
-    avgPosition: 45.2,
-    bestFinish: 1,
-    worstFinish: 156
+  // Фильтруем турниры по временному диапазону
+  const filteredTournaments = useMemo(() => {
+    if (timeRange === 'all') return tournaments
+
+    const now = new Date()
+    const startDate = new Date()
+    
+    switch (timeRange) {
+      case 'week':
+        startDate.setDate(now.getDate() - 7)
+        break
+      case 'month':
+        startDate.setMonth(now.getMonth() - 1)
+        break
+      case 'year':
+        startDate.setFullYear(now.getFullYear() - 1)
+        break
+    }
+    
+    return tournaments.filter(tournament => 
+      new Date(tournament.date) >= startDate
+    )
+  }, [tournaments, timeRange])
+
+  // Турниры с результатами
+  const tournamentsWithResults = useMemo(() => {
+    return filteredTournaments.filter(tournament => tournament.result)
+  }, [filteredTournaments])
+
+  // Основная статистика
+  const stats = useMemo(() => {
+    const totalTournaments = filteredTournaments.length
+    const totalBuyins = filteredTournaments.reduce((sum, t) => sum + t.buyin, 0)
+    const totalWinnings = tournamentsWithResults.reduce((sum, t) => sum + (t.result?.payout || 0), 0)
+    
+    // ПРАВИЛЬНЫЙ расчет: учитываем ВСЕ турниры для ROI
+    // Турниры без результатов = потерянные бай-ины (0 выигрыша)
+    const profit = totalWinnings - totalBuyins
+    const roi = totalBuyins > 0 ? ((profit / totalBuyins) * 100) : 0
+    
+    // ПРАВИЛЬНЫЙ расчет ITM: от ВСЕХ турниров
+    // Турниры без результатов = не попали в деньги (ITM = 0)
+    const cashCount = tournamentsWithResults.filter(t => {
+      const position = t.result?.position || 999
+      const participants = t.participants
+      
+      if (participants && participants > 0) {
+        // Если знаем количество участников, используем правило 15%
+        return position <= (participants * 0.15)
+      } else {
+        // Если не знаем участников, считаем ITM по прибыли (payout > buyin)
+        const payout = t.result?.payout || 0
+        return payout > t.buyin
+      }
+    }).length
+    
+    // ITM - процент от ВСЕХ турниров, где попали в деньги
+    const itm = totalTournaments > 0 ? (cashCount / totalTournaments) * 100 : 0
+    
+    
+    const avgPosition = tournamentsWithResults.length > 0 
+      ? tournamentsWithResults.reduce((sum, t) => sum + (t.result?.position || 0), 0) / tournamentsWithResults.length 
+      : 0
+    
+    const bestFinish = tournamentsWithResults.length > 0 
+      ? Math.min(...tournamentsWithResults.map(t => t.result?.position || 999))
+      : 0
+    
+    const worstFinish = tournamentsWithResults.length > 0 
+      ? Math.max(...tournamentsWithResults.map(t => t.result?.position || 0))
+      : 0
+
+    return {
+      totalTournaments,
+      totalBuyins,
+      totalWinnings,
+      profit,
+      roi,
+      itm,
+      avgPosition,
+      bestFinish: bestFinish === 999 ? 0 : bestFinish,
+      worstFinish
+    }
+  }, [filteredTournaments, tournamentsWithResults])
+
+  // Анализ по типам турниров
+  const tournamentTypeAnalysis = useMemo(() => {
+    const typeMap = new Map()
+    
+    filteredTournaments.forEach(tournament => {
+      const type = tournament.type || 'tournament'
+      const existing = typeMap.get(type) || { type, count: 0, profit: 0 }
+      
+      existing.count += 1
+      existing.profit += (tournament.result?.profit || -tournament.buyin)
+      
+      typeMap.set(type, existing)
+    })
+    
+    return Array.from(typeMap.values()).sort((a, b) => b.count - a.count)
+  }, [filteredTournaments])
+
+  // Анализ по площадкам
+  const venueAnalysis = useMemo(() => {
+    const venueMap = new Map()
+    
+    filteredTournaments.forEach(tournament => {
+      const venue = tournament.venue
+      const existing = venueMap.get(venue) || { venue, count: 0, profit: 0 }
+      
+      existing.count += 1
+      existing.profit += (tournament.result?.profit || -tournament.buyin)
+      
+      venueMap.set(venue, existing)
+    })
+    
+    return Array.from(venueMap.values()).sort((a, b) => b.count - a.count)
+  }, [filteredTournaments])
+
+  // Последние результаты
+  const recentResults = useMemo(() => {
+    return tournamentsWithResults
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 4)
+      .map(tournament => ({
+        date: tournament.date,
+        tournament: tournament.name,
+        position: tournament.result?.position || 0,
+        profit: tournament.result?.profit || 0
+      }))
+  }, [tournamentsWithResults])
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('ru-RU', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(amount)
   }
 
-  const mockTournamentTypes = [
-    { type: 'Freezeout', count: 8, profit: 650 },
-    { type: 'Rebuy', count: 4, profit: 150 },
-    { type: 'Bounty', count: 2, profit: 75 },
-    { type: 'Satellite', count: 1, profit: 25 }
-  ]
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-100 p-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center py-12">
+            <div className="text-4xl mb-4">⏳</div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Загрузка аналитики...
+            </h3>
+            <p className="text-gray-600">
+              Получаем данные из базы данных
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
-  const mockVenues = [
-    { venue: 'PokerStars', count: 6, profit: 450 },
-    { venue: 'PartyPoker', count: 4, profit: 200 },
-    { venue: 'GGPoker', count: 3, profit: 150 },
-    { venue: 'Live Casino', count: 2, profit: 100 }
-  ]
-
-  const mockRecentResults = [
-    { date: '2024-01-15', tournament: 'Sunday Million', position: 45, profit: 1035 },
-    { date: '2024-01-12', tournament: 'Daily Deep', position: 156, profit: -55 },
-    { date: '2024-01-10', tournament: 'Bounty Builder', position: 23, profit: 125 },
-    { date: '2024-01-08', tournament: 'Satellite', position: 3, profit: 215 }
-  ]
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-100 p-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center py-12">
+            <div className="text-4xl mb-4">❌</div>
+            <h3 className="text-lg font-semibold text-red-600 mb-2">
+              Ошибка загрузки данных
+            </h3>
+            <p className="text-gray-600 mb-4">
+              {error}
+            </p>
+            <Button 
+              onClick={() => window.location.reload()} 
+              variant="outline"
+            >
+              🔄 Попробовать снова
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-100 p-8">
@@ -55,219 +209,267 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Time Range Filter */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-gray-900">Период анализа</h2>
-            <select
-              value={timeRange}
-              onChange={(e) => setTimeRange(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="all">Все время</option>
-              <option value="year">Текущий год</option>
-              <option value="month">Текущий месяц</option>
-              <option value="week">Текущая неделя</option>
-            </select>
-          </div>
-        </div>
+        <Card className="mb-6">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-gray-900">Период анализа</h2>
+              <select
+                value={timeRange}
+                onChange={(e) => setTimeRange(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">Все время</option>
+                <option value="year">Текущий год</option>
+                <option value="month">Текущий месяц</option>
+                <option value="week">Текущая неделя</option>
+              </select>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Main Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow p-6 text-center">
-            <div className="text-3xl font-bold text-blue-600 mb-2">
-              {mockStats.totalTournaments}
-            </div>
-            <div className="text-gray-600">Всего турниров</div>
-          </div>
+          <Card className="text-center">
+            <CardContent className="p-6">
+              <div className="text-3xl font-bold text-blue-600 mb-2">
+                {stats.totalTournaments}
+              </div>
+              <div className="text-gray-600">Всего турниров</div>
+            </CardContent>
+          </Card>
           
-          <div className="bg-white rounded-lg shadow p-6 text-center">
-            <div className="text-3xl font-bold text-red-600 mb-2">
-              ${mockStats.totalBuyins}
-            </div>
-            <div className="text-gray-600">Общие бай-ины</div>
-          </div>
+          <Card className="text-center">
+            <CardContent className="p-6">
+              <div className="text-3xl font-bold text-red-600 mb-2">
+                {formatCurrency(stats.totalBuyins)}
+              </div>
+              <div className="text-gray-600">Общие бай-ины</div>
+            </CardContent>
+          </Card>
           
-          <div className="bg-white rounded-lg shadow p-6 text-center">
-            <div className="text-3xl font-bold text-green-600 mb-2">
-              ${mockStats.totalWinnings}
-            </div>
-            <div className="text-gray-600">Общие выигрыши</div>
-          </div>
+          <Card className="text-center">
+            <CardContent className="p-6">
+              <div className="text-3xl font-bold text-green-600 mb-2">
+                {formatCurrency(stats.totalWinnings)}
+              </div>
+              <div className="text-gray-600">Общие выигрыши</div>
+            </CardContent>
+          </Card>
           
-          <div className="bg-white rounded-lg shadow p-6 text-center">
-            <div className={`text-3xl font-bold mb-2 ${
-              mockStats.profit >= 0 ? 'text-green-600' : 'text-red-600'
-            }`}>
-              {mockStats.profit >= 0 ? '+' : ''}${mockStats.profit}
-            </div>
-            <div className="text-gray-600">Общая прибыль</div>
-          </div>
+          <Card className="text-center">
+            <CardContent className="p-6">
+              <div className={`text-3xl font-bold mb-2 ${
+                stats.profit >= 0 ? 'text-green-600' : 'text-red-600'
+              }`}>
+                {formatCurrency(stats.profit)}
+              </div>
+              <div className="text-gray-600">Общая прибыль</div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Performance Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow p-6 text-center">
-            <div className={`text-3xl font-bold mb-2 ${
-              mockStats.roi >= 0 ? 'text-green-600' : 'text-red-600'
-            }`}>
-              {mockStats.roi >= 0 ? '+' : ''}{mockStats.roi}%
-            </div>
-            <div className="text-gray-600">ROI</div>
-          </div>
+          <Card className="text-center">
+            <CardContent className="p-6">
+              <div className={`text-3xl font-bold mb-2 ${
+                stats.roi >= 0 ? 'text-green-600' : 'text-red-600'
+              }`}>
+                {stats.roi >= 0 ? '+' : ''}{stats.roi.toFixed(1)}%
+              </div>
+              <div className="text-gray-600">ROI</div>
+            </CardContent>
+          </Card>
           
-          <div className="bg-white rounded-lg shadow p-6 text-center">
-            <div className="text-3xl font-bold text-purple-600 mb-2">
-              {mockStats.itm}%
-            </div>
-            <div className="text-gray-600">ITM</div>
-          </div>
+          <Card className="text-center">
+            <CardContent className="p-6">
+              <div className="text-3xl font-bold text-purple-600 mb-2">
+                {stats.itm.toFixed(1)}%
+              </div>
+              <div className="text-gray-600">ITM</div>
+            </CardContent>
+          </Card>
           
-          <div className="bg-white rounded-lg shadow p-6 text-center">
-            <div className="text-3xl font-bold text-orange-600 mb-2">
-              {mockStats.avgPosition}
-            </div>
-            <div className="text-gray-600">Среднее место</div>
-          </div>
+          <Card className="text-center">
+            <CardContent className="p-6">
+              <div className="text-3xl font-bold text-orange-600 mb-2">
+                {stats.avgPosition.toFixed(1)}
+              </div>
+              <div className="text-gray-600">Среднее место</div>
+            </CardContent>
+          </Card>
           
-          <div className="bg-white rounded-lg shadow p-6 text-center">
-            <div className="text-3xl font-bold text-yellow-600 mb-2">
-              🥇 {mockStats.bestFinish}
-            </div>
-            <div className="text-gray-600">Лучший результат</div>
-          </div>
+          <Card className="text-center">
+            <CardContent className="p-6">
+              <div className="text-3xl font-bold text-yellow-600 mb-2">
+                🥇 {stats.bestFinish || '-'}
+              </div>
+              <div className="text-gray-600">Лучший результат</div>
+            </CardContent>
+          </Card>
           
-          <div className="bg-white rounded-lg shadow p-6 text-center">
-            <div className="text-3xl font-bold text-gray-600 mb-2">
-              {mockStats.worstFinish}
-            </div>
-            <div className="text-gray-600">Худший результат</div>
-          </div>
+          <Card className="text-center">
+            <CardContent className="p-6">
+              <div className="text-3xl font-bold text-gray-600 mb-2">
+                {stats.worstFinish || '-'}
+              </div>
+              <div className="text-gray-600">Худший результат</div>
+            </CardContent>
+          </Card>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           {/* Tournament Types Analysis */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="p-6 border-b border-gray-200">
-              <h3 className="text-xl font-semibold text-gray-900">Анализ по типам турниров</h3>
-            </div>
-            <div className="p-6">
-              <div className="space-y-4">
-                {mockTournamentTypes.map((item) => (
-                  <div key={item.type} className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-4 h-4 bg-blue-500 rounded"></div>
-                      <span className="font-medium">{item.type}</span>
-                      <span className="text-gray-500">({item.count} турниров)</span>
+          <Card>
+            <CardHeader>
+              <CardTitle>Анализ по типам турниров</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {tournamentTypeAnalysis.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="text-gray-500">Нет данных для анализа</div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {tournamentTypeAnalysis.map((item) => (
+                    <div key={item.type} className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-4 h-4 bg-blue-500 rounded"></div>
+                        <span className="font-medium">{item.type}</span>
+                        <span className="text-gray-500">({item.count} турниров)</span>
+                      </div>
+                      <div className={`font-semibold ${
+                        item.profit >= 0 ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {formatCurrency(item.profit)}
+                      </div>
                     </div>
-                    <div className={`font-semibold ${
-                      item.profit >= 0 ? 'text-green-600' : 'text-red-600'
-                    }`}>
-                      {item.profit >= 0 ? '+' : ''}${item.profit}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Venues Analysis */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="p-6 border-b border-gray-200">
-              <h3 className="text-xl font-semibold text-gray-900">Анализ по площадкам</h3>
-            </div>
-            <div className="p-6">
-              <div className="space-y-4">
-                {mockVenues.map((item) => (
-                  <div key={item.venue} className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-4 h-4 bg-green-500 rounded"></div>
-                      <span className="font-medium">{item.venue}</span>
-                      <span className="text-gray-500">({item.count} турниров)</span>
+          <Card>
+            <CardHeader>
+              <CardTitle>Анализ по площадкам</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {venueAnalysis.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="text-gray-500">Нет данных для анализа</div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {venueAnalysis.map((item) => (
+                    <div key={item.venue} className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-4 h-4 bg-green-500 rounded"></div>
+                        <span className="font-medium">{item.venue}</span>
+                        <span className="text-gray-500">({item.count} турниров)</span>
+                      </div>
+                      <div className={`font-semibold ${
+                        item.profit >= 0 ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {formatCurrency(item.profit)}
+                      </div>
                     </div>
-                    <div className={`font-semibold ${
-                      item.profit >= 0 ? 'text-green-600' : 'text-red-600'
-                    }`}>
-                      {item.profit >= 0 ? '+' : ''}${item.profit}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         {/* Recent Results */}
-        <div className="bg-white rounded-lg shadow mb-8">
-          <div className="p-6 border-b border-gray-200">
-            <h3 className="text-xl font-semibold text-gray-900">Последние результаты</h3>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Дата
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Турнир
-                  </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Место
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Прибыль
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {mockRecentResults.map((result, index) => (
-                  <tr key={index} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {new Date(result.date).toLocaleDateString('ru-RU')}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {result.tournament}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
-                      #{result.position}
-                      {result.position === 1 && ' 🥇'}
-                      {result.position === 2 && ' 🥈'}
-                      {result.position === 3 && ' 🥉'}
-                    </td>
-                    <td className={`px-6 py-4 whitespace-nowrap text-sm text-right font-semibold ${
-                      result.profit >= 0 ? 'text-green-600' : 'text-red-600'
-                    }`}>
-                      {result.profit >= 0 ? '+' : ''}${result.profit}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Последние результаты</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {recentResults.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="text-gray-500">Нет завершенных турниров</div>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Дата
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Турнир
+                      </th>
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Место
+                      </th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Прибыль
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {recentResults.map((result, index) => (
+                      <tr key={index} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {new Date(result.date).toLocaleDateString('ru-RU')}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {result.tournament}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
+                          #{result.position}
+                          {result.position === 1 && ' 🥇'}
+                          {result.position === 2 && ' 🥈'}
+                          {result.position === 3 && ' 🥉'}
+                        </td>
+                        <td className={`px-6 py-4 whitespace-nowrap text-sm text-right font-semibold ${
+                          result.profit >= 0 ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          {formatCurrency(result.profit)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Actions */}
         <div className="flex flex-col sm:flex-row justify-center gap-4">
-          <button
+          <Button
             onClick={() => router.push('/tournaments')}
-            className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors"
+            variant="primary"
           >
             🎰 Перейти к турнирам
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() => router.push('/bankroll')}
-            className="bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 transition-colors"
+            variant="primary"
           >
             💰 Управление банкроллом
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() => router.push('/')}
-            className="bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition-colors"
+            variant="outline"
           >
             ← Вернуться на главную
-          </button>
+          </Button>
         </div>
       </div>
     </div>
+  )
+}
+
+export default function AnalyticsPage() {
+  return (
+    <ProtectedRoute>
+      <AnalyticsContent />
+    </ProtectedRoute>
   )
 }

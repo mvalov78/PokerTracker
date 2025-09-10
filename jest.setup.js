@@ -24,3 +24,40 @@ jest.mock('next/navigation', () => ({
 // Mock environment variables
 process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://localhost:54321'
 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key'
+
+// Простая система мокирования Supabase
+let mockData = null
+let mockError = null
+
+const createMockChain = () => ({
+  from: jest.fn(() => createMockChain()),
+  select: jest.fn(() => createMockChain()),
+  insert: jest.fn(() => createMockChain()),
+  update: jest.fn(() => createMockChain()),
+  upsert: jest.fn(() => createMockChain()),
+  delete: jest.fn(() => createMockChain()),
+  eq: jest.fn(() => createMockChain()),
+  single: jest.fn(() => Promise.resolve({ data: mockData, error: mockError })),
+  order: jest.fn(() => createMockChain()),
+  limit: jest.fn(() => createMockChain()),
+  not: jest.fn(() => createMockChain()),
+  in: jest.fn(() => createMockChain()),
+  then: jest.fn((callback) => callback({ data: mockData, error: mockError })),
+  catch: jest.fn(),
+})
+
+const mockSupabaseClient = createMockChain()
+
+jest.mock('@/lib/supabase', () => ({
+  supabase: mockSupabaseClient,
+}))
+
+// Глобальные функции для управления моками
+global.mockSupabase = mockSupabaseClient
+global.setMockData = (data) => { mockData = data }
+global.setMockError = (error) => { mockError = error }
+global.resetMocks = () => { 
+  mockData = null
+  mockError = null
+  jest.clearAllMocks()
+}

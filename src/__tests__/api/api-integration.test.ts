@@ -2,7 +2,7 @@
  * Интеграционные тесты для API
  */
 
-import { createMocks } from 'node-mocks-http'
+const { createMocks } = require('node-mocks-http')
 
 // Mock Supabase для API тестов
 jest.mock('@/lib/supabase', () => ({
@@ -217,4 +217,5 @@ describe('Data Consistency Tests', () => {
     expect(data.tournament.venue).toBe('Priority Casino')
   })
 })
+
 

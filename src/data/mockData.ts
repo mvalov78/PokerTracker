@@ -1,12 +1,12 @@
 import type { User, Tournament, TournamentResult, UserStats, BankrollTransaction, BankrollSettings, BankrollSummary, ResultChangeHistory } from '@/types'
 
-// Мок пользователь
+// Мок пользователь (используем UUID тестового пользователя из Supabase)
 export const mockUser: User = {
-  id: 'user-1',
+  id: '00000000-0000-0000-0000-000000000001',
   username: 'pokerking',
   email: 'player@example.com',
   avatarUrl: null,
-  telegramId: null,
+  telegramId: 49767276,
   preferences: {
     theme: 'dark',
     language: 'ru'

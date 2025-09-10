@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { getAllTournaments, getTournamentsByUser, initializeTournamentData } from '@/data/mockData'
 import type { Tournament } from '@/types'
 
 // Простой механизм для обновления данных между компонентами
@@ -14,22 +13,43 @@ export function notifyTournamentsUpdate() {
 export function useTournaments(userId?: string) {
   const [tournaments, setTournaments] = useState<Tournament[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const refreshTournaments = () => {
+  const refreshTournaments = async () => {
     setIsLoading(true)
+    setError(null)
     
-    // Инициализируем данные при первом обращении
-    initializeTournamentData()
-    
-    // Симуляция загрузки
-    setTimeout(() => {
-      const updatedTournaments = userId 
-        ? getTournamentsByUser(userId)
-        : getAllTournaments() // Получаем все турниры
+    try {
+      // Формируем URL для API запроса
+      const url = userId 
+        ? `/api/tournaments?userId=${userId}`
+        : '/api/tournaments'
       
-      setTournaments(updatedTournaments)
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+      
+      if (data.success) {
+        setTournaments(data.tournaments || [])
+      } else {
+        throw new Error(data.error || 'Не удалось загрузить турниры')
+      }
+    } catch (err) {
+      console.error('Ошибка при загрузке турниров:', err)
+      setError(err instanceof Error ? err.message : 'Произошла ошибка при загрузке данных')
+      setTournaments([])
+    } finally {
       setIsLoading(false)
-    }, 100)
+    }
   }
 
   useEffect(() => {
@@ -57,6 +77,7 @@ export function useTournaments(userId?: string) {
   return {
     tournaments,
     isLoading,
+    error,
     refresh: refreshTournaments
   }
 }

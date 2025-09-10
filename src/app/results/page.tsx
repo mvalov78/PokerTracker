@@ -12,11 +12,10 @@ import ResultHistory from '@/components/results/ResultHistory'
 
 function ResultsContent() {
   const { user } = useAuth()
-  const { tournaments } = useTournaments(user?.id)
+  const { tournaments, isLoading, error } = useTournaments(user?.id)
   
   const [searchQuery, setSearchQuery] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
-  const [filterType, setFilterType] = useState<string>('all')
   const [sortBy, setSortBy] = useState<string>('date')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [dateRange, setDateRange] = useState<string>('all')
@@ -40,11 +39,6 @@ function ResultsContent() {
         tournament.venue.toLowerCase().includes(query) ||
         tournament.result?.notes?.toLowerCase().includes(query)
       )
-    }
-
-    // Фильтр по типу турнира
-    if (filterType !== 'all') {
-      filtered = filtered.filter(tournament => tournament.type === filterType)
     }
 
     // Фильтр по дате
@@ -94,8 +88,8 @@ function ResultsContent() {
           bValue = b.result?.position || 999
           break
         case 'buyin':
-          aValue = a.buyIn
-          bValue = b.buyIn
+          aValue = a.buyin
+          bValue = b.buyin
           break
         default:
           aValue = a.name
@@ -110,18 +104,35 @@ function ResultsContent() {
     })
 
     return filtered
-  }, [tournamentsWithResults, searchQuery, filterType, dateRange, sortBy, sortOrder])
+  }, [tournamentsWithResults, searchQuery, dateRange, sortBy, sortOrder])
 
   // Статистика по результатам
   const resultStats = useMemo(() => {
-    const results = filteredResults
-    const totalTournaments = results.length
-    const totalInvestment = results.reduce((sum, t) => sum + t.buyIn, 0)
-    const totalWinnings = results.reduce((sum, t) => sum + (t.result?.payout || 0), 0)
+    const results = filteredResults // Только турниры с результатами для отображения
+    
+    // Для расчета ITM и ROI используем ВСЕ турниры пользователя
+    const allUserTournaments = tournaments // Все турниры пользователя
+    const totalTournaments = allUserTournaments.length
+    const totalInvestment = allUserTournaments.reduce((sum, t) => sum + t.buyin, 0)
+    const totalWinnings = allUserTournaments.reduce((sum, t) => sum + (t.result?.payout || 0), 0)
     const totalProfit = totalWinnings - totalInvestment
     const avgROI = totalInvestment > 0 ? ((totalProfit / totalInvestment) * 100) : 0
     
-    const cashCount = results.filter(t => (t.result?.position || 999) <= (t.maxPlayers * 0.15)).length
+    // ПРАВИЛЬНЫЙ расчет ITM: от ВСЕХ турниров пользователя
+    const tournamentsWithResults = allUserTournaments.filter(t => t.result)
+    const cashCount = tournamentsWithResults.filter(t => {
+      const position = t.result?.position || 999
+      const participants = t.participants
+      
+      if (participants && participants > 0) {
+        // Если знаем количество участников, используем правило 15%
+        return position <= (participants * 0.15)
+      } else {
+        // Если не знаем участников, считаем ITM по прибыли (payout > buyin)
+        const payout = t.result?.payout || 0
+        return payout > t.buyin
+      }
+    }).length
     const finalTableCount = results.filter(t => t.result?.finalTableReached).length
     const winsCount = results.filter(t => t.result?.position === 1).length
     
@@ -150,10 +161,10 @@ function ResultsContent() {
     }).format(amount)
   }
 
-  const getPositionColor = (position: number, maxPlayers: number) => {
+  const getPositionColor = (position: number, participants: number) => {
     if (position === 1) return 'text-yellow-600 font-bold'
     if (position <= 3) return 'text-orange-600 font-semibold'
-    if (position <= maxPlayers * 0.15) return 'text-green-600'
+    if (position <= participants * 0.15) return 'text-green-600'
     return 'text-gray-600 dark:text-gray-400'
   }
 
@@ -260,26 +271,13 @@ function ResultsContent() {
             <CardTitle>🔍 Фильтры и поиск</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
               <Input
                 type="text"
                 placeholder="Поиск по названию, месту..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 label="Поиск"
-              />
-
-              <Select
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
-                label="Тип турнира"
-                options={[
-                  { value: 'all', label: 'Все типы' },
-                  { value: 'tournament', label: 'Турнир' },
-                  { value: 'sit_and_go', label: 'Sit & Go' },
-                  { value: 'cash_game', label: 'Кэш игра' },
-                  { value: 'satellite', label: 'Сателлит' }
-                ]}
               />
 
               <Select
@@ -339,7 +337,33 @@ function ResultsContent() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {filteredResults.length === 0 ? (
+            {isLoading ? (
+              <div className="text-center py-12">
+                <div className="text-4xl mb-4">⏳</div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                  Загрузка результатов...
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Получаем данные из базы данных
+                </p>
+              </div>
+            ) : error ? (
+              <div className="text-center py-12">
+                <div className="text-4xl mb-4">❌</div>
+                <h3 className="text-lg font-semibold text-red-600 mb-2">
+                  Ошибка загрузки данных
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400 mb-4">
+                  {error}
+                </p>
+                <Button 
+                  onClick={() => window.location.reload()} 
+                  variant="outline"
+                >
+                  🔄 Попробовать снова
+                </Button>
+              </div>
+            ) : filteredResults.length === 0 ? (
               <div className="text-center py-12">
                 <div className="text-4xl mb-4">🎯</div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
@@ -399,14 +423,14 @@ function ResultsContent() {
                         <td className="py-4 px-2 text-gray-600 dark:text-gray-400">
                           {new Date(tournament.date).toLocaleDateString('ru-RU')}
                         </td>
-                        <td className={`py-4 px-2 text-center font-semibold ${getPositionColor(tournament.result?.position || 0, tournament.maxPlayers)}`}>
-                          {tournament.result?.position || '-'} / {tournament.maxPlayers}
+                        <td className={`py-4 px-2 text-center font-semibold ${getPositionColor(tournament.result?.position || 0, tournament.participants || 0)}`}>
+                          {tournament.result?.position || '-'} / {tournament.participants || '-'}
                           {tournament.result?.finalTableReached && (
                             <div className="text-xs text-orange-600">FT</div>
                           )}
                         </td>
                         <td className="py-4 px-2 text-right text-gray-900 dark:text-white">
-                          {formatCurrency(tournament.buyIn)}
+                          {formatCurrency(tournament.buyin)}
                         </td>
                         <td className="py-4 px-2 text-right font-semibold text-green-600 dark:text-green-400">
                           {formatCurrency(tournament.result?.payout || 0)}
