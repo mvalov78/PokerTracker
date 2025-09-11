@@ -108,9 +108,12 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       {
+        success: false,
         error: "Internal server error",
         details: error instanceof Error ? error.message : "Unknown error",
         executionTime: Date.now() - startTime,
+        timestamp: new Date().toISOString(),
+        suggestion: "Check bot token and network connectivity"
       },
       { status: 500 },
     );
@@ -139,7 +142,12 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("Ошибка получения статуса polling:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { 
+        success: false,
+        error: "Internal server error",
+        details: error instanceof Error ? error.message : "Unknown error",
+        timestamp: new Date().toISOString()
+      },
       { status: 500 },
     );
   }

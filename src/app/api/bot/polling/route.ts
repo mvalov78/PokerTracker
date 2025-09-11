@@ -10,11 +10,29 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { command, data } = body;
 
-    console.log(`[Bot Polling API] Команда: ${command}`);
+    console.log(`[Bot Polling API] Команда: ${command}`, {
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV,
+      botToken: process.env.TELEGRAM_BOT_TOKEN ? "SET" : "NOT_SET"
+    });
 
     let bot = getBotInstance();
     if (!bot) {
-      bot = await initializeBot();
+      console.log("[Bot Polling API] Инициализация бота...");
+      
+      // Add timeout protection for bot initialization
+      const initPromise = initializeBot();
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Bot initialization timeout (10s)')), 10000)
+      );
+      
+      try {
+        bot = await Promise.race([initPromise, timeoutPromise]);
+        console.log("[Bot Polling API] Бот успешно инициализирован");
+      } catch (initError) {
+        console.error("[Bot Polling API] Ошибка инициализации бота:", initError);
+        throw new Error(`Bot initialization failed: ${initError instanceof Error ? initError.message : 'Unknown error'}`);
+      }
     }
 
     switch (command) {
@@ -90,15 +108,25 @@ export async function POST(request: NextRequest) {
       default:
         return NextResponse.json(
           {
+            success: false,
             error: "Неизвестная команда",
+            details: `Команда '${command}' не поддерживается`,
+            availableCommands: ["start", "stop", "restart", "simulate"],
+            timestamp: new Date().toISOString()
           },
           { status: 400 },
         );
     }
   } catch (error) {
     console.error("Ошибка управления polling:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
-      { error: "Internal server error" },
+      { 
+        success: false,
+        error: "Internal server error",
+        details: errorMessage,
+        timestamp: new Date().toISOString()
+      },
       { status: 500 },
     );
   }
@@ -106,9 +134,29 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    console.log("[Bot Polling API] GET статус запрос", {
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV,
+      botToken: process.env.TELEGRAM_BOT_TOKEN ? "SET" : "NOT_SET"
+    });
+
     let bot = getBotInstance();
     if (!bot) {
-      bot = await initializeBot();
+      console.log("[Bot Polling API] GET - Инициализация бота...");
+      
+      // Add timeout protection for bot initialization
+      const initPromise = initializeBot();
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Bot initialization timeout (10s)')), 10000)
+      );
+      
+      try {
+        bot = await Promise.race([initPromise, timeoutPromise]);
+        console.log("[Bot Polling API] GET - Бот успешно инициализирован");
+      } catch (initError) {
+        console.error("[Bot Polling API] GET - Ошибка инициализации бота:", initError);
+        throw new Error(`Bot initialization failed: ${initError instanceof Error ? initError.message : 'Unknown error'}`);
+      }
     }
 
     const status = bot.getStatus();
@@ -124,8 +172,14 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("Ошибка получения статуса polling:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
-      { error: "Internal server error" },
+      { 
+        success: false,
+        error: "Internal server error",
+        details: errorMessage,
+        timestamp: new Date().toISOString()
+      },
       { status: 500 },
     );
   }

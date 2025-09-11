@@ -13,15 +13,25 @@ export default function BotManagementPage() {
         body: JSON.stringify({ command }),
       });
 
+      // Check if response is JSON
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        const textError = await response.text();
+        throw new Error(`Server returned non-JSON response: ${textError.substring(0, 100)}...`);
+      }
+
       const result = await response.json();
 
       if (result.success) {
         alert(`✅ ${result.message}`);
       } else {
-        alert(`❌ Ошибка: ${result.error}`);
+        const errorDetails = result.details ? `\nДетали: ${result.details}` : '';
+        alert(`❌ Ошибка: ${result.error}${errorDetails}`);
+        console.error("Bot polling error:", result);
       }
     } catch (error) {
-      alert("❌ Ошибка подключения к боту");
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      alert(`❌ Ошибка подключения к боту: ${errorMessage}`);
       console.error("Ошибка управления polling:", error);
     }
   };
@@ -37,15 +47,25 @@ export default function BotManagementPage() {
         }),
       });
 
+      // Check if response is JSON
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        const textError = await response.text();
+        throw new Error(`Server returned non-JSON response: ${textError.substring(0, 100)}...`);
+      }
+
       const result = await response.json();
 
       if (result.success) {
         alert(`🧪 ${result.message}`);
       } else {
-        alert(`❌ Ошибка: ${result.error}`);
+        const errorDetails = result.details ? `\nДетали: ${result.details}` : '';
+        alert(`❌ Ошибка: ${result.error}${errorDetails}`);
+        console.error("Bot simulation error:", result);
       }
     } catch (error) {
-      alert("❌ Ошибка симуляции команды");
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      alert(`❌ Ошибка симуляции команды: ${errorMessage}`);
       console.error("Ошибка симуляции:", error);
     }
   };
