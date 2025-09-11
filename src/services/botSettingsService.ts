@@ -154,7 +154,10 @@ export class BotSettingsService {
       const currentCount = await BotSettingsService.getSetting("error_count");
       const newCount = (parseInt(currentCount || "0") + 1).toString();
       await BotSettingsService.updateSetting("error_count", newCount);
-      await BotSettingsService.updateSetting("last_update_time", new Date().toISOString());
+      await BotSettingsService.updateSetting(
+        "last_update_time",
+        new Date().toISOString(),
+      );
     } catch (error) {
       console.error("Error incrementing error count:", error);
     }
@@ -171,7 +174,10 @@ export class BotSettingsService {
    * Обновить время последнего обновления
    */
   static async updateLastUpdateTime(): Promise<void> {
-    await BotSettingsService.updateSetting("last_update_time", new Date().toISOString());
+    await BotSettingsService.updateSetting(
+      "last_update_time",
+      new Date().toISOString(),
+    );
   }
 
   /**

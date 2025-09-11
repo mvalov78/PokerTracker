@@ -346,16 +346,21 @@ export class PhotoHandler {
       };
 
       // Получаем правильный API URL для текущего окружения
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || "http://localhost:3000";
-      const apiUrl = appUrl.startsWith('http') ? appUrl : `https://${appUrl}`;
+      const appUrl =
+        process.env.NEXT_PUBLIC_APP_URL ||
+        process.env.VERCEL_URL ||
+        "http://localhost:3000";
+      const apiUrl = appUrl.startsWith("http") ? appUrl : `https://${appUrl}`;
       const apiEndpoint = `${apiUrl}/api/tournaments`;
-      
-      console.log(`🌐 [confirmTournament] Отправляем запрос к API: ${apiEndpoint}`);
+
+      console.log(
+        `🌐 [confirmTournament] Отправляем запрос к API: ${apiEndpoint}`,
+      );
 
       // Отправляем запрос к API с timeout
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 секунд timeout
-      
+
       const apiResponse = await fetch(apiEndpoint, {
         method: "POST",
         headers: {
@@ -364,7 +369,7 @@ export class PhotoHandler {
         body: JSON.stringify(tournamentData),
         signal: controller.signal,
       });
-      
+
       clearTimeout(timeoutId);
 
       if (!apiResponse.ok) {
@@ -376,7 +381,9 @@ export class PhotoHandler {
       const apiResult = await apiResponse.json();
       if (!apiResult.success) {
         console.error("❌ API вернул ошибку:", apiResult);
-        throw new Error(apiResult.error || "Failed to create tournament via API");
+        throw new Error(
+          apiResult.error || "Failed to create tournament via API",
+        );
       }
 
       const newTournament = apiResult.tournament;
@@ -408,28 +415,34 @@ ID турнира: \`${newTournament.id}\`
       });
     } catch (error) {
       console.error("Ошибка создания турнира:", error);
-      
+
       let errorMessage = "❌ Ошибка при создании турнира.\n\n";
-      
+
       if (error instanceof Error) {
         if (error.message.includes("API error: 401")) {
-          errorMessage += "🔐 Проблема с авторизацией. Убедитесь что вы связали аккаунт командой /link";
+          errorMessage +=
+            "🔐 Проблема с авторизацией. Убедитесь что вы связали аккаунт командой /link";
         } else if (error.message.includes("API error: 500")) {
           errorMessage += "🔧 Техническая ошибка сервера. Попробуйте позже.";
-        } else if (error.message.includes("AbortError") || error.message.includes("timeout")) {
-          errorMessage += "⏰ Превышено время ожидания. Сервер может быть перегружен.";
+        } else if (
+          error.message.includes("AbortError") ||
+          error.message.includes("timeout")
+        ) {
+          errorMessage +=
+            "⏰ Превышено время ожидания. Сервер может быть перегружен.";
         } else if (error.message.includes("fetch")) {
-          errorMessage += "🌐 Проблема с подключением к серверу. Проверьте интернет.";
+          errorMessage +=
+            "🌐 Проблема с подключением к серверу. Проверьте интернет.";
         } else {
           errorMessage += `🐛 Техническая ошибка: ${error.message}`;
         }
       }
-      
+
       errorMessage += "\n\n💡 **Что можно сделать:**\n";
       errorMessage += "• Попробовать еще раз через несколько минут\n";
       errorMessage += "• Использовать /register для ручного ввода\n";
       errorMessage += "• Обратиться к администратору если проблема повторяется";
-      
+
       await ctx.reply(errorMessage, { parse_mode: "Markdown" });
     }
   }
