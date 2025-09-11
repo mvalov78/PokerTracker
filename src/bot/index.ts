@@ -347,7 +347,7 @@ class PokerTrackerBot {
   }
 
   /**
-   * Запуск бота с проверкой режима из базы данных
+   * Запуск бота с проверкой режима из переменных окружения
    */
   public async start() {
     try {
@@ -358,20 +358,40 @@ class PokerTrackerBot {
         return
       }
 
-      // Проверяем режим работы из базы данных
-      const botMode = await BotSettingsService.getBotMode()
-      console.log(`🔍 Режим бота из БД: ${botMode}`)
+      // Читаем режим работы из переменных окружения
+      const botMode = process.env.BOT_MODE || 'polling'
+      const webhookUrl = process.env.BOT_WEBHOOK_URL || ''
+      const autoRestart = process.env.BOT_AUTO_RESTART === 'true'
+      
+      console.log(`🔧 Режим работы бота из .env: ${botMode}`)
+      console.log(`🔄 Автоперезапуск: ${autoRestart ? 'включен' : 'выключен'}`)
+      
+      if (webhookUrl) {
+        console.log(`🔗 Webhook URL: ${webhookUrl}`)
+      }
 
       this.isRunning = true
       
-      // Обновляем статус в БД
-      await BotSettingsService.updateBotStatus('active')
+      // Синхронизируем настройки с БД (если доступна)
+      try {
+        await BotSettingsService.updateBotStatus('active')
+        await BotSettingsService.updateSetting('bot_mode', botMode)
+        await BotSettingsService.updateSetting('webhook_url', webhookUrl)
+        await BotSettingsService.updateSetting('auto_restart', autoRestart.toString())
+        console.log('📊 Настройки синхронизированы с БД')
+      } catch (dbError) {
+        console.log('⚠️ БД недоступна, работаем автономно по .env настройкам')
+      }
       
       // Запускаем в соответствующем режиме
       if (this.config.token && this.config.token !== 'mock-bot-token') {
-        if (botMode === 'webhook') {
+        if (botMode === 'webhook' && webhookUrl) {
           console.log('🔗 Запуск в webhook режиме...')
-          await this.startWebhookMode()
+          await this.startWebhookMode(webhookUrl)
+        } else if (botMode === 'webhook' && !webhookUrl) {
+          console.log('⚠️ Webhook режим выбран, но URL не настроен. Переключаемся на polling.')
+          console.log('🔄 Запуск в polling режиме...')
+          await this.startRealPolling()
         } else {
           console.log('🔄 Запуск в polling режиме...')
           await this.startRealPolling()
@@ -453,7 +473,7 @@ class PokerTrackerBot {
   /**
    * Запуск в webhook режиме
    */
-  private async startWebhookMode() {
+  private async startWebhookMode(webhookUrl: string) {
     if (!this.bot) {
       throw new Error('Bot not initialized with token')
     }
@@ -461,12 +481,11 @@ class PokerTrackerBot {
     try {
       console.log('🔗 Настройка webhook режима...')
       
-      // Получаем URL webhook из настроек
-      const webhookUrl = await BotSettingsService.getWebhookUrl()
-      
       if (!webhookUrl) {
-        throw new Error('Webhook URL not configured')
+        throw new Error('Webhook URL not provided')
       }
+      
+      console.log(`🎯 Настройка webhook: ${webhookUrl}`)
 
       // Устанавливаем webhook в Telegram
       const result = await this.bot.telegram.setWebhook(webhookUrl, {

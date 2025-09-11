@@ -67,3 +67,4 @@ COMMENT ON TABLE public.bot_settings IS 'Настройки Telegram бота д
 COMMENT ON COLUMN public.bot_settings.setting_key IS 'Ключ настройки (bot_mode, webhook_url, etc.)';
 COMMENT ON COLUMN public.bot_settings.setting_value IS 'Значение настройки';
 COMMENT ON COLUMN public.bot_settings.description IS 'Описание настройки для админов';
+

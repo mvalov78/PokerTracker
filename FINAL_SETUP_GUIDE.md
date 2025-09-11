@@ -253,3 +253,4 @@ setInterval(async () => {
 - 📧 **Email:** mvalov78@gmail.com
 - 📚 **Документация:** BOT_MODE_MANAGEMENT.md
 - 🐛 **Issues:** [GitHub Issues](https://github.com/mvalov78/PokerTracker/issues)
+

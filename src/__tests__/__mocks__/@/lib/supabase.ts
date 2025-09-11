@@ -145,3 +145,4 @@ export const getUserOrCreate = jest.fn(() => Promise.resolve({
 // Backward compatibility exports
 export const supabase = createClientComponentClient()
 export const supabaseAdmin = createAdminClient()
+

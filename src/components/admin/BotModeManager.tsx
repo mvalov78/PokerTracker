@@ -411,3 +411,4 @@ export default function BotModeManager() {
     alert('Логи бота доступны в консоли сервера и Vercel Dashboard')
   }
 }
+

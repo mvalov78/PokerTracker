@@ -24,3 +24,4 @@ SUPABASE_SERVICE_ROLE_KEY=ваш-настоящий-service-role-ключ
 ```bash
 npm run dev
 ```
+

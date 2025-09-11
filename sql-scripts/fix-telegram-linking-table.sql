@@ -34,3 +34,4 @@ JOIN information_schema.key_column_usage kcu
     ON tc.constraint_name = kcu.constraint_name
 WHERE tc.table_name = 'telegram_linking_codes' 
 AND tc.table_schema = 'public';
+

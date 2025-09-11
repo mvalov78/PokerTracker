@@ -3,15 +3,24 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 
-interface BotSettings {
+interface EnvSettings {
   bot_mode: string
-  bot_status: string
   webhook_url: string
-  polling_enabled: string
-  webhook_enabled: string
+  auto_restart: boolean
+  bot_token: string
+  app_url: string
+}
+
+interface DbStatus {
+  bot_status: string
+  error_count: number
   last_update_time: string
-  error_count: string
-  auto_restart: string
+}
+
+interface BotSettings {
+  envSettings: EnvSettings
+  dbStatus: DbStatus | null
+  source: string
 }
 
 interface WebhookInfo {
@@ -48,19 +57,32 @@ export default function BotManagementPage() {
       setIsLoading(true)
       setError(null)
 
-      const response = await fetch('/api/admin/bot-mode')
+      const response = await fetch('/api/admin/env-settings')
       const data = await response.json()
 
       if (data.success) {
-        setSettings(data.settings)
-        setWebhookInfo(data.webhookInfo)
+        setSettings(data)
         
-        // Если webhook URL не установлен в БД, используем текущий домен
-        if (!data.settings.webhook_url && typeof window !== 'undefined') {
+        // Устанавливаем webhook URL из env или автоматически определяем
+        const envWebhookUrl = data.envSettings.webhook_url
+        if (envWebhookUrl) {
+          setWebhookUrl(envWebhookUrl)
+        } else if (typeof window !== 'undefined') {
           const baseUrl = window.location.origin
           setWebhookUrl(`${baseUrl}/api/bot/webhook`)
-        } else {
-          setWebhookUrl(data.settings.webhook_url || '')
+        }
+        
+        // Получаем информацию о webhook (если возможно)
+        if (data.envSettings.bot_mode === 'webhook' && data.envSettings.webhook_url) {
+          try {
+            const webhookResponse = await fetch('/api/admin/bot-mode')
+            const webhookData = await webhookResponse.json()
+            if (webhookData.webhookInfo) {
+              setWebhookInfo(webhookData.webhookInfo)
+            }
+          } catch (webhookError) {
+            console.log('Не удалось получить информацию о webhook')
+          }
         }
         
         setLastRefresh(new Date())
@@ -74,39 +96,49 @@ export default function BotManagementPage() {
     }
   }
 
-  // Переключение режима
+  // Переключение режима (теперь только информационное сообщение)
   const switchMode = async (mode: 'polling' | 'webhook') => {
-    try {
-      setIsSwitching(true)
-      setError(null)
-
-      const requestBody: any = { mode }
-      if (mode === 'webhook') {
-        requestBody.webhookUrl = webhookUrl
-      }
-
-      const response = await fetch('/api/admin/bot-mode', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody)
-      })
-
-      const data = await response.json()
-
-      if (data.success) {
-        await loadBotSettings() // Перезагружаем настройки
-        alert(`✅ ${data.message}`)
-      } else {
-        setError(data.error)
-        alert(`❌ Ошибка: ${data.error}`)
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Ошибка переключения режима'
-      setError(errorMessage)
-      alert(`❌ ${errorMessage}`)
-    } finally {
-      setIsSwitching(false)
+    const currentEnvMode = settings?.envSettings?.bot_mode
+    
+    if (currentEnvMode === mode) {
+      alert(`✅ Бот уже работает в режиме "${mode}"`)
+      return
     }
+
+    // Показываем инструкцию по изменению настроек
+    const instructions = mode === 'webhook' 
+      ? `Для переключения в webhook режим:
+
+📝 ЛОКАЛЬНАЯ РАЗРАБОТКА:
+1. Откройте файл .env.local
+2. Установите: BOT_MODE=webhook
+3. Установите: BOT_WEBHOOK_URL=${webhookUrl}
+4. Перезапустите сервер: npm run dev
+
+🚀 ПРОДАКШЕН VERCEL:
+1. Откройте Vercel Dashboard
+2. Settings → Environment Variables
+3. Установите: BOT_MODE=webhook
+4. Установите: BOT_WEBHOOK_URL=${webhookUrl}
+5. Redeploy приложение
+
+⚠️ После изменения перезагрузите эту страницу`
+      : `Для переключения в polling режим:
+
+📝 ЛОКАЛЬНАЯ РАЗРАБОТКА:
+1. Откройте файл .env.local
+2. Установите: BOT_MODE=polling
+3. Перезапустите сервер: npm run dev
+
+🚀 ПРОДАКШЕН VERCEL:
+1. Откройте Vercel Dashboard
+2. Settings → Environment Variables
+3. Установите: BOT_MODE=polling
+4. Redeploy приложение
+
+⚠️ После изменения перезагрузите эту страницу`
+
+    alert(instructions)
   }
 
   // Проверка webhook
@@ -129,26 +161,24 @@ export default function BotManagementPage() {
     }
   }
 
-  // Обновление настройки
+  // Обновление настройки (теперь только инструкции)
   const updateSetting = async (key: string, value: string) => {
-    try {
-      const response = await fetch('/api/admin/bot-settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ settingKey: key, settingValue: value })
-      })
+    const instructions = `Для изменения настройки ${key}:
 
-      const data = await response.json()
-      
-      if (data.success) {
-        await loadBotSettings()
-        alert(`✅ Настройка "${key}" обновлена`)
-      } else {
-        alert(`❌ Ошибка обновления настройки: ${data.error}`)
-      }
-    } catch (err) {
-      alert(`❌ Ошибка: ${err instanceof Error ? err.message : 'Unknown error'}`)
-    }
+📝 ЛОКАЛЬНАЯ РАЗРАБОТКА:
+1. Откройте файл .env.local
+2. Найдите или добавьте: ${key.toUpperCase()}=${value}
+3. Перезапустите сервер: npm run dev
+
+🚀 ПРОДАКШЕН VERCEL:
+1. Откройте Vercel Dashboard
+2. Settings → Environment Variables
+3. Установите: ${key.toUpperCase()}=${value}
+4. Redeploy приложение
+
+⚠️ После изменения перезагрузите эту страницу`
+
+    alert(instructions)
   }
 
   // Перезапуск бота
@@ -203,11 +233,13 @@ export default function BotManagementPage() {
     )
   }
 
-  const currentMode = settings?.bot_mode || 'unknown'
-  const botStatus = settings?.bot_status || 'inactive'
+  const currentMode = settings?.envSettings?.bot_mode || 'unknown'
+  const botStatus = settings?.dbStatus?.bot_status || 'inactive'
   const isPollingMode = currentMode === 'polling'
   const isWebhookMode = currentMode === 'webhook'
-  const errorCount = parseInt(settings?.error_count || '0')
+  const errorCount = settings?.dbStatus?.error_count || 0
+  const autoRestart = settings?.envSettings?.auto_restart || false
+  const botToken = settings?.envSettings?.bot_token || 'не настроен'
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
@@ -218,7 +250,19 @@ export default function BotManagementPage() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">🤖 Управление Telegram ботом</h1>
-              <p className="text-gray-600">Переключение между polling и webhook режимами</p>
+              <p className="text-gray-600">Настройки управляются через переменные окружения (.env)</p>
+              <div className="flex items-center mt-2 text-sm">
+                <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded mr-2">
+                  📄 Источник: {settings?.source === 'environment_variables' ? 'Переменные окружения' : 'База данных'}
+                </span>
+                <span className={`px-2 py-1 rounded ${
+                  botToken === '***настроен***' 
+                    ? 'bg-green-100 text-green-800' 
+                    : 'bg-red-100 text-red-800'
+                }`}>
+                  🔑 Токен: {botToken}
+                </span>
+              </div>
             </div>
             <div className="text-right">
               <div className="text-sm text-gray-500">Последнее обновление</div>
@@ -281,11 +325,11 @@ export default function BotManagementPage() {
             
             <div className="text-center">
               <div className="text-4xl mb-2">
-                {settings?.auto_restart === 'true' ? '🔄' : '⏹️'}
+                {autoRestart ? '🔄' : '⏹️'}
               </div>
               <div className="text-sm text-gray-500">Автоперезапуск</div>
-              <div className={`text-lg font-bold ${settings?.auto_restart === 'true' ? 'text-green-600' : 'text-gray-600'}`}>
-                {settings?.auto_restart === 'true' ? 'Включен' : 'Выключен'}
+              <div className={`text-lg font-bold ${autoRestart ? 'text-green-600' : 'text-gray-600'}`}>
+                {autoRestart ? 'Включен' : 'Выключен'}
               </div>
             </div>
           </div>
@@ -392,14 +436,14 @@ export default function BotManagementPage() {
                 <div className="pt-4 border-t">
                   <button
                     onClick={() => switchMode('polling')}
-                    disabled={isSwitching || isPollingMode}
+                    disabled={isPollingMode}
                     className={`w-full py-3 px-4 rounded-lg font-medium transition-colors ${
                       isPollingMode
                         ? 'bg-blue-100 text-blue-600 cursor-not-allowed'
                         : 'bg-blue-500 text-white hover:bg-blue-600'
-                    } ${isSwitching ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    }`}
                   >
-                    {isSwitching ? '⏳ Переключение...' : isPollingMode ? '✅ Уже активен' : '🔄 Включить Polling'}
+                    {isPollingMode ? '✅ Активен' : '📝 Инструкция по настройке'}
                   </button>
                 </div>
               </div>
@@ -479,16 +523,14 @@ export default function BotManagementPage() {
                   
                   <button
                     onClick={() => switchMode('webhook')}
-                    disabled={isSwitching || isWebhookMode || !webhookUrl}
+                    disabled={isWebhookMode}
                     className={`w-full py-3 px-4 rounded-lg font-medium transition-colors ${
                       isWebhookMode
                         ? 'bg-green-100 text-green-600 cursor-not-allowed'
-                        : !webhookUrl
-                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                         : 'bg-green-500 text-white hover:bg-green-600'
-                    } ${isSwitching ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    }`}
                   >
-                    {isSwitching ? '⏳ Переключение...' : isWebhookMode ? '✅ Уже активен' : '🔗 Включить Webhook'}
+                    {isWebhookMode ? '✅ Активен' : '📝 Инструкция по настройке'}
                   </button>
                   
                   {!webhookUrl && (
@@ -512,15 +554,18 @@ export default function BotManagementPage() {
                 <div className="font-medium text-gray-900">Автоматический перезапуск</div>
                 <div className="text-sm text-gray-600">Перезапускать бота при ошибках</div>
               </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={settings?.auto_restart === 'true'}
-                  onChange={(e) => updateSetting('auto_restart', e.target.checked.toString())}
-                  className="sr-only peer"
+              <button
+                onClick={() => updateSetting('bot_auto_restart', (!autoRestart).toString())}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                  autoRestart ? 'bg-blue-600' : 'bg-gray-200'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    autoRestart ? 'translate-x-6' : 'translate-x-1'
+                  }`}
                 />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-              </label>
+              </button>
             </div>
           </div>
         </div>
@@ -608,18 +653,76 @@ export default function BotManagementPage() {
         </div>
 
         {/* Последняя активность */}
-        {settings?.last_update_time && (
+        {settings?.dbStatus?.last_update_time && (
           <div className="bg-white rounded-lg shadow-lg p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">⏰ Последняя активность</h2>
             <div className="text-gray-600">
-              <strong>Время:</strong> {new Date(settings.last_update_time).toLocaleString()}
+              <strong>Время:</strong> {new Date(settings.dbStatus.last_update_time).toLocaleString()}
             </div>
             <div className="text-sm text-gray-500 mt-1">
-              ({Math.round((Date.now() - new Date(settings.last_update_time).getTime()) / 60000)} минут назад)
+              ({Math.round((Date.now() - new Date(settings.dbStatus.last_update_time).getTime()) / 60000)} минут назад)
             </div>
           </div>
         )}
+
+        {/* Инструкция по настройке через .env */}
+        <div className="bg-yellow-50 rounded-lg shadow-lg p-6 border border-yellow-200">
+          <h2 className="text-xl font-semibold text-yellow-900 mb-4">📝 Настройка через переменные окружения</h2>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div>
+              <h3 className="font-medium text-yellow-900 mb-3">💻 Локальная разработка (.env.local)</h3>
+              <div className="bg-yellow-100 rounded-lg p-4">
+                <pre className="text-sm text-yellow-800 whitespace-pre-wrap">{`# Режим работы бота
+BOT_MODE=polling
+
+# URL для webhook (не нужен для polling)
+BOT_WEBHOOK_URL=
+
+# Автоперезапуск при ошибках
+BOT_AUTO_RESTART=true
+
+# Токен бота
+TELEGRAM_BOT_TOKEN=your-bot-token`}</pre>
+              </div>
+              <div className="mt-3 text-sm text-yellow-700">
+                ⚠️ После изменения перезапустите: <code className="bg-yellow-200 px-1 rounded">npm run dev</code>
+              </div>
+            </div>
+            
+            <div>
+              <h3 className="font-medium text-yellow-900 mb-3">🚀 Продакшен Vercel</h3>
+              <div className="bg-yellow-100 rounded-lg p-4">
+                <div className="text-sm text-yellow-800 space-y-2">
+                  <div><strong>1.</strong> Откройте Vercel Dashboard</div>
+                  <div><strong>2.</strong> Settings → Environment Variables</div>
+                  <div><strong>3.</strong> Добавьте переменные:</div>
+                  <div className="ml-4 font-mono text-xs">
+                    <div>BOT_MODE=webhook</div>
+                    <div>BOT_WEBHOOK_URL=https://your-app.vercel.app/api/bot/webhook</div>
+                    <div>BOT_AUTO_RESTART=true</div>
+                    <div>TELEGRAM_BOT_TOKEN=your-bot-token</div>
+                  </div>
+                  <div><strong>4.</strong> Redeploy приложение</div>
+                </div>
+              </div>
+              <div className="mt-3 text-sm text-yellow-700">
+                ⚠️ После изменения переменных нужен redeploy
+              </div>
+            </div>
+          </div>
+          
+          <div className="mt-6 p-4 bg-yellow-100 rounded-lg">
+            <div className="font-medium text-yellow-900 mb-2">🎯 Быстрые команды:</div>
+            <div className="text-yellow-800 text-sm space-y-1">
+              <div><strong>Polling режим:</strong> <code>BOT_MODE=polling</code></div>
+              <div><strong>Webhook режим:</strong> <code>BOT_MODE=webhook</code> + <code>BOT_WEBHOOK_URL=https://...</code></div>
+              <div><strong>Автоперезапуск:</strong> <code>BOT_AUTO_RESTART=true</code></div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )
 }
+

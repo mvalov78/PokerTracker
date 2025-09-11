@@ -14,3 +14,4 @@ DROP POLICY IF EXISTS "Service role can manage linking codes" ON public.telegram
 SELECT schemaname, tablename, rowsecurity 
 FROM pg_tables 
 WHERE tablename = 'telegram_linking_codes';
+

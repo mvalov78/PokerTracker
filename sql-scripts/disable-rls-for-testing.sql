@@ -36,3 +36,4 @@ DROP POLICY IF EXISTS "tournament_photos_delete_policy" ON public.tournament_pho
 
 -- Информация
 SELECT 'RLS отключен для всех таблиц. Теперь можно тестировать без ограничений доступа.' as message;
+

@@ -31,3 +31,4 @@ CREATE POLICY "Service role can manage linking codes" ON public.telegram_linking
 SELECT schemaname, tablename, policyname, permissive, roles, cmd, qual 
 FROM pg_policies 
 WHERE tablename = 'telegram_linking_codes';
+
