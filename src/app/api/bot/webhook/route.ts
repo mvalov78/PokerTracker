@@ -66,8 +66,30 @@ export async function POST(request: NextRequest) {
     if (!bot) {
       console.log(`[Webhook ${requestId}] 🔧 Bot not found, initializing...`);
       const initStartTime = Date.now();
-      bot = await initializeBot();
-      console.log(`[Webhook ${requestId}] ✅ Bot initialized in ${Date.now() - initStartTime}ms`);
+      
+      // Add timeout protection for bot initialization
+      const initPromise = initializeBot();
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Bot initialization timeout (15s)')), 15000)
+      );
+      
+      try {
+        bot = await Promise.race([initPromise, timeoutPromise]);
+        console.log(`[Webhook ${requestId}] ✅ Bot initialized in ${Date.now() - initStartTime}ms`);
+        
+        // Verify bot status after initialization
+        const botStatus = bot.getStatus();
+        console.log(`[Webhook ${requestId}] 📊 Bot status after init:`, botStatus);
+        
+      } catch (initError) {
+        console.error(`[Webhook ${requestId}] 💥 Bot initialization failed:`, {
+          error: initError instanceof Error ? initError.message : 'Unknown error',
+          stack: initError instanceof Error ? initError.stack : undefined,
+          environment: process.env.NODE_ENV,
+          botToken: process.env.TELEGRAM_BOT_TOKEN ? 'SET' : 'NOT_SET'
+        });
+        throw new Error(`Bot initialization failed: ${initError instanceof Error ? initError.message : 'Unknown error'}`);
+      }
     } else {
       console.log(`[Webhook ${requestId}] ✅ Using existing bot instance`);
     }
@@ -153,12 +175,28 @@ export async function GET(request: NextRequest) {
     // Проверяем статус бота
     let bot = getBotInstance();
     let botStatus = null;
+    let botInitialized = false;
     
     if (bot) {
       botStatus = bot.getStatus();
       console.log(`[Webhook GET ${requestId}] 🤖 Bot status:`, botStatus);
     } else {
-      console.log(`[Webhook GET ${requestId}] ⚠️ No bot instance found`);
+      console.log(`[Webhook GET ${requestId}] ⚠️ No bot instance found, attempting initialization...`);
+      
+      try {
+        const initStartTime = Date.now();
+        bot = await initializeBot();
+        botInitialized = true;
+        botStatus = bot.getStatus();
+        
+        console.log(`[Webhook GET ${requestId}] ✅ Bot initialized successfully in ${Date.now() - initStartTime}ms:`, botStatus);
+      } catch (initError) {
+        console.error(`[Webhook GET ${requestId}] 💥 Bot initialization failed:`, {
+          error: initError instanceof Error ? initError.message : 'Unknown error',
+          stack: initError instanceof Error ? initError.stack : undefined
+        });
+        // Don't throw error in GET request, just log it
+      }
     }
 
     // Проверяем настройки из БД
@@ -183,7 +221,8 @@ export async function GET(request: NextRequest) {
       },
       bot: {
         hasInstance: !!bot,
-        status: botStatus
+        status: botStatus,
+        justInitialized: botInitialized
       },
       database: {
         settings: dbSettings
