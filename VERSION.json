@@ -1,7 +1,7 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "codename": "Poker Authorization Release",
-  "releaseDate": "2025-09-10",
+  "releaseDate": "2025-09-11",
   "features": [
     "Complete user authentication system",
     "Google OAuth integration",
@@ -23,17 +23,28 @@
     "development": {
       "branch": "dev",
       "database": "development",
-      "features": ["debug", "hot-reload", "mock-data"]
+      "features": [
+        "debug",
+        "hot-reload",
+        "mock-data"
+      ]
     },
     "staging": {
       "branch": "staging",
       "database": "staging",
-      "features": ["testing", "performance-monitoring"]
+      "features": [
+        "testing",
+        "performance-monitoring"
+      ]
     },
     "production": {
       "branch": "main",
       "database": "production",
-      "features": ["monitoring", "analytics", "backup"]
+      "features": [
+        "monitoring",
+        "analytics",
+        "backup"
+      ]
     }
   },
   "rollbackInfo": {
