@@ -16,9 +16,15 @@ function AuthPageContent() {
     username: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { signIn, signUp, signInWithGoogle, isLoading, isAuthenticated } =
     useAuth();
+    
+  // Debug logging for production
+  useEffect(() => {
+    console.log("🔐 Auth page - isLoading:", isLoading, "isAuthenticated:", isAuthenticated);
+  }, [isLoading, isAuthenticated]);
   const { addToast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -77,7 +83,9 @@ function AuthPageContent() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validateForm()) return;
+    if (!validateForm() || isSubmitting) return;
+    
+    setIsSubmitting(true);
 
     try {
       let result;
@@ -113,6 +121,8 @@ function AuthPageContent() {
         type: "error",
         message: "Произошла непредвиденная ошибка",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -228,7 +238,8 @@ function AuthPageContent() {
 
               <Button
                 type="submit"
-                loading={isLoading}
+                loading={isSubmitting}
+                disabled={isLoading || isSubmitting}
                 className="w-full"
                 size="lg"
               >

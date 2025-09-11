@@ -53,40 +53,81 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const supabase = createClientComponentClient();
   const router = useRouter();
 
-  // Get user profile
+  // Get user profile with timeout protection
   const fetchProfile = async (userId: string) => {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", userId)
-      .single();
+    try {
+      // Add timeout protection for production
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Profile fetch timeout')), 5000)
+      );
+      
+      const fetchPromise = supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .single();
 
-    if (error) {
-      console.error("Error fetching profile:", error);
-      return null;
+      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]);
+
+      if (error) {
+        console.error("Error fetching profile:", error);
+        return null;
+      }
+
+      return data;
+    } catch (error) {
+      console.error("Profile fetch failed:", error);
+      // Return a basic profile structure if fetch fails
+      return {
+        id: userId,
+        email: null,
+        username: null,
+        role: 'player',
+        avatar_url: null,
+        telegram_id: null,
+        preferences: {},
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
     }
-
-    return data;
   };
 
   // Initialize auth state
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        // Get initial session
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
+        console.log("🔐 Initializing auth...");
+        
+        // Add timeout protection for the entire auth initialization
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Auth initialization timeout')), 8000)
+        );
+        
+        const authPromise = (async () => {
+          // Get initial session
+          const {
+            data: { session },
+          } = await supabase.auth.getSession();
 
-        if (session?.user) {
-          const userProfile = await fetchProfile(session.user.id);
-          setUser({ ...session.user, profile: userProfile });
-          setProfile(userProfile);
-        }
+          console.log("🔐 Session status:", session ? 'Found' : 'None');
+
+          if (session?.user) {
+            console.log("🔐 Fetching user profile...");
+            const userProfile = await fetchProfile(session.user.id);
+            setUser({ ...session.user, profile: userProfile });
+            setProfile(userProfile);
+            console.log("🔐 Profile loaded:", userProfile?.role || 'fallback');
+          }
+        })();
+
+        await Promise.race([authPromise, timeoutPromise]);
+        console.log("🔐 Auth initialization completed");
       } catch (error) {
-        console.error("Error initializing auth:", error);
+        console.error("🔐 Error initializing auth:", error);
+        // Continue without auth if initialization fails
       } finally {
         setIsLoading(false);
+        console.log("🔐 Auth loading state cleared");
       }
     };
 
