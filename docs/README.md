@@ -23,6 +23,10 @@
 - [**VERSIONING_GUIDE.md**](./VERSIONING_GUIDE.md) - Система версий
 - [**GITHUB_RELEASE.md**](./GITHUB_RELEASE.md) - GitHub релизы
 
+### 🚨 Устранение неполадок
+- [**PRODUCTION_AUTH_EMERGENCY_FIX.md**](./PRODUCTION_AUTH_EMERGENCY_FIX.md) - Экстренное исправление авторизации
+- [**PRODUCTION_BOT_FIX.md**](./PRODUCTION_BOT_FIX.md) - Исправление проблем бота на продакшене
+
 ### 🔐 Авторизация и безопасность
 - [**SETUP_AUTH.md**](./SETUP_AUTH.md) - Настройка авторизации
 - [**FIX_SUPABASE_RLS.md**](./FIX_SUPABASE_RLS.md) - Исправление RLS политик
@@ -55,6 +59,10 @@
 1. [BOT_ADMIN_GUIDE.md](./BOT_ADMIN_GUIDE.md) - Админ панель
 2. [BOT_MODE_MANAGEMENT.md](./BOT_MODE_MANAGEMENT.md) - Управление ботом
 3. [PRODUCTION_DEPLOYMENT.md](./PRODUCTION_DEPLOYMENT.md) - Продакшен
+
+### **🚨 При проблемах на продакшене:**
+1. [PRODUCTION_AUTH_EMERGENCY_FIX.md](./PRODUCTION_AUTH_EMERGENCY_FIX.md) - Зависание авторизации
+2. [PRODUCTION_BOT_FIX.md](./PRODUCTION_BOT_FIX.md) - Проблемы с ботом
 
 ## 🔗 Полезные ссылки
 
