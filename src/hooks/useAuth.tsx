@@ -104,17 +104,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
         );
         
         const authPromise = (async () => {
-          // Get initial session
+          // Get current user (secure method)
           const {
-            data: { session },
-          } = await supabase.auth.getSession();
+            data: { user },
+            error
+          } = await supabase.auth.getUser();
 
-          console.log("🔐 Session status:", session ? 'Found' : 'None');
+          console.log("🔐 User status:", user ? 'Authenticated' : 'None');
+          if (error) {
+            console.log("🔐 Auth error:", error.message);
+          }
 
-          if (session?.user) {
+          if (user) {
             console.log("🔐 Fetching user profile...");
-            const userProfile = await fetchProfile(session.user.id);
-            setUser({ ...session.user, profile: userProfile });
+            const userProfile = await fetchProfile(user.id);
+            setUser({ ...user, profile: userProfile });
             setProfile(userProfile);
             console.log("🔐 Profile loaded:", userProfile?.role || 'fallback');
           }
@@ -137,13 +141,36 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === "SIGNED_IN" && session?.user) {
-        const userProfile = await fetchProfile(session.user.id);
-        setUser({ ...session.user, profile: userProfile });
-        setProfile(userProfile);
+      console.log("🔐 Auth state change:", event);
+      
+      if (event === "SIGNED_IN") {
+        // Always use getUser() for security, don't trust session data
+        const { data: { user }, error } = await supabase.auth.getUser();
+        
+        if (user && !error) {
+          console.log("🔐 User signed in, fetching profile...");
+          const userProfile = await fetchProfile(user.id);
+          setUser({ ...user, profile: userProfile });
+          setProfile(userProfile);
+        } else {
+          console.error("🔐 Error getting user after sign in:", error);
+          setUser(null);
+          setProfile(null);
+        }
       } else if (event === "SIGNED_OUT") {
+        console.log("🔐 User signed out");
         setUser(null);
         setProfile(null);
+      } else if (event === "TOKEN_REFRESHED") {
+        console.log("🔐 Token refreshed, re-fetching user...");
+        // Re-fetch user data after token refresh
+        const { data: { user }, error } = await supabase.auth.getUser();
+        
+        if (user && !error) {
+          const userProfile = await fetchProfile(user.id);
+          setUser({ ...user, profile: userProfile });
+          setProfile(userProfile);
+        }
       }
       setIsLoading(false);
     });

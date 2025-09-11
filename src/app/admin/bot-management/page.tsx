@@ -34,7 +34,7 @@ interface WebhookInfo {
 }
 
 export default function BotManagementPage() {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, isLoading: authLoading } = useAuth();
   const [settings, setSettings] = useState<BotSettings | null>(null);
   const [webhookInfo, setWebhookInfo] = useState<WebhookInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -42,6 +42,37 @@ export default function BotManagementPage() {
   const [error, setError] = useState<string | null>(null);
   const [webhookUrl, setWebhookUrl] = useState("");
   const [lastRefresh, setLastRefresh] = useState(new Date());
+
+  // Early return if not authenticated or not admin
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Проверка аутентификации...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user || !isAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-red-600 mb-4">Доступ запрещен</h1>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
+            {!user ? "Требуется авторизация" : "Требуются права администратора"}
+          </p>
+          <a 
+            href="/auth" 
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Перейти к авторизации
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   // Автоматическое определение webhook URL
   useEffect(() => {
