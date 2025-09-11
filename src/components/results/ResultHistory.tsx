@@ -1,92 +1,100 @@
-'use client'
+"use client";
 
-import { useMemo } from 'react'
-import Card, { CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
-import { ResultChangeHistory, Tournament } from '@/types'
-import { getResultHistory, getTournamentById } from '@/data/mockData'
+import { useMemo } from "react";
+import Card, { CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { type ResultChangeHistory, Tournament } from "@/types";
+import { getResultHistory, getTournamentById } from "@/data/mockData";
 
 interface ResultHistoryProps {
-  userId: string
-  tournamentId?: string
-  maxItems?: number
-  showTournamentName?: boolean
+  userId: string;
+  tournamentId?: string;
+  maxItems?: number;
+  showTournamentName?: boolean;
 }
 
-export default function ResultHistory({ 
-  userId, 
-  tournamentId, 
+export default function ResultHistory({
+  userId,
+  tournamentId,
   maxItems = 10,
-  showTournamentName = true 
+  showTournamentName = true,
 }: ResultHistoryProps) {
   const history = useMemo(() => {
-    const allHistory = getResultHistory(userId, tournamentId)
-    return maxItems ? allHistory.slice(0, maxItems) : allHistory
-  }, [userId, tournamentId, maxItems])
+    const allHistory = getResultHistory(userId, tournamentId);
+    return maxItems ? allHistory.slice(0, maxItems) : allHistory;
+  }, [userId, tournamentId, maxItems]);
 
-  const getChangeIcon = (changeType: ResultChangeHistory['changeType']) => {
+  const getChangeIcon = (changeType: ResultChangeHistory["changeType"]) => {
     switch (changeType) {
-      case 'created': return '✅'
-      case 'updated': return '✏️'
-      case 'deleted': return '🗑️'
-      default: return '📝'
+      case "created":
+        return "✅";
+      case "updated":
+        return "✏️";
+      case "deleted":
+        return "🗑️";
+      default:
+        return "📝";
     }
-  }
+  };
 
-  const getChangeColor = (changeType: ResultChangeHistory['changeType']) => {
+  const getChangeColor = (changeType: ResultChangeHistory["changeType"]) => {
     switch (changeType) {
-      case 'created': return 'text-green-600 dark:text-green-400'
-      case 'updated': return 'text-blue-600 dark:text-blue-400'
-      case 'deleted': return 'text-red-600 dark:text-red-400'
-      default: return 'text-gray-600 dark:text-gray-400'
+      case "created":
+        return "text-green-600 dark:text-green-400";
+      case "updated":
+        return "text-blue-600 dark:text-blue-400";
+      case "deleted":
+        return "text-red-600 dark:text-red-400";
+      default:
+        return "text-gray-600 dark:text-gray-400";
     }
-  }
+  };
 
   const formatFieldName = (field: string) => {
     const fieldNames: { [key: string]: string } = {
-      'position': 'Позиция',
-      'payout': 'Выплата',
-      'profit': 'Прибыль',
-      'roi': 'ROI',
-      'notes': 'Комментарии',
-      'knockouts': 'Нокауты',
-      'rebuyCount': 'Ребаи',
-      'addonCount': 'Аддоны',
-      'timeEliminated': 'Время вылета',
-      'finalTableReached': 'Финальный стол'
-    }
-    return fieldNames[field] || field
-  }
+      position: "Позиция",
+      payout: "Выплата",
+      profit: "Прибыль",
+      roi: "ROI",
+      notes: "Комментарии",
+      knockouts: "Нокауты",
+      rebuyCount: "Ребаи",
+      addonCount: "Аддоны",
+      timeEliminated: "Время вылета",
+      finalTableReached: "Финальный стол",
+    };
+    return fieldNames[field] || field;
+  };
 
   const formatValue = (field: string, value: any) => {
-    if (value === null || value === undefined) return '-'
-    
+    if (value === null || value === undefined) return "-";
+
     switch (field) {
-      case 'payout':
-      case 'profit':
-        return new Intl.NumberFormat('ru-RU', {
-          style: 'currency',
-          currency: 'USD'
-        }).format(value)
-      case 'roi':
-        return `${Number(value).toFixed(1)}%`
-      case 'finalTableReached':
-        return value ? 'Да' : 'Нет'
+      case "payout":
+      case "profit":
+        return new Intl.NumberFormat("ru-RU", {
+          style: "currency",
+          currency: "USD",
+        }).format(value);
+      case "roi":
+        return `${Number(value).toFixed(1)}%`;
+      case "finalTableReached":
+        return value ? "Да" : "Нет";
       default:
-        return String(value)
+        return String(value);
     }
-  }
+  };
 
   const renderFieldChanges = (entry: ResultChangeHistory) => {
-    return entry.changedFields.map(field => {
-      const oldValue = entry.oldData?.[field as keyof typeof entry.oldData]
-      const newValue = entry.newData?.[field as keyof typeof entry.newData]
-      
+    return entry.changedFields.map((field) => {
+      const oldValue = entry.oldData?.[field as keyof typeof entry.oldData];
+      const newValue = entry.newData?.[field as keyof typeof entry.newData];
+
       return (
         <div key={field} className="text-sm">
           <span className="font-medium text-gray-900 dark:text-white">
             {formatFieldName(field)}:
           </span>
-          {entry.changeType === 'updated' ? (
+          {entry.changeType === "updated" ? (
             <span className="ml-2">
               <span className="text-red-600 dark:text-red-400 line-through">
                 {formatValue(field, oldValue)}
@@ -102,14 +110,14 @@ export default function ResultHistory({
             </span>
           )}
         </div>
-      )
-    })
-  }
+      );
+    });
+  };
 
   const getTournamentName = (tournamentId: string) => {
-    const tournament = getTournamentById(tournamentId)
-    return tournament?.name || `Турнир ${tournamentId}`
-  }
+    const tournament = getTournamentById(tournamentId);
+    return tournament?.name || `Турнир ${tournamentId}`;
+  };
 
   if (history.length === 0) {
     return (
@@ -132,7 +140,7 @@ export default function ResultHistory({
           </div>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   return (
@@ -151,7 +159,7 @@ export default function ResultHistory({
       <CardContent>
         <div className="space-y-4">
           {history.map((entry) => (
-            <div 
+            <div
               key={entry.id}
               className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
             >
@@ -161,10 +169,12 @@ export default function ResultHistory({
                     {getChangeIcon(entry.changeType)}
                   </div>
                   <div>
-                    <div className={`font-semibold ${getChangeColor(entry.changeType)}`}>
-                      {entry.changeType === 'created' && 'Результат добавлен'}
-                      {entry.changeType === 'updated' && 'Результат обновлен'}
-                      {entry.changeType === 'deleted' && 'Результат удален'}
+                    <div
+                      className={`font-semibold ${getChangeColor(entry.changeType)}`}
+                    >
+                      {entry.changeType === "created" && "Результат добавлен"}
+                      {entry.changeType === "updated" && "Результат обновлен"}
+                      {entry.changeType === "deleted" && "Результат удален"}
                     </div>
                     {showTournamentName && (
                       <div className="text-sm text-gray-600 dark:text-gray-400">
@@ -175,24 +185,22 @@ export default function ResultHistory({
                 </div>
                 <div className="text-right">
                   <div className="text-sm text-gray-600 dark:text-gray-400">
-                    {new Date(entry.timestamp).toLocaleDateString('ru-RU', {
-                      day: '2-digit',
-                      month: '2-digit',
-                      year: 'numeric'
+                    {new Date(entry.timestamp).toLocaleDateString("ru-RU", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
                     })}
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400">
-                    {new Date(entry.timestamp).toLocaleTimeString('ru-RU', {
-                      hour: '2-digit',
-                      minute: '2-digit'
+                    {new Date(entry.timestamp).toLocaleTimeString("ru-RU", {
+                      hour: "2-digit",
+                      minute: "2-digit",
                     })}
                   </div>
                 </div>
               </div>
 
-              <div className="space-y-2 mb-3">
-                {renderFieldChanges(entry)}
-              </div>
+              <div className="space-y-2 mb-3">{renderFieldChanges(entry)}</div>
 
               {entry.reason && (
                 <div className="text-sm text-gray-600 dark:text-gray-400 italic border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
@@ -212,5 +220,5 @@ export default function ResultHistory({
         )}
       </CardContent>
     </Card>
-  )
+  );
 }

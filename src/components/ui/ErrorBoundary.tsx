@@ -1,50 +1,53 @@
-'use client'
+"use client";
 
-import React, { Component, ErrorInfo, ReactNode } from 'react'
-import Button from './Button'
+import React, { Component, type ErrorInfo, type ReactNode } from "react";
+import Button from "./Button";
 
 interface ErrorBoundaryState {
-  hasError: boolean
-  error?: Error
-  errorInfo?: ErrorInfo
+  hasError: boolean;
+  error?: Error;
+  errorInfo?: ErrorInfo;
 }
 
 interface ErrorBoundaryProps {
-  children: ReactNode
-  fallback?: ReactNode
-  onError?: (error: Error, errorInfo: ErrorInfo) => void
+  children: ReactNode;
+  fallback?: ReactNode;
+  onError?: (error: Error, errorInfo: ErrorInfo) => void;
 }
 
-export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+export class ErrorBoundary extends Component<
+  ErrorBoundaryProps,
+  ErrorBoundaryState
+> {
   constructor(props: ErrorBoundaryProps) {
-    super(props)
-    this.state = { hasError: false }
+    super(props);
+    this.state = { hasError: false };
   }
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return {
       hasError: true,
       error,
-    }
+    };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     this.setState({
       error,
       errorInfo,
-    })
+    });
 
     // Log error to console in development
-    if (process.env.NODE_ENV === 'development') {
-      console.error('ErrorBoundary caught an error:', error, errorInfo)
+    if (process.env.NODE_ENV === "development") {
+      console.error("ErrorBoundary caught an error:", error, errorInfo);
     }
 
     // Call optional error handler
-    this.props.onError?.(error, errorInfo)
+    this.props.onError?.(error, errorInfo);
 
     // In production, you might want to send error to logging service
-    if (process.env.NODE_ENV === 'production') {
-      this.logErrorToService(error, errorInfo)
+    if (process.env.NODE_ENV === "production") {
+      this.logErrorToService(error, errorInfo);
     }
   }
 
@@ -59,29 +62,29 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
         timestamp: new Date().toISOString(),
         userAgent: navigator.userAgent,
         url: window.location.href,
-      }
+      };
 
       // Example: send to logging service
       // logService.captureException(error, { extra: errorReport })
-      
-      console.error('Error logged:', errorReport)
+
+      console.error("Error logged:", errorReport);
     } catch (loggingError) {
-      console.error('Failed to log error:', loggingError)
+      console.error("Failed to log error:", loggingError);
     }
-  }
+  };
 
   private handleReset = () => {
-    this.setState({ hasError: false, error: undefined, errorInfo: undefined })
-  }
+    this.setState({ hasError: false, error: undefined, errorInfo: undefined });
+  };
 
   private handleReload = () => {
-    window.location.reload()
-  }
+    window.location.reload();
+  };
 
   render() {
     if (this.state.hasError) {
       if (this.props.fallback) {
-        return this.props.fallback
+        return this.props.fallback;
       }
 
       return (
@@ -93,10 +96,11 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                 Что-то пошло не так
               </h1>
               <p className="text-gray-600 dark:text-gray-400 mb-6">
-                Произошла неожиданная ошибка. Мы уже работаем над её исправлением.
+                Произошла неожиданная ошибка. Мы уже работаем над её
+                исправлением.
               </p>
 
-              {process.env.NODE_ENV === 'development' && this.state.error && (
+              {process.env.NODE_ENV === "development" && this.state.error && (
                 <details className="mb-6 text-left">
                   <summary className="cursor-pointer text-sm text-gray-500 dark:text-gray-400 mb-2">
                     Детали ошибки (только в разработке)
@@ -107,7 +111,9 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                     {this.state.error.stack && (
                       <>
                         <div className="font-bold mb-1">Stack:</div>
-                        <pre className="whitespace-pre-wrap">{this.state.error.stack}</pre>
+                        <pre className="whitespace-pre-wrap">
+                          {this.state.error.stack}
+                        </pre>
                       </>
                     )}
                   </div>
@@ -137,51 +143,54 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             </div>
           </div>
         </div>
-      )
+      );
     }
 
-    return this.props.children
+    return this.props.children;
   }
 }
 
 // Hook for error handling in functional components
 export const useErrorHandler = () => {
-  const [error, setError] = React.useState<Error | null>(null)
+  const [error, setError] = React.useState<Error | null>(null);
 
   const resetError = React.useCallback(() => {
-    setError(null)
-  }, [])
+    setError(null);
+  }, []);
 
   const handleError = React.useCallback((error: Error) => {
-    setError(error)
-  }, [])
+    setError(error);
+  }, []);
 
   // Throw error to be caught by ErrorBoundary
   if (error) {
-    throw error
+    throw error;
   }
 
-  return { handleError, resetError }
-}
+  return { handleError, resetError };
+};
 
 // Async error boundary for handling promise rejections
 export const AsyncErrorBoundary: React.FC<ErrorBoundaryProps> = (props) => {
-  const { handleError } = useErrorHandler()
+  const { handleError } = useErrorHandler();
 
   React.useEffect(() => {
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-      handleError(new Error(event.reason))
-    }
+      handleError(new Error(event.reason));
+    };
 
-    window.addEventListener('unhandledrejection', handleUnhandledRejection)
+    window.addEventListener("unhandledrejection", handleUnhandledRejection);
 
     return () => {
-      window.removeEventListener('unhandledrejection', handleUnhandledRejection)
-    }
-  }, [handleError])
+      window.removeEventListener(
+        "unhandledrejection",
+        handleUnhandledRejection,
+      );
+    };
+  }, [handleError]);
 
-  return <ErrorBoundary {...props} />
-}
+  return <ErrorBoundary {...props} />;
+};
 
 // Specific error components
 export const NetworkErrorFallback = ({ onRetry }: { onRetry?: () => void }) => (
@@ -199,9 +208,13 @@ export const NetworkErrorFallback = ({ onRetry }: { onRetry?: () => void }) => (
       </Button>
     )}
   </div>
-)
+);
 
-export const NotFoundErrorFallback = ({ onGoHome }: { onGoHome?: () => void }) => (
+export const NotFoundErrorFallback = ({
+  onGoHome,
+}: {
+  onGoHome?: () => void;
+}) => (
   <div className="text-center p-6">
     <div className="text-4xl mb-4">🔍</div>
     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
@@ -216,7 +229,7 @@ export const NotFoundErrorFallback = ({ onGoHome }: { onGoHome?: () => void }) =
       </Button>
     )}
   </div>
-)
+);
 
 export const LoadingErrorFallback = ({ onRetry }: { onRetry?: () => void }) => (
   <div className="text-center p-6">
@@ -233,12 +246,12 @@ export const LoadingErrorFallback = ({ onRetry }: { onRetry?: () => void }) => (
       </Button>
     )}
   </div>
-)
+);
 
 // Error boundary with retry logic
 interface RetryErrorBoundaryProps extends ErrorBoundaryProps {
-  maxRetries?: number
-  retryDelay?: number
+  maxRetries?: number;
+  retryDelay?: number;
 }
 
 export const RetryErrorBoundary: React.FC<RetryErrorBoundaryProps> = ({
@@ -247,18 +260,18 @@ export const RetryErrorBoundary: React.FC<RetryErrorBoundaryProps> = ({
   retryDelay = 1000,
   ...props
 }) => {
-  const [retryCount, setRetryCount] = React.useState(0)
-  const [isRetrying, setIsRetrying] = React.useState(false)
+  const [retryCount, setRetryCount] = React.useState(0);
+  const [isRetrying, setIsRetrying] = React.useState(false);
 
   const handleRetry = React.useCallback(() => {
     if (retryCount < maxRetries) {
-      setIsRetrying(true)
+      setIsRetrying(true);
       setTimeout(() => {
-        setRetryCount(prev => prev + 1)
-        setIsRetrying(false)
-      }, retryDelay)
+        setRetryCount((prev) => prev + 1);
+        setIsRetrying(false);
+      }, retryDelay);
     }
-  }, [retryCount, maxRetries, retryDelay])
+  }, [retryCount, maxRetries, retryDelay]);
 
   const retryFallback = (
     <div className="text-center p-6">
@@ -268,23 +281,19 @@ export const RetryErrorBoundary: React.FC<RetryErrorBoundaryProps> = ({
       </h3>
       <p className="text-gray-600 dark:text-gray-400 mb-4">
         {retryCount < maxRetries
-          ? 'Произошла ошибка. Попробуем еще раз?'
-          : 'Превышено максимальное количество попыток.'}
+          ? "Произошла ошибка. Попробуем еще раз?"
+          : "Превышено максимальное количество попыток."}
       </p>
       {retryCount < maxRetries && (
-        <Button
-          onClick={handleRetry}
-          variant="primary"
-          loading={isRetrying}
-        >
-          {isRetrying ? 'Повторяем...' : 'Повторить попытку'}
+        <Button onClick={handleRetry} variant="primary" loading={isRetrying}>
+          {isRetrying ? "Повторяем..." : "Повторить попытку"}
         </Button>
       )}
       <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">
         Попытка {retryCount + 1} из {maxRetries + 1}
       </div>
     </div>
-  )
+  );
 
   return (
     <ErrorBoundary
@@ -294,7 +303,7 @@ export const RetryErrorBoundary: React.FC<RetryErrorBoundaryProps> = ({
     >
       {children}
     </ErrorBoundary>
-  )
-}
+  );
+};
 
-export default ErrorBoundary
+export default ErrorBoundary;

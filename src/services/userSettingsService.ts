@@ -1,11 +1,11 @@
-import { createAdminClient } from '@/lib/supabase'
+import { createAdminClient } from "@/lib/supabase";
 
 export interface UserSettings {
-  id: string
-  userId: string
-  currentVenue?: string
-  createdAt: string
-  updatedAt: string
+  id: string;
+  userId: string;
+  currentVenue?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export class UserSettingsService {
@@ -14,95 +14,103 @@ export class UserSettingsService {
    */
   static async getUserSettings(userId: string): Promise<UserSettings | null> {
     try {
-      const supabase = createAdminClient()
+      const supabase = createAdminClient();
       if (!supabase) {
-        console.warn('Admin client not available, returning null settings')
-        return null
+        console.warn("Admin client not available, returning null settings");
+        return null;
       }
       const { data, error } = await supabase
-        .from('user_settings')
-        .select('*')
-        .eq('user_id', userId)
-        .single()
+        .from("user_settings")
+        .select("*")
+        .eq("user_id", userId)
+        .single();
 
       if (error) {
-        if (error.code === 'PGRST116') {
+        if (error.code === "PGRST116") {
           // Запись не найдена - создаем новую
-          return await this.createUserSettings(userId)
+          return await UserSettingsService.createUserSettings(userId);
         }
-        console.error('Error fetching user settings:', error)
-        return null
+        console.error("Error fetching user settings:", error);
+        return null;
       }
 
-      return this.mapDbSettingsToType(data)
+      return UserSettingsService.mapDbSettingsToType(data);
     } catch (error) {
-      console.error('Error in getUserSettings:', error)
-      return null
+      console.error("Error in getUserSettings:", error);
+      return null;
     }
   }
 
   /**
    * Создать настройки пользователя
    */
-  static async createUserSettings(userId: string): Promise<UserSettings | null> {
+  static async createUserSettings(
+    userId: string,
+  ): Promise<UserSettings | null> {
     try {
-      const supabase = createAdminClient()
+      const supabase = createAdminClient();
       if (!supabase) {
-        console.warn('Admin client not available, returning null settings')
-        return null
+        console.warn("Admin client not available, returning null settings");
+        return null;
       }
       const { data, error } = await supabase
-        .from('user_settings')
+        .from("user_settings")
         .insert({
           user_id: userId,
-          current_venue: null
+          current_venue: null,
         })
         .select()
-        .single()
+        .single();
 
       if (error) {
-        console.error('Error creating user settings:', error)
-        return null
+        console.error("Error creating user settings:", error);
+        return null;
       }
 
-      return this.mapDbSettingsToType(data)
+      return UserSettingsService.mapDbSettingsToType(data);
     } catch (error) {
-      console.error('Error in createUserSettings:', error)
-      return null
+      console.error("Error in createUserSettings:", error);
+      return null;
     }
   }
 
   /**
    * Обновить текущую площадку пользователя
    */
-  static async updateCurrentVenue(userId: string, venue: string): Promise<UserSettings | null> {
+  static async updateCurrentVenue(
+    userId: string,
+    venue: string,
+  ): Promise<UserSettings | null> {
     try {
-      const supabase = createAdminClient()
+      const supabase = createAdminClient();
       if (!supabase) {
-        console.warn('Admin client not available, returning null settings')
-        return null
+        console.warn("Admin client not available, returning null settings");
+        return null;
       }
       const { data, error } = await supabase
-        .from('user_settings')
-        .upsert({
-          user_id: userId,
-          current_venue: venue,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'user_id'
-        })
+        .from("user_settings")
+        .upsert(
+          {
+            user_id: userId,
+            current_venue: venue,
+            updated_at: new Date().toISOString(),
+          },
+          {
+            onConflict: "user_id",
+          },
+        )
         .select()
-        .single()
+        .single();
 
       if (error) {
-        console.error('Error updating venue:', error)
-        return null
+        console.error("Error updating venue:", error);
+        return null;
       }
 
-      return this.mapDbSettingsToType(data)
+      return UserSettingsService.mapDbSettingsToType(data);
     } catch (error) {
-      console.error('Error in updateCurrentVenue:', error)
-      return null
+      console.error("Error in updateCurrentVenue:", error);
+      return null;
     }
   }
 
@@ -110,8 +118,8 @@ export class UserSettingsService {
    * Получить текущую площадку пользователя
    */
   static async getCurrentVenue(userId: string): Promise<string | null> {
-    const settings = await this.getUserSettings(userId)
-    return settings?.currentVenue || null
+    const settings = await UserSettingsService.getUserSettings(userId);
+    return settings?.currentVenue || null;
   }
 
   /**
@@ -123,7 +131,7 @@ export class UserSettingsService {
       userId: dbSettings.user_id,
       currentVenue: dbSettings.current_venue,
       createdAt: dbSettings.created_at,
-      updatedAt: dbSettings.updated_at
-    }
+      updatedAt: dbSettings.updated_at,
+    };
   }
 }

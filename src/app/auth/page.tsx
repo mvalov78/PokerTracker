@@ -1,143 +1,151 @@
-'use client'
+"use client";
 
-import { useState, useEffect, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { useAuth } from '@/hooks/useAuth'
-import { useToast } from '@/components/ui/Toast'
-import Button from '@/components/ui/Button'
-import Input from '@/components/ui/Input'
-import Card, { CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/components/ui/Toast";
+import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
+import Card, { CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 
 function AuthPageContent() {
-  const [isLogin, setIsLogin] = useState(true)
+  const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    username: ''
-  })
-  const [errors, setErrors] = useState<Record<string, string>>({})
-  
-  const { signIn, signUp, signInWithGoogle, isLoading, isAuthenticated } = useAuth()
-  const { addToast } = useToast()
-  const router = useRouter()
-  const searchParams = useSearchParams()
+    email: "",
+    password: "",
+    username: "",
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const { signIn, signUp, signInWithGoogle, isLoading, isAuthenticated } =
+    useAuth();
+  const { addToast } = useToast();
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
   // Перенаправление если пользователь уже авторизован
   useEffect(() => {
     if (isAuthenticated) {
-      const redirect = searchParams.get('redirect') || '/'
-      router.push(redirect)
+      const redirect = searchParams.get("redirect") || "/";
+      router.push(redirect);
     }
-  }, [isAuthenticated, router, searchParams])
+  }, [isAuthenticated, router, searchParams]);
 
   // Показать ошибку из URL (например, от OAuth callback)
   useEffect(() => {
-    const error = searchParams.get('error')
-    if (error === 'auth_callback_error') {
+    const error = searchParams.get("error");
+    if (error === "auth_callback_error") {
       addToast({
-        type: 'error',
-        message: 'Произошла ошибка при авторизации через Google. Попробуйте еще раз.'
-      })
+        type: "error",
+        message:
+          "Произошла ошибка при авторизации через Google. Попробуйте еще раз.",
+      });
     }
-  }, [searchParams, addToast])
+  }, [searchParams, addToast]);
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
+    setFormData((prev) => ({ ...prev, [field]: value }));
     // Очистка ошибки при изменении поля
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }))
+      setErrors((prev) => ({ ...prev, [field]: "" }));
     }
-  }
+  };
 
   const validateForm = () => {
-    const newErrors: Record<string, string> = {}
+    const newErrors: Record<string, string> = {};
 
     if (!formData.email) {
-      newErrors.email = 'Email обязателен'
+      newErrors.email = "Email обязателен";
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Неверный формат email'
+      newErrors.email = "Неверный формат email";
     }
 
     if (!formData.password) {
-      newErrors.password = 'Пароль обязателен'
+      newErrors.password = "Пароль обязателен";
     } else if (formData.password.length < 6) {
-      newErrors.password = 'Пароль должен содержать минимум 6 символов'
+      newErrors.password = "Пароль должен содержать минимум 6 символов";
     }
 
     if (!isLogin && !formData.username) {
-      newErrors.username = 'Имя пользователя обязательно'
+      newErrors.username = "Имя пользователя обязательно";
     }
 
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    if (!validateForm()) return
+    e.preventDefault();
+
+    if (!validateForm()) return;
 
     try {
-      let result
+      let result;
       if (isLogin) {
-        result = await signIn(formData.email, formData.password)
+        result = await signIn(formData.email, formData.password);
       } else {
-        result = await signUp(formData.email, formData.password, formData.username)
+        result = await signUp(
+          formData.email,
+          formData.password,
+          formData.username,
+        );
       }
 
       if (result.success) {
         addToast({
-          type: 'success',
-          message: isLogin ? 'Добро пожаловать!' : 'Проверьте email для подтверждения регистрации'
-        })
+          type: "success",
+          message: isLogin
+            ? "Добро пожаловать!"
+            : "Проверьте email для подтверждения регистрации",
+        });
         if (isLogin) {
-          const redirect = searchParams.get('redirect') || '/'
-          router.push(redirect)
+          const redirect = searchParams.get("redirect") || "/";
+          router.push(redirect);
         }
       } else {
         addToast({
-          type: 'error',
-          message: result.error || 'Произошла ошибка'
-        })
+          type: "error",
+          message: result.error || "Произошла ошибка",
+        });
       }
     } catch (error) {
       addToast({
-        type: 'error',
-        message: 'Произошла непредвиденная ошибка'
-      })
+        type: "error",
+        message: "Произошла непредвиденная ошибка",
+      });
     }
-  }
+  };
 
   const handleGoogleSignIn = async () => {
     try {
-      const result = await signInWithGoogle()
+      const result = await signInWithGoogle();
       if (!result.success) {
         addToast({
-          type: 'error',
-          message: result.error || 'Произошла ошибка при входе через Google'
-        })
+          type: "error",
+          message: result.error || "Произошла ошибка при входе через Google",
+        });
       }
       // При успехе пользователя перенаправит OAuth callback
     } catch (error) {
       addToast({
-        type: 'error',
-        message: 'Произошла непредвиденная ошибка'
-      })
+        type: "error",
+        message: "Произошла непредвиденная ошибка",
+      });
     }
-  }
+  };
 
   const switchMode = () => {
-    setIsLogin(!isLogin)
-    setFormData({ email: '', password: '', username: '' })
-    setErrors({})
-  }
+    setIsLogin(!isLogin);
+    setFormData({ email: "", password: "", username: "" });
+    setErrors({});
+  };
 
   if (isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-poker-green-600"></div>
       </div>
-    )
+    );
   }
 
   return (
@@ -148,7 +156,9 @@ function AuthPageContent() {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-600 rounded-2xl mb-4">
             <span className="text-2xl">♠️</span>
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">PokerTracker Pro</h1>
+          <h1 className="text-3xl font-bold text-white mb-2">
+            PokerTracker Pro
+          </h1>
           <p className="text-gray-400">Отслеживайте свой покерный путь</p>
         </div>
 
@@ -158,7 +168,7 @@ function AuthPageContent() {
             <div className="flex mb-6 bg-gray-800/50 rounded-lg p-1">
               <button
                 className={`flex-1 py-2 px-4 rounded-md transition-all ${
-                  isLogin ? 'bg-emerald-600 text-white' : 'text-gray-400'
+                  isLogin ? "bg-emerald-600 text-white" : "text-gray-400"
                 }`}
                 onClick={() => setIsLogin(true)}
                 type="button"
@@ -167,7 +177,7 @@ function AuthPageContent() {
               </button>
               <button
                 className={`flex-1 py-2 px-4 rounded-md transition-all ${
-                  !isLogin ? 'bg-emerald-600 text-white' : 'text-gray-400'
+                  !isLogin ? "bg-emerald-600 text-white" : "text-gray-400"
                 }`}
                 onClick={() => setIsLogin(false)}
                 type="button"
@@ -176,7 +186,7 @@ function AuthPageContent() {
               </button>
             </div>
           </CardHeader>
-          
+
           <CardContent className="p-6 pt-0">
             <form onSubmit={handleSubmit} className="space-y-4">
               <Input
@@ -184,31 +194,33 @@ function AuthPageContent() {
                 label="Email"
                 placeholder="your@email.com"
                 value={formData.email}
-                onChange={(e) => handleInputChange('email', e.target.value)}
+                onChange={(e) => handleInputChange("email", e.target.value)}
                 error={errors.email}
                 required
                 className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-400 focus:border-emerald-500 focus:ring-emerald-500"
               />
-              
+
               {!isLogin && (
                 <Input
                   type="text"
                   label="Никнейм"
                   placeholder="Ваш никнейм"
                   value={formData.username}
-                  onChange={(e) => handleInputChange('username', e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("username", e.target.value)
+                  }
                   error={errors.username}
                   required
                   className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-400 focus:border-emerald-500 focus:ring-emerald-500"
                 />
               )}
-              
+
               <Input
                 type="password"
                 label="Пароль"
                 placeholder="••••••••"
                 value={formData.password}
-                onChange={(e) => handleInputChange('password', e.target.value)}
+                onChange={(e) => handleInputChange("password", e.target.value)}
                 error={errors.password}
                 required
                 className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-400 focus:border-emerald-500 focus:ring-emerald-500"
@@ -220,7 +232,7 @@ function AuthPageContent() {
                 className="w-full"
                 size="lg"
               >
-                {isLogin ? 'Войти' : 'Зарегистрироваться'}
+                {isLogin ? "Войти" : "Зарегистрироваться"}
               </Button>
             </form>
 
@@ -274,14 +286,20 @@ function AuthPageContent() {
               </p>
               {isLogin ? (
                 <div className="text-xs text-emerald-300">
-                  <p className="mb-2">Используйте существующий аккаунт или создайте новый.</p>
+                  <p className="mb-2">
+                    Используйте существующий аккаунт или создайте новый.
+                  </p>
                   <p className="mb-1">• Админ: mvalov78@gmail.com</p>
                   <p>• Для тестов создайте дополнительные аккаунты</p>
                 </div>
               ) : (
                 <div className="text-xs text-emerald-300">
-                  <p className="mb-2">Создайте новый аккаунт для тестирования:</p>
-                  <p className="mb-1">• Укажите любой email (test@example.com)</p>
+                  <p className="mb-2">
+                    Создайте новый аккаунт для тестирования:
+                  </p>
+                  <p className="mb-1">
+                    • Укажите любой email (test@example.com)
+                  </p>
                   <p className="mb-1">• Пароль минимум 6 символов</p>
                   <p>• Подтверждение email не требуется в dev-режиме</p>
                 </div>
@@ -295,25 +313,28 @@ function AuthPageContent() {
                 type="button"
                 className="text-emerald-400 hover:text-emerald-300 text-sm font-medium"
               >
-                {isLogin ? 'Нет аккаунта? Зарегистрируйтесь' : 'Уже есть аккаунт? Войдите'}
+                {isLogin
+                  ? "Нет аккаунта? Зарегистрируйтесь"
+                  : "Уже есть аккаунт? Войдите"}
               </button>
             </div>
-
           </CardContent>
         </Card>
       </div>
     </div>
-  )
+  );
 }
 
 export default function AuthPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
+        </div>
+      }
+    >
       <AuthPageContent />
     </Suspense>
-  )
+  );
 }

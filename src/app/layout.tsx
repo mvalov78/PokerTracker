@@ -6,13 +6,23 @@ import { AppProviders } from "@/components/providers/AppProviders";
 const inter = Inter({
   variable: "--font-geist-sans",
   subsets: ["latin", "cyrillic"],
-  display: 'swap',
+  display: "swap",
 });
 
 export const metadata: Metadata = {
   title: "PokerTracker Pro",
-  description: "Профессиональный трекер результатов турнирного покера с автоматическим распознаванием билетов и детальной аналитикой",
-  keywords: ["покер", "турниры", "трекер", "ROI", "банкролл", "статистика", "poker", "tournaments"],
+  description:
+    "Профессиональный трекер результатов турнирного покера с автоматическим распознаванием билетов и детальной аналитикой",
+  keywords: [
+    "покер",
+    "турниры",
+    "трекер",
+    "ROI",
+    "банкролл",
+    "статистика",
+    "poker",
+    "tournaments",
+  ],
   authors: [{ name: "PokerTracker Pro Team" }],
   creator: "PokerTracker Pro",
   publisher: "PokerTracker Pro",
@@ -21,7 +31,9 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+  ),
   openGraph: {
     title: "PokerTracker Pro",
     description: "Профессиональный трекер результатов турнирного покера",
@@ -54,9 +66,7 @@ export default function RootLayout({
   return (
     <html lang="ru" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
-        <AppProviders>
-          {children}
-        </AppProviders>
+        <AppProviders>{children}</AppProviders>
       </body>
     </html>
   );

@@ -23,28 +23,17 @@
     "development": {
       "branch": "dev",
       "database": "development",
-      "features": [
-        "debug",
-        "hot-reload",
-        "mock-data"
-      ]
+      "features": ["debug", "hot-reload", "mock-data"]
     },
     "staging": {
       "branch": "staging",
       "database": "staging",
-      "features": [
-        "testing",
-        "performance-monitoring"
-      ]
+      "features": ["testing", "performance-monitoring"]
     },
     "production": {
       "branch": "main",
       "database": "production",
-      "features": [
-        "monitoring",
-        "analytics",
-        "backup"
-      ]
+      "features": ["monitoring", "analytics", "backup"]
     }
   },
   "rollbackInfo": {
@@ -57,4 +46,3 @@
     ]
   }
 }
-

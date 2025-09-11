@@ -1,90 +1,105 @@
-'use client'
+"use client";
 
-import { useState, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
-import { useAuth, ProtectedRoute } from '@/hooks/useAuth'
-import { useTournaments } from '@/hooks/useTournaments'
-import Button from '@/components/ui/Button'
-import Card, { CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
-import { Tournament } from '@/types'
+import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth, ProtectedRoute } from "@/hooks/useAuth";
+import { useTournaments } from "@/hooks/useTournaments";
+import Button from "@/components/ui/Button";
+import Card, { CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Tournament } from "@/types";
 
 function AnalyticsContent() {
-  const router = useRouter()
-  const { user } = useAuth()
-  const { tournaments, isLoading, error } = useTournaments(user?.id)
-  const [timeRange, setTimeRange] = useState('all')
+  const router = useRouter();
+  const { user } = useAuth();
+  const { tournaments, isLoading, error } = useTournaments(user?.id);
+  const [timeRange, setTimeRange] = useState("all");
 
   // Фильтруем турниры по временному диапазону
   const filteredTournaments = useMemo(() => {
-    if (timeRange === 'all') return tournaments
+    if (timeRange === "all") return tournaments;
 
-    const now = new Date()
-    const startDate = new Date()
-    
+    const now = new Date();
+    const startDate = new Date();
+
     switch (timeRange) {
-      case 'week':
-        startDate.setDate(now.getDate() - 7)
-        break
-      case 'month':
-        startDate.setMonth(now.getMonth() - 1)
-        break
-      case 'year':
-        startDate.setFullYear(now.getFullYear() - 1)
-        break
+      case "week":
+        startDate.setDate(now.getDate() - 7);
+        break;
+      case "month":
+        startDate.setMonth(now.getMonth() - 1);
+        break;
+      case "year":
+        startDate.setFullYear(now.getFullYear() - 1);
+        break;
     }
-    
-    return tournaments.filter(tournament => 
-      new Date(tournament.date) >= startDate
-    )
-  }, [tournaments, timeRange])
+
+    return tournaments.filter(
+      (tournament) => new Date(tournament.date) >= startDate,
+    );
+  }, [tournaments, timeRange]);
 
   // Турниры с результатами
   const tournamentsWithResults = useMemo(() => {
-    return filteredTournaments.filter(tournament => tournament.result)
-  }, [filteredTournaments])
+    return filteredTournaments.filter((tournament) => tournament.result);
+  }, [filteredTournaments]);
 
   // Основная статистика
   const stats = useMemo(() => {
-    const totalTournaments = filteredTournaments.length
-    const totalBuyins = filteredTournaments.reduce((sum, t) => sum + t.buyin, 0)
-    const totalWinnings = tournamentsWithResults.reduce((sum, t) => sum + (t.result?.payout || 0), 0)
-    
+    const totalTournaments = filteredTournaments.length;
+    const totalBuyins = filteredTournaments.reduce(
+      (sum, t) => sum + t.buyin,
+      0,
+    );
+    const totalWinnings = tournamentsWithResults.reduce(
+      (sum, t) => sum + (t.result?.payout || 0),
+      0,
+    );
+
     // ПРАВИЛЬНЫЙ расчет: учитываем ВСЕ турниры для ROI
     // Турниры без результатов = потерянные бай-ины (0 выигрыша)
-    const profit = totalWinnings - totalBuyins
-    const roi = totalBuyins > 0 ? ((profit / totalBuyins) * 100) : 0
-    
+    const profit = totalWinnings - totalBuyins;
+    const roi = totalBuyins > 0 ? (profit / totalBuyins) * 100 : 0;
+
     // ПРАВИЛЬНЫЙ расчет ITM: от ВСЕХ турниров
     // Турниры без результатов = не попали в деньги (ITM = 0)
-    const cashCount = tournamentsWithResults.filter(t => {
-      const position = t.result?.position || 999
-      const participants = t.participants
-      
+    const cashCount = tournamentsWithResults.filter((t) => {
+      const position = t.result?.position || 999;
+      const participants = t.participants;
+
       if (participants && participants > 0) {
         // Если знаем количество участников, используем правило 15%
-        return position <= (participants * 0.15)
+        return position <= participants * 0.15;
       } else {
         // Если не знаем участников, считаем ITM по прибыли (payout > buyin)
-        const payout = t.result?.payout || 0
-        return payout > t.buyin
+        const payout = t.result?.payout || 0;
+        return payout > t.buyin;
       }
-    }).length
-    
+    }).length;
+
     // ITM - процент от ВСЕХ турниров, где попали в деньги
-    const itm = totalTournaments > 0 ? (cashCount / totalTournaments) * 100 : 0
-    
-    
-    const avgPosition = tournamentsWithResults.length > 0 
-      ? tournamentsWithResults.reduce((sum, t) => sum + (t.result?.position || 0), 0) / tournamentsWithResults.length 
-      : 0
-    
-    const bestFinish = tournamentsWithResults.length > 0 
-      ? Math.min(...tournamentsWithResults.map(t => t.result?.position || 999))
-      : 0
-    
-    const worstFinish = tournamentsWithResults.length > 0 
-      ? Math.max(...tournamentsWithResults.map(t => t.result?.position || 0))
-      : 0
+    const itm = totalTournaments > 0 ? (cashCount / totalTournaments) * 100 : 0;
+
+    const avgPosition =
+      tournamentsWithResults.length > 0
+        ? tournamentsWithResults.reduce(
+            (sum, t) => sum + (t.result?.position || 0),
+            0,
+          ) / tournamentsWithResults.length
+        : 0;
+
+    const bestFinish =
+      tournamentsWithResults.length > 0
+        ? Math.min(
+            ...tournamentsWithResults.map((t) => t.result?.position || 999),
+          )
+        : 0;
+
+    const worstFinish =
+      tournamentsWithResults.length > 0
+        ? Math.max(
+            ...tournamentsWithResults.map((t) => t.result?.position || 0),
+          )
+        : 0;
 
     return {
       totalTournaments,
@@ -95,63 +110,63 @@ function AnalyticsContent() {
       itm,
       avgPosition,
       bestFinish: bestFinish === 999 ? 0 : bestFinish,
-      worstFinish
-    }
-  }, [filteredTournaments, tournamentsWithResults])
+      worstFinish,
+    };
+  }, [filteredTournaments, tournamentsWithResults]);
 
   // Анализ по типам турниров
   const tournamentTypeAnalysis = useMemo(() => {
-    const typeMap = new Map()
-    
-    filteredTournaments.forEach(tournament => {
-      const type = tournament.type || 'tournament'
-      const existing = typeMap.get(type) || { type, count: 0, profit: 0 }
-      
-      existing.count += 1
-      existing.profit += (tournament.result?.profit || -tournament.buyin)
-      
-      typeMap.set(type, existing)
-    })
-    
-    return Array.from(typeMap.values()).sort((a, b) => b.count - a.count)
-  }, [filteredTournaments])
+    const typeMap = new Map();
+
+    filteredTournaments.forEach((tournament) => {
+      const type = tournament.type || "tournament";
+      const existing = typeMap.get(type) || { type, count: 0, profit: 0 };
+
+      existing.count += 1;
+      existing.profit += tournament.result?.profit || -tournament.buyin;
+
+      typeMap.set(type, existing);
+    });
+
+    return Array.from(typeMap.values()).sort((a, b) => b.count - a.count);
+  }, [filteredTournaments]);
 
   // Анализ по площадкам
   const venueAnalysis = useMemo(() => {
-    const venueMap = new Map()
-    
-    filteredTournaments.forEach(tournament => {
-      const venue = tournament.venue
-      const existing = venueMap.get(venue) || { venue, count: 0, profit: 0 }
-      
-      existing.count += 1
-      existing.profit += (tournament.result?.profit || -tournament.buyin)
-      
-      venueMap.set(venue, existing)
-    })
-    
-    return Array.from(venueMap.values()).sort((a, b) => b.count - a.count)
-  }, [filteredTournaments])
+    const venueMap = new Map();
+
+    filteredTournaments.forEach((tournament) => {
+      const venue = tournament.venue;
+      const existing = venueMap.get(venue) || { venue, count: 0, profit: 0 };
+
+      existing.count += 1;
+      existing.profit += tournament.result?.profit || -tournament.buyin;
+
+      venueMap.set(venue, existing);
+    });
+
+    return Array.from(venueMap.values()).sort((a, b) => b.count - a.count);
+  }, [filteredTournaments]);
 
   // Последние результаты
   const recentResults = useMemo(() => {
     return tournamentsWithResults
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
       .slice(0, 4)
-      .map(tournament => ({
+      .map((tournament) => ({
         date: tournament.date,
         tournament: tournament.name,
         position: tournament.result?.position || 0,
-        profit: tournament.result?.profit || 0
-      }))
-  }, [tournamentsWithResults])
+        profit: tournament.result?.profit || 0,
+      }));
+  }, [tournamentsWithResults]);
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('ru-RU', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount)
-  }
+    return new Intl.NumberFormat("ru-RU", {
+      style: "currency",
+      currency: "USD",
+    }).format(amount);
+  };
 
   if (isLoading) {
     return (
@@ -162,13 +177,11 @@ function AnalyticsContent() {
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
               Загрузка аналитики...
             </h3>
-            <p className="text-gray-600">
-              Получаем данные из базы данных
-            </p>
+            <p className="text-gray-600">Получаем данные из базы данных</p>
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   if (error) {
@@ -180,19 +193,14 @@ function AnalyticsContent() {
             <h3 className="text-lg font-semibold text-red-600 mb-2">
               Ошибка загрузки данных
             </h3>
-            <p className="text-gray-600 mb-4">
-              {error}
-            </p>
-            <Button 
-              onClick={() => window.location.reload()} 
-              variant="outline"
-            >
+            <p className="text-gray-600 mb-4">{error}</p>
+            <Button onClick={() => window.location.reload()} variant="outline">
               🔄 Попробовать снова
             </Button>
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -212,7 +220,9 @@ function AnalyticsContent() {
         <Card className="mb-6">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-gray-900">Период анализа</h2>
+              <h2 className="text-xl font-semibold text-gray-900">
+                Период анализа
+              </h2>
               <select
                 value={timeRange}
                 onChange={(e) => setTimeRange(e.target.value)}
@@ -237,7 +247,7 @@ function AnalyticsContent() {
               <div className="text-gray-600">Всего турниров</div>
             </CardContent>
           </Card>
-          
+
           <Card className="text-center">
             <CardContent className="p-6">
               <div className="text-3xl font-bold text-red-600 mb-2">
@@ -246,7 +256,7 @@ function AnalyticsContent() {
               <div className="text-gray-600">Общие бай-ины</div>
             </CardContent>
           </Card>
-          
+
           <Card className="text-center">
             <CardContent className="p-6">
               <div className="text-3xl font-bold text-green-600 mb-2">
@@ -255,12 +265,14 @@ function AnalyticsContent() {
               <div className="text-gray-600">Общие выигрыши</div>
             </CardContent>
           </Card>
-          
+
           <Card className="text-center">
             <CardContent className="p-6">
-              <div className={`text-3xl font-bold mb-2 ${
-                stats.profit >= 0 ? 'text-green-600' : 'text-red-600'
-              }`}>
+              <div
+                className={`text-3xl font-bold mb-2 ${
+                  stats.profit >= 0 ? "text-green-600" : "text-red-600"
+                }`}
+              >
                 {formatCurrency(stats.profit)}
               </div>
               <div className="text-gray-600">Общая прибыль</div>
@@ -272,15 +284,18 @@ function AnalyticsContent() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           <Card className="text-center">
             <CardContent className="p-6">
-              <div className={`text-3xl font-bold mb-2 ${
-                stats.roi >= 0 ? 'text-green-600' : 'text-red-600'
-              }`}>
-                {stats.roi >= 0 ? '+' : ''}{stats.roi.toFixed(1)}%
+              <div
+                className={`text-3xl font-bold mb-2 ${
+                  stats.roi >= 0 ? "text-green-600" : "text-red-600"
+                }`}
+              >
+                {stats.roi >= 0 ? "+" : ""}
+                {stats.roi.toFixed(1)}%
               </div>
               <div className="text-gray-600">ROI</div>
             </CardContent>
           </Card>
-          
+
           <Card className="text-center">
             <CardContent className="p-6">
               <div className="text-3xl font-bold text-purple-600 mb-2">
@@ -289,7 +304,7 @@ function AnalyticsContent() {
               <div className="text-gray-600">ITM</div>
             </CardContent>
           </Card>
-          
+
           <Card className="text-center">
             <CardContent className="p-6">
               <div className="text-3xl font-bold text-orange-600 mb-2">
@@ -298,20 +313,20 @@ function AnalyticsContent() {
               <div className="text-gray-600">Среднее место</div>
             </CardContent>
           </Card>
-          
+
           <Card className="text-center">
             <CardContent className="p-6">
               <div className="text-3xl font-bold text-yellow-600 mb-2">
-                🥇 {stats.bestFinish || '-'}
+                🥇 {stats.bestFinish || "-"}
               </div>
               <div className="text-gray-600">Лучший результат</div>
             </CardContent>
           </Card>
-          
+
           <Card className="text-center">
             <CardContent className="p-6">
               <div className="text-3xl font-bold text-gray-600 mb-2">
-                {stats.worstFinish || '-'}
+                {stats.worstFinish || "-"}
               </div>
               <div className="text-gray-600">Худший результат</div>
             </CardContent>
@@ -332,15 +347,22 @@ function AnalyticsContent() {
               ) : (
                 <div className="space-y-4">
                   {tournamentTypeAnalysis.map((item) => (
-                    <div key={item.type} className="flex items-center justify-between">
+                    <div
+                      key={item.type}
+                      className="flex items-center justify-between"
+                    >
                       <div className="flex items-center space-x-3">
                         <div className="w-4 h-4 bg-blue-500 rounded"></div>
                         <span className="font-medium">{item.type}</span>
-                        <span className="text-gray-500">({item.count} турниров)</span>
+                        <span className="text-gray-500">
+                          ({item.count} турниров)
+                        </span>
                       </div>
-                      <div className={`font-semibold ${
-                        item.profit >= 0 ? 'text-green-600' : 'text-red-600'
-                      }`}>
+                      <div
+                        className={`font-semibold ${
+                          item.profit >= 0 ? "text-green-600" : "text-red-600"
+                        }`}
+                      >
                         {formatCurrency(item.profit)}
                       </div>
                     </div>
@@ -363,15 +385,22 @@ function AnalyticsContent() {
               ) : (
                 <div className="space-y-4">
                   {venueAnalysis.map((item) => (
-                    <div key={item.venue} className="flex items-center justify-between">
+                    <div
+                      key={item.venue}
+                      className="flex items-center justify-between"
+                    >
                       <div className="flex items-center space-x-3">
                         <div className="w-4 h-4 bg-green-500 rounded"></div>
                         <span className="font-medium">{item.venue}</span>
-                        <span className="text-gray-500">({item.count} турниров)</span>
+                        <span className="text-gray-500">
+                          ({item.count} турниров)
+                        </span>
                       </div>
-                      <div className={`font-semibold ${
-                        item.profit >= 0 ? 'text-green-600' : 'text-red-600'
-                      }`}>
+                      <div
+                        className={`font-semibold ${
+                          item.profit >= 0 ? "text-green-600" : "text-red-600"
+                        }`}
+                      >
                         {formatCurrency(item.profit)}
                       </div>
                     </div>
@@ -415,20 +444,24 @@ function AnalyticsContent() {
                     {recentResults.map((result, index) => (
                       <tr key={index} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {new Date(result.date).toLocaleDateString('ru-RU')}
+                          {new Date(result.date).toLocaleDateString("ru-RU")}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                           {result.tournament}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
                           #{result.position}
-                          {result.position === 1 && ' 🥇'}
-                          {result.position === 2 && ' 🥈'}
-                          {result.position === 3 && ' 🥉'}
+                          {result.position === 1 && " 🥇"}
+                          {result.position === 2 && " 🥈"}
+                          {result.position === 3 && " 🥉"}
                         </td>
-                        <td className={`px-6 py-4 whitespace-nowrap text-sm text-right font-semibold ${
-                          result.profit >= 0 ? 'text-green-600' : 'text-red-600'
-                        }`}>
+                        <td
+                          className={`px-6 py-4 whitespace-nowrap text-sm text-right font-semibold ${
+                            result.profit >= 0
+                              ? "text-green-600"
+                              : "text-red-600"
+                          }`}
+                        >
                           {formatCurrency(result.profit)}
                         </td>
                       </tr>
@@ -442,28 +475,19 @@ function AnalyticsContent() {
 
         {/* Actions */}
         <div className="flex flex-col sm:flex-row justify-center gap-4">
-          <Button
-            onClick={() => router.push('/tournaments')}
-            variant="primary"
-          >
+          <Button onClick={() => router.push("/tournaments")} variant="primary">
             🎰 Перейти к турнирам
           </Button>
-          <Button
-            onClick={() => router.push('/bankroll')}
-            variant="primary"
-          >
+          <Button onClick={() => router.push("/bankroll")} variant="primary">
             💰 Управление банкроллом
           </Button>
-          <Button
-            onClick={() => router.push('/')}
-            variant="outline"
-          >
+          <Button onClick={() => router.push("/")} variant="outline">
             ← Вернуться на главную
           </Button>
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 export default function AnalyticsPage() {
@@ -471,5 +495,5 @@ export default function AnalyticsPage() {
     <ProtectedRoute>
       <AnalyticsContent />
     </ProtectedRoute>
-  )
+  );
 }

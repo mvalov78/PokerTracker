@@ -1,59 +1,59 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
 
 interface TournamentFormData {
-  name: string
-  date: string
-  venue: string
-  buyin: number
-  tournamentType: 'freezeout' | 'rebuy' | 'addon' | 'bounty' | 'satellite'
-  structure: string
-  participants?: number
-  prizePool?: number
-  blindLevels?: string
-  startingStack?: number
-  notes?: string
+  name: string;
+  date: string;
+  venue: string;
+  buyin: number;
+  tournamentType: "freezeout" | "rebuy" | "addon" | "bounty" | "satellite";
+  structure: string;
+  participants?: number;
+  prizePool?: number;
+  blindLevels?: string;
+  startingStack?: number;
+  notes?: string;
 }
 
 export default function EditTournamentPage() {
-  const params = useParams()
-  const router = useRouter()
-  const tournamentId = params.id as string
-  
-  const [isLoading, setIsLoading] = useState(false)
+  const params = useParams();
+  const router = useRouter();
+  const tournamentId = params.id as string;
+
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState<TournamentFormData>({
-    name: '',
-    date: '',
-    venue: '',
+    name: "",
+    date: "",
+    venue: "",
     buyin: 0,
-    tournamentType: 'freezeout',
-    structure: '',
+    tournamentType: "freezeout",
+    structure: "",
     participants: undefined,
     prizePool: undefined,
-    blindLevels: '',
+    blindLevels: "",
     startingStack: undefined,
-    notes: ''
-  })
+    notes: "",
+  });
 
   // Мок данные турнира для редактирования
   useEffect(() => {
     // Имитация загрузки данных турнира
     const mockTournament = {
       id: tournamentId,
-      name: 'Sunday Million',
-      date: '2024-01-15',
-      venue: 'PokerStars',
+      name: "Sunday Million",
+      date: "2024-01-15",
+      venue: "PokerStars",
       buyin: 215,
-      tournamentType: 'freezeout' as const,
-      structure: 'Turbo',
+      tournamentType: "freezeout" as const,
+      structure: "Turbo",
       participants: 8542,
       prizePool: 1838040,
-      blindLevels: '10/20, 15/30, 25/50...',
+      blindLevels: "10/20, 15/30, 25/50...",
       startingStack: 10000,
-      notes: 'Хороший турнир с большим полем'
-    }
+      notes: "Хороший турнир с большим полем",
+    };
 
     setFormData({
       name: mockTournament.name,
@@ -66,47 +66,47 @@ export default function EditTournamentPage() {
       prizePool: mockTournament.prizePool,
       blindLevels: mockTournament.blindLevels,
       startingStack: mockTournament.startingStack,
-      notes: mockTournament.notes
-    })
-  }, [tournamentId])
+      notes: mockTournament.notes,
+    });
+  }, [tournamentId]);
 
   const handleInputChange = (field: keyof TournamentFormData, value: any) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [field]: value
-    }))
-  }
+      [field]: value,
+    }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
+    e.preventDefault();
+    setIsLoading(true);
 
     try {
       // Имитация сохранения
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      console.log('Сохранение турнира:', formData)
-      
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      console.log("Сохранение турнира:", formData);
+
       // Показываем успешное сообщение (без toast компонента)
-      alert('Турнир успешно обновлен!')
-      
+      alert("Турнир успешно обновлен!");
+
       // Возвращаемся к списку турниров
-      router.push('/tournaments')
+      router.push("/tournaments");
     } catch (error) {
-      console.error('Ошибка при сохранении:', error)
-      alert('Ошибка при сохранении турнира')
+      console.error("Ошибка при сохранении:", error);
+      alert("Ошибка при сохранении турнира");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const tournamentTypeOptions = [
-    { value: 'freezeout', label: 'Freezeout' },
-    { value: 'rebuy', label: 'Rebuy' },
-    { value: 'addon', label: 'Add-on' },
-    { value: 'bounty', label: 'Bounty' },
-    { value: 'satellite', label: 'Satellite' }
-  ]
+    { value: "freezeout", label: "Freezeout" },
+    { value: "rebuy", label: "Rebuy" },
+    { value: "addon", label: "Add-on" },
+    { value: "bounty", label: "Bounty" },
+    { value: "satellite", label: "Satellite" },
+  ];
 
   return (
     <div className="min-h-screen bg-gray-100 p-8">
@@ -114,13 +114,17 @@ export default function EditTournamentPage() {
         {/* Header */}
         <div className="mb-8">
           <nav className="text-sm text-gray-600 mb-4">
-            <a href="/" className="hover:text-blue-600">Главная</a>
+            <a href="/" className="hover:text-blue-600">
+              Главная
+            </a>
             <span className="mx-2">→</span>
-            <a href="/tournaments" className="hover:text-blue-600">Турниры</a>
+            <a href="/tournaments" className="hover:text-blue-600">
+              Турниры
+            </a>
             <span className="mx-2">→</span>
             <span>Редактирование</span>
           </nav>
-          
+
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
             ✏️ Редактирование турнира
           </h1>
@@ -132,9 +136,11 @@ export default function EditTournamentPage() {
         {/* Form */}
         <div className="bg-white rounded-lg shadow">
           <div className="p-6 border-b border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-900">Основная информация</h2>
+            <h2 className="text-xl font-semibold text-gray-900">
+              Основная информация
+            </h2>
           </div>
-          
+
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
             {/* Basic Info */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -145,7 +151,7 @@ export default function EditTournamentPage() {
                 <input
                   type="text"
                   value={formData.name}
-                  onChange={(e) => handleInputChange('name', e.target.value)}
+                  onChange={(e) => handleInputChange("name", e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 />
@@ -158,7 +164,7 @@ export default function EditTournamentPage() {
                 <input
                   type="datetime-local"
                   value={formData.date}
-                  onChange={(e) => handleInputChange('date', e.target.value)}
+                  onChange={(e) => handleInputChange("date", e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 />
@@ -171,7 +177,7 @@ export default function EditTournamentPage() {
                 <input
                   type="text"
                   value={formData.venue}
-                  onChange={(e) => handleInputChange('venue', e.target.value)}
+                  onChange={(e) => handleInputChange("venue", e.target.value)}
                   placeholder="PokerStars, PartyPoker, Live Casino..."
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
@@ -185,7 +191,9 @@ export default function EditTournamentPage() {
                 <input
                   type="number"
                   value={formData.buyin}
-                  onChange={(e) => handleInputChange('buyin', parseFloat(e.target.value) || 0)}
+                  onChange={(e) =>
+                    handleInputChange("buyin", parseFloat(e.target.value) || 0)
+                  }
                   min="0"
                   step="0.01"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -199,11 +207,13 @@ export default function EditTournamentPage() {
                 </label>
                 <select
                   value={formData.tournamentType}
-                  onChange={(e) => handleInputChange('tournamentType', e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("tournamentType", e.target.value)
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 >
-                  {tournamentTypeOptions.map(option => (
+                  {tournamentTypeOptions.map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
                     </option>
@@ -218,7 +228,9 @@ export default function EditTournamentPage() {
                 <input
                   type="text"
                   value={formData.structure}
-                  onChange={(e) => handleInputChange('structure', e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("structure", e.target.value)
+                  }
                   placeholder="Regular, Turbo, Hyper..."
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
@@ -227,8 +239,10 @@ export default function EditTournamentPage() {
 
             {/* Additional Info */}
             <div className="border-t pt-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Дополнительная информация</h3>
-              
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                Дополнительная информация
+              </h3>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -236,8 +250,13 @@ export default function EditTournamentPage() {
                   </label>
                   <input
                     type="number"
-                    value={formData.participants || ''}
-                    onChange={(e) => handleInputChange('participants', e.target.value ? parseInt(e.target.value) : undefined)}
+                    value={formData.participants || ""}
+                    onChange={(e) =>
+                      handleInputChange(
+                        "participants",
+                        e.target.value ? parseInt(e.target.value) : undefined,
+                      )
+                    }
                     min="1"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
@@ -249,8 +268,13 @@ export default function EditTournamentPage() {
                   </label>
                   <input
                     type="number"
-                    value={formData.prizePool || ''}
-                    onChange={(e) => handleInputChange('prizePool', e.target.value ? parseFloat(e.target.value) : undefined)}
+                    value={formData.prizePool || ""}
+                    onChange={(e) =>
+                      handleInputChange(
+                        "prizePool",
+                        e.target.value ? parseFloat(e.target.value) : undefined,
+                      )
+                    }
                     min="0"
                     step="0.01"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -263,8 +287,13 @@ export default function EditTournamentPage() {
                   </label>
                   <input
                     type="number"
-                    value={formData.startingStack || ''}
-                    onChange={(e) => handleInputChange('startingStack', e.target.value ? parseInt(e.target.value) : undefined)}
+                    value={formData.startingStack || ""}
+                    onChange={(e) =>
+                      handleInputChange(
+                        "startingStack",
+                        e.target.value ? parseInt(e.target.value) : undefined,
+                      )
+                    }
                     min="1"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
@@ -276,8 +305,10 @@ export default function EditTournamentPage() {
                   </label>
                   <input
                     type="text"
-                    value={formData.blindLevels || ''}
-                    onChange={(e) => handleInputChange('blindLevels', e.target.value)}
+                    value={formData.blindLevels || ""}
+                    onChange={(e) =>
+                      handleInputChange("blindLevels", e.target.value)
+                    }
                     placeholder="10/20, 15/30, 25/50..."
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
@@ -289,8 +320,8 @@ export default function EditTournamentPage() {
                   Заметки
                 </label>
                 <textarea
-                  value={formData.notes || ''}
-                  onChange={(e) => handleInputChange('notes', e.target.value)}
+                  value={formData.notes || ""}
+                  onChange={(e) => handleInputChange("notes", e.target.value)}
                   rows={4}
                   placeholder="Дополнительные заметки о турнире..."
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -302,12 +333,12 @@ export default function EditTournamentPage() {
             <div className="flex flex-col sm:flex-row justify-end gap-4 pt-6 border-t">
               <button
                 type="button"
-                onClick={() => router.push('/tournaments')}
+                onClick={() => router.push("/tournaments")}
                 className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 Отменить
               </button>
-              
+
               <button
                 type="button"
                 onClick={() => router.push(`/tournaments/${tournamentId}`)}
@@ -315,13 +346,13 @@ export default function EditTournamentPage() {
               >
                 Просмотр турнира
               </button>
-              
+
               <button
                 type="submit"
                 disabled={isLoading}
                 className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                {isLoading ? 'Сохранение...' : 'Сохранить изменения'}
+                {isLoading ? "Сохранение..." : "Сохранить изменения"}
               </button>
             </div>
           </form>
@@ -330,7 +361,7 @@ export default function EditTournamentPage() {
         {/* Back to tournaments */}
         <div className="mt-8 text-center">
           <button
-            onClick={() => router.push('/tournaments')}
+            onClick={() => router.push("/tournaments")}
             className="bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition-colors"
           >
             ← Вернуться к турнирам
@@ -338,5 +369,5 @@ export default function EditTournamentPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

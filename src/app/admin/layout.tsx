@@ -1,25 +1,25 @@
-'use client'
+"use client";
 
-import { ReactNode } from 'react'
-import { ProtectedRoute } from '@/hooks/useAuth'
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import type { ReactNode } from "react";
+import { ProtectedRoute } from "@/hooks/useAuth";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 interface AdminLayoutProps {
-  children: ReactNode
+  children: ReactNode;
 }
 
 const adminNavItems = [
-  { href: '/admin', label: 'Обзор', exact: true },
-  { href: '/admin/bot-management', label: '🤖 Управление ботом' },
-  { href: '/admin/users', label: 'Пользователи' },
-  { href: '/admin/tournaments', label: 'Турниры' },
-  { href: '/admin/analytics', label: 'Аналитика' },
-  { href: '/admin/settings', label: 'Настройки' },
-]
+  { href: "/admin", label: "Обзор", exact: true },
+  { href: "/admin/bot-management", label: "🤖 Управление ботом" },
+  { href: "/admin/users", label: "Пользователи" },
+  { href: "/admin/tournaments", label: "Турниры" },
+  { href: "/admin/analytics", label: "Аналитика" },
+  { href: "/admin/settings", label: "Настройки" },
+];
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
-  const pathname = usePathname()
+  const pathname = usePathname();
 
   return (
     <ProtectedRoute requireAdmin>
@@ -49,29 +49,30 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           <div className="mb-8">
             <nav className="flex space-x-1 bg-gray-800/50 rounded-lg p-1">
               {adminNavItems.map((item) => {
-                const isActive = item.exact 
+                const isActive = item.exact
                   ? pathname === item.href
-                  : pathname.startsWith(item.href)
-                
+                  : pathname.startsWith(item.href);
+
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
                     className={`
                       px-4 py-2 rounded-md text-sm font-medium transition-colors
-                      ${isActive 
-                        ? 'bg-emerald-600 text-white' 
-                        : 'text-gray-300 hover:text-white hover:bg-gray-700'
+                      ${
+                        isActive
+                          ? "bg-emerald-600 text-white"
+                          : "text-gray-300 hover:text-white hover:bg-gray-700"
                       }
                     `}
                   >
                     {item.label}
                   </Link>
-                )
+                );
               })}
             </nav>
           </div>
-          
+
           {/* Content */}
           <div className="bg-gray-800/50 rounded-lg border border-gray-700 p-6">
             {children}
@@ -79,5 +80,5 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         </div>
       </div>
     </ProtectedRoute>
-  )
+  );
 }
