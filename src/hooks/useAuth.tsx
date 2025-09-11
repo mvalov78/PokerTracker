@@ -56,9 +56,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Get user profile with timeout protection
   const fetchProfile = async (userId: string) => {
     try {
-      // Add timeout protection for production
+      // Add timeout protection for production (reduced to 3 seconds)
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Profile fetch timeout')), 5000)
+        setTimeout(() => reject(new Error('Profile fetch timeout')), 3000)
       );
       
       const fetchPromise = supabase
@@ -98,9 +98,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       try {
         console.log("🔐 Initializing auth...");
         
-        // Add timeout protection for the entire auth initialization
+        // Add timeout protection for the entire auth initialization (reduced to 5 seconds)
         const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Auth initialization timeout')), 8000)
+          setTimeout(() => reject(new Error('Auth initialization timeout')), 5000)
         );
         
         const authPromise = (async () => {

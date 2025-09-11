@@ -1,0 +1,66 @@
+{
+  "name": "PokerTracker Pro",
+  "short_name": "PokerTracker",
+  "description": "Профессиональный трекер результатов турнирного покера с автоматическим распознаванием билетов и детальной аналитикой",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#10b981",
+  "orientation": "portrait-primary",
+  "categories": ["games", "sports", "productivity"],
+  "lang": "ru",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "16x16",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/favicon.ico",
+      "sizes": "32x32",
+      "type": "image/x-icon"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Добавить турнир",
+      "short_name": "Турнир",
+      "description": "Быстро добавить новый турнир",
+      "url": "/tournaments/add",
+      "icons": [
+        {
+          "src": "/favicon.ico",
+          "sizes": "16x16"
+        }
+      ]
+    },
+    {
+      "name": "Результаты",
+      "short_name": "Результаты",
+      "description": "Посмотреть результаты турниров",
+      "url": "/results",
+      "icons": [
+        {
+          "src": "/favicon.ico",
+          "sizes": "16x16"
+        }
+      ]
+    },
+    {
+      "name": "Аналитика",
+      "short_name": "Аналитика",
+      "description": "Статистика и анализ результатов",
+      "url": "/analytics",
+      "icons": [
+        {
+          "src": "/favicon.ico",
+          "sizes": "16x16"
+        }
+      ]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "scope": "/",
+  "id": "pokertracker-pro"
+}
