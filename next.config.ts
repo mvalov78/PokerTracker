@@ -11,6 +11,8 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  // Fix workspace root inference warning
+  outputFileTracingRoot: __dirname,
   // Performance optimizations
   experimental: {
     optimizePackageImports: ["lucide-react", "recharts"],
