@@ -1,16 +1,19 @@
 {
-  "version": "1.2.7",
-  "codename": "Poker Authorization Release",
-  "releaseDate": "2025-09-11",
+  "version": "1.3.0",
+  "codename": "Persistent Bot Sessions Release",
+  "releaseDate": "2025-09-12",
   "features": [
     "Complete user authentication system",
-    "Google OAuth integration",
+    "Google OAuth integration", 
     "Telegram bot integration",
     "User data isolation",
     "Admin panel",
     "OCR ticket recognition",
     "Tournament management",
-    "Telegram account linking"
+    "Telegram account linking",
+    "Persistent bot sessions for webhook mode",
+    "Database-backed session management",
+    "Automatic session cleanup"
   ],
   "databaseVersion": "1.0.0",
   "apiVersion": "1.0.0",
@@ -48,12 +51,13 @@
     }
   },
   "rollbackInfo": {
-    "previousVersion": null,
-    "rollbackAvailable": false,
+    "previousVersion": "1.2.9",
+    "rollbackAvailable": true,
     "criticalChanges": [
-      "Database schema migration",
-      "Authentication system overhaul",
-      "API structure changes"
+      "Database schema migration (bot_sessions table)",
+      "Bot session middleware replacement",
+      "Persistent session implementation",
+      "New API endpoints for session cleanup"
     ]
   }
 }
