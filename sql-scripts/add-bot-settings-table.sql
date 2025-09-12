@@ -68,3 +68,4 @@ COMMENT ON COLUMN public.bot_settings.setting_key IS 'Ключ настройк�
 COMMENT ON COLUMN public.bot_settings.setting_value IS 'Значение настройки';
 COMMENT ON COLUMN public.bot_settings.description IS 'Описание настройки для админов';
 
+

@@ -15,3 +15,4 @@ SELECT schemaname, tablename, rowsecurity
 FROM pg_tables 
 WHERE tablename = 'telegram_linking_codes';
 
+

@@ -44,3 +44,4 @@ export async function POST(request: NextRequest) {
 
 // Максимальное время выполнения для Vercel
 export const maxDuration = 10; // 10 секунд для webhook
+

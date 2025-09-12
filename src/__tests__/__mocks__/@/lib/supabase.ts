@@ -169,3 +169,4 @@ export const getUserOrCreate = jest.fn(() =>
 // Backward compatibility exports
 export const supabase = createClientComponentClient();
 export const supabaseAdmin = createAdminClient();
+

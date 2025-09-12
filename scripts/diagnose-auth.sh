@@ -296,3 +296,4 @@ main() {
 
 # Запуск с перенаправлением вывода
 main 2>&1 | tee auth-diagnosis.log
+

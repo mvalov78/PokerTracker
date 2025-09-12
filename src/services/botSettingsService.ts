@@ -194,3 +194,4 @@ export class BotSettingsService {
     return await BotSettingsService.updateSetting("webhook_url", url);
   }
 }
+

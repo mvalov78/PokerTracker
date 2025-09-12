@@ -49,3 +49,4 @@ COMMENT ON COLUMN public.telegram_linking_codes.linking_code IS 'Уникаль�
 COMMENT ON COLUMN public.telegram_linking_codes.expires_at IS 'Время истечения кода (обычно 10 минут)';
 COMMENT ON COLUMN public.telegram_linking_codes.is_used IS 'Флаг использования кода';
 
+

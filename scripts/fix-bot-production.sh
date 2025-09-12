@@ -496,3 +496,4 @@ EOF
 
 chmod +x scripts/fix-bot-production.sh
 echo -e "${GREEN}✅ Скрипт исправления создан и готов к использованию${NC}"
+
