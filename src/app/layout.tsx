@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://pokertracker-pro.vercel.app'),
   openGraph: {
     title: "PokerTracker Pro",
     description: "Профессиональный трекер результатов турнирного покера",

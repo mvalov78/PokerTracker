@@ -33,7 +33,7 @@ export const defaultBotConfig: BotConfig = {
   token: process.env.TELEGRAM_BOT_TOKEN || 'mock-bot-token',
   webhookUrl: undefined, // Не используется в polling режиме
   webhookSecret: undefined, // Не используется в polling режиме  
-  apiUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api',
+  apiUrl: process.env.NEXT_PUBLIC_API_URL || 'https://pokertracker-pro.vercel.app/api',
   
   rateLimit: {
     maxRequests: 30, // 30 запросов

@@ -17,13 +17,9 @@ import { BotCommands } from './commands'
 import { PhotoHandler } from './handlers/photoHandler'
 import { NotificationService } from './services/notificationService'
 import { getBotConfig } from './config'
+import { BotSessionService, BotSessionData } from '@/services/botSessionService'
 
-export interface SessionData {
-  userId?: string
-  currentAction?: string
-  tournamentData?: any
-  ocrData?: any
-}
+export interface SessionData extends BotSessionData {}
 
 export interface BotContext extends Context {
   // Расширяем стандартный Context от Telegraf
@@ -64,22 +60,29 @@ class PokerTrackerBot {
   private setupBot() {
     if (!this.bot) return
 
-    // Middleware для сессий (простое хранилище в памяти)
-    this.bot.use((ctx, next) => {
+    // Middleware для persistent сессий (работает в webhook режиме)
+    this.bot.use(async (ctx, next) => {
       const userId = ctx.from?.id
       if (!userId) return next()
       
-      if (!this.sessions.has(userId)) {
-        this.sessions.set(userId, {
-          userId: userId.toString(),
-          currentAction: undefined,
-          tournamentData: undefined,
-          ocrData: undefined
-        })
-      }
+      // Загружаем сессию из базы данных
+      console.log(`🔄 [Bot] Loading session for user ${userId}`)
+      const sessionData = await BotSessionService.getSession(userId)
+      ctx.session = sessionData
       
-      ctx.session = this.sessions.get(userId)!
       return next()
+    })
+
+    // Middleware для сохранения сессии после обработки
+    this.bot.use(async (ctx, next) => {
+      await next()
+      
+      // Сохраняем изменения сессии в базу данных
+      const userId = ctx.from?.id
+      if (userId && ctx.session) {
+        console.log(`💾 [Bot] Saving session for user ${userId}`)
+        await BotSessionService.updateSession(userId, ctx.session)
+      }
     })
 
     // Логирование сообщений

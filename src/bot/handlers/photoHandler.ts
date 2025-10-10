@@ -302,7 +302,10 @@ export class PhotoHandler {
       }
 
       // Отправляем запрос к API
-      const apiResponse = await fetch('http://localhost:3000/api/tournaments', {
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://pokertracker-pro.vercel.app'
+      const apiUrl = `${appUrl}/api/tournaments`
+      console.log('🌐 [confirmTournament] API URL:', apiUrl)
+      const apiResponse = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -311,12 +314,20 @@ export class PhotoHandler {
       })
 
       if (!apiResponse.ok) {
-        throw new Error(`API error: ${apiResponse.status}`)
+        const errorText = await apiResponse.text()
+        console.error('❌ [confirmTournament] API error:', {
+          status: apiResponse.status,
+          statusText: apiResponse.statusText,
+          error: errorText
+        })
+        throw new Error(`API error: ${apiResponse.status} - ${errorText}`)
       }
 
       const apiResult = await apiResponse.json()
+      console.log('✅ [confirmTournament] API response:', apiResult)
       if (!apiResult.success) {
-        throw new Error('Failed to create tournament via API')
+        console.error('❌ [confirmTournament] API returned failure:', apiResult)
+        throw new Error(`Failed to create tournament via API: ${apiResult.error || 'Unknown error'}`)
       }
 
       const newTournament = apiResult.tournament

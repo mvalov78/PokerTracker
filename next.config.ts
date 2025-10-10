@@ -4,6 +4,7 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
   enabled: process.env.ANALYZE === 'true',
 })
 
+// v1.3.0 - Persistent Bot Sessions for Webhook Mode
 const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,

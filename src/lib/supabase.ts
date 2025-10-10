@@ -251,6 +251,32 @@ export interface Database {
           updated_at?: string
         }
       }
+      bot_sessions: {
+        Row: {
+          id: string
+          user_id: number
+          session_data: any
+          created_at: string
+          updated_at: string
+          expires_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: number
+          session_data: any
+          created_at?: string
+          updated_at?: string
+          expires_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: number
+          session_data?: any
+          created_at?: string
+          updated_at?: string
+          expires_at?: string
+        }
+      }
     }
     Functions: {
       get_user_by_telegram_id: {

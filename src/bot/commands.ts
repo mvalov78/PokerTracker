@@ -215,7 +215,10 @@ ID турнира: \`${newTournament.id}\`
       const userId = ctx.from?.id.toString() || 'user-1'
       
       // Получаем турниры через API
-      const apiResponse = await fetch(`http://localhost:3000/api/tournaments?userId=${userId}`)
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://pokertracker-pro.vercel.app'
+      const apiUrl = `${appUrl}/api/tournaments?userId=${userId}`
+      console.log('🌐 [addResult] API URL:', apiUrl)
+      const apiResponse = await fetch(apiUrl)
       if (!apiResponse.ok) {
         throw new Error(`API error: ${apiResponse.status}`)
       }
@@ -325,7 +328,10 @@ ID турнира: \`${newTournament.id}\`
       }
       
       // Получаем турнир и обновляем его с результатом через API
-      const updateResponse = await fetch(`http://localhost:3000/api/tournaments/${tournamentId}`, {
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://pokertracker-pro.vercel.app'
+      const updateUrl = `${appUrl}/api/tournaments/${tournamentId}`
+      console.log('🌐 [addResult] Update URL:', updateUrl)
+      const updateResponse = await fetch(updateUrl, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -394,7 +400,10 @@ ID турнира: \`${newTournament.id}\`
       const userId = ctx.from?.id.toString()
       
       // Получаем турниры через API
-      const apiResponse = await fetch(`http://localhost:3000/api/tournaments?userId=${userId}`)
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://pokertracker-pro.vercel.app'
+      const apiUrl = `${appUrl}/api/tournaments?userId=${userId}`
+      console.log('🌐 [getStats] API URL:', apiUrl)
+      const apiResponse = await fetch(apiUrl)
       
       if (!apiResponse.ok) {
         console.error('API response not ok:', apiResponse.status)
@@ -448,7 +457,10 @@ ${stats.bestPayout ? `💎 **Лучший выигрыш:** $${stats.bestPayout}
       const userId = ctx.from?.id.toString()
       
       // Получаем турниры через API
-      const apiResponse = await fetch(`http://localhost:3000/api/tournaments?userId=${userId}`)
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://pokertracker-pro.vercel.app'
+      const apiUrl = `${appUrl}/api/tournaments?userId=${userId}`
+      console.log('🌐 [listTournaments] API URL:', apiUrl)
+      const apiResponse = await fetch(apiUrl)
       
       if (!apiResponse.ok) {
         console.error('API response not ok:', apiResponse.status)
@@ -656,7 +668,10 @@ ${stats.bestPayout ? `💎 **Лучший выигрыш:** $${stats.bestPayout}
       }
       
       // Создаем турнир через API
-      const response = await fetch('http://localhost:3000/api/tournaments', {
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://pokertracker-pro.vercel.app'
+      const apiUrl = `${appUrl}/api/tournaments`
+      console.log('🌐 [finalizeTournamentEdit] API URL:', apiUrl)
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -666,14 +681,23 @@ ${stats.bestPayout ? `💎 **Лучший выигрыш:** $${stats.bestPayout}
       })
       
       if (!response.ok) {
-        await ctx.reply('❌ Ошибка при создании турнира. Попробуйте еще раз.')
+        const errorText = await response.text()
+        console.error('❌ [finalizeTournamentEdit] API error:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorText,
+          tournamentData
+        })
+        await ctx.reply(`❌ Ошибка при создании турнира (${response.status}). Попробуйте еще раз.`)
         return
       }
       
       const result = await response.json()
+      console.log('✅ [finalizeTournamentEdit] API response:', result)
       
       if (result.success) {
         const tournament = result.tournament
+        console.log('🎰 [finalizeTournamentEdit] Tournament created successfully:', tournament.id)
         
         // Сбрасываем состояние
         session.currentAction = undefined
