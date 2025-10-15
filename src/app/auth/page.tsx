@@ -24,6 +24,7 @@ export default function AuthPage() {
   // Перенаправление если пользователь уже авторизован
   useEffect(() => {
     if (isAuthenticated) {
+      console.log('✅ User authenticated, redirecting to /')
       router.push('/')
     }
   }, [isAuthenticated, router])
@@ -61,6 +62,7 @@ export default function AuthPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    console.log('🎯 Form submitted, email:', formData.email)
     
     console.log("🎯 Form submitted, email:", formData.email)
     
@@ -70,6 +72,7 @@ export default function AuthPage() {
     }
 
     try {
+<<<<<<< HEAD
       console.log("🚀 Starting authentication process...")
       let result
       if (isLogin) {
@@ -82,23 +85,48 @@ export default function AuthPage() {
 
       console.log("📊 Auth result:", result)
 
+=======
+      console.log('🚀 Starting authentication process...')
+      let result
+      if (isLogin) {
+        console.log('📧 Calling signIn')
+        result = await signIn(formData.email, formData.password)
+      } else {
+        console.log('📝 Calling signUp')
+        result = await signUp(formData.email, formData.password, formData.username)
+      }
+
+      console.log('📊 Auth result:', result)
+>>>>>>> e30c5e0 (fix: Исправлена авторизация на продакшене)
       if (result.success) {
         console.log("✅ Auth successful!")
         addToast({
           type: 'success',
           message: isLogin ? 'Добро пожаловать!' : 'Аккаунт успешно создан!'
         })
-        router.push('/')
+        console.log('🎉 Success, preparing to redirect...')
+        // Небольшая задержка для обновления состояния
+        setTimeout(() => {
+          router.push('/')
+        }, 500)
       } else {
+<<<<<<< HEAD
         console.error("❌ Auth failed:", result.error)
+=======
+        console.error('❌ Auth failed:', result.error)
+>>>>>>> e30c5e0 (fix: Исправлена авторизация на продакшене)
         addToast({
           type: 'error',
           message: result.error || 'Произошла ошибка'
         })
       }
     } catch (error) {
+<<<<<<< HEAD
       console.error("💥 Exception in handleSubmit:", error)
       console.error("Error details:", error instanceof Error ? error.message : String(error))
+=======
+      console.error('❌ Unexpected error:', error)
+>>>>>>> e30c5e0 (fix: Исправлена авторизация на продакшене)
       addToast({
         type: 'error',
         message: 'Произошла непредвиденная ошибка'

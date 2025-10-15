@@ -56,9 +56,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Get user profile with timeout protection
   const fetchProfile = async (userId: string) => {
     try {
-      // Add timeout protection for production (reduced to 3 seconds)
+      // Add timeout protection for production (increased to 10 seconds)
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Profile fetch timeout')), 3000)
+        setTimeout(() => reject(new Error('Profile fetch timeout')), 10000)
       );
       
       const fetchPromise = supabase
@@ -67,22 +67,33 @@ export function AuthProvider({ children }: AuthProviderProps) {
         .eq("id", userId)
         .single();
 
-      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]);
+      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
 
       if (error) {
-        console.error("Error fetching profile:", error);
-        return null;
+        console.error("🔴 Error fetching profile:", error);
+        // Return a basic profile structure if fetch fails
+        return {
+          id: userId,
+          email: null,
+          username: null,
+          role: 'player' as const,
+          avatar_url: null,
+          telegram_id: null,
+          preferences: {},
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
       }
 
       return data;
     } catch (error) {
-      console.error("Profile fetch failed:", error);
+      console.error("🔴 Profile fetch failed:", error);
       // Return a basic profile structure if fetch fails
       return {
         id: userId,
         email: null,
         username: null,
-        role: 'player',
+        role: 'player' as const,
         avatar_url: null,
         telegram_id: null,
         preferences: {},
@@ -98,9 +109,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       try {
         console.log("🔐 Initializing auth...");
         
-        // Add timeout protection for the entire auth initialization (reduced to 5 seconds)
+        // Add timeout protection for the entire auth initialization (increased to 15 seconds)
         const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Auth initialization timeout')), 5000)
+          setTimeout(() => reject(new Error('Auth initialization timeout')), 15000)
         );
         
         const authPromise = (async () => {
@@ -125,9 +136,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         })();
 
         await Promise.race([authPromise, timeoutPromise]);
-        console.log("🔐 Auth initialization completed");
+        console.log("✅ Auth initialization completed");
       } catch (error) {
-        console.error("🔐 Error initializing auth:", error);
+        console.error("🔴 Error initializing auth:", error);
         // Continue without auth if initialization fails
       } finally {
         setIsLoading(false);
@@ -181,6 +192,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Sign in with email/password
   const signIn = async (email: string, password: string) => {
     try {
+      console.log('🔐 Attempting sign in...');
       setIsLoading(true);
       console.log("🔐 Attempting sign in...");
       
@@ -190,6 +202,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       });
 
       if (error) {
+<<<<<<< HEAD
         console.error("🔐 Sign in error:", error);
         return { success: false, error: error.message };
       }
@@ -201,7 +214,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const errorMessage = error instanceof Error ? error.message : "Произошла непредвиденная ошибка";
       return { success: false, error: `Ошибка входа: ${errorMessage}` };
     } finally {
+=======
+        console.error('🔐 Sign in error:', error.message);
+        setIsLoading(false);
+        return { success: false, error: error.message };
+      }
+
+      console.log('🔐 Sign in successful, waiting for auth state update...');
+      // Не сбрасываем isLoading здесь - это сделает обработчик onAuthStateChange
+      // после успешной загрузки профиля
+      return { success: true };
+    } catch (error) {
+      console.error('🔐 Unexpected sign in error:', error);
+>>>>>>> e30c5e0 (fix: Исправлена авторизация на продакшене)
       setIsLoading(false);
+      return { success: false, error: "Произошла непредвиденная ошибка" };
     }
   };
 
