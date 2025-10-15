@@ -194,27 +194,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       console.log('🔐 Attempting sign in...');
       setIsLoading(true);
-      console.log("🔐 Attempting sign in...");
-      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) {
-<<<<<<< HEAD
-        console.error("🔐 Sign in error:", error);
-        return { success: false, error: error.message };
-      }
-
-      console.log("🔐 Sign in successful");
-      return { success: true };
-    } catch (error) {
-      console.error("🔐 Sign in exception:", error);
-      const errorMessage = error instanceof Error ? error.message : "Произошла непредвиденная ошибка";
-      return { success: false, error: `Ошибка входа: ${errorMessage}` };
-    } finally {
-=======
         console.error('🔐 Sign in error:', error.message);
         setIsLoading(false);
         return { success: false, error: error.message };
@@ -226,7 +211,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return { success: true };
     } catch (error) {
       console.error('🔐 Unexpected sign in error:', error);
->>>>>>> e30c5e0 (fix: Исправлена авторизация на продакшене)
       setIsLoading(false);
       return { success: false, error: "Произошла непредвиденная ошибка" };
     }
