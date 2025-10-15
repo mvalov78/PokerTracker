@@ -182,18 +182,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const signIn = async (email: string, password: string) => {
     try {
       setIsLoading(true);
+      console.log("🔐 Attempting sign in...");
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) {
+        console.error("🔐 Sign in error:", error);
         return { success: false, error: error.message };
       }
 
+      console.log("🔐 Sign in successful");
       return { success: true };
     } catch (error) {
-      return { success: false, error: "Произошла непредвиденная ошибка" };
+      console.error("🔐 Sign in exception:", error);
+      const errorMessage = error instanceof Error ? error.message : "Произошла непредвиденная ошибка";
+      return { success: false, error: `Ошибка входа: ${errorMessage}` };
     } finally {
       setIsLoading(false);
     }
@@ -203,6 +209,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const signUp = async (email: string, password: string, username?: string) => {
     try {
       setIsLoading(true);
+      console.log("🔐 Attempting sign up...");
+      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -214,12 +222,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
       });
 
       if (error) {
+        console.error("🔐 Sign up error:", error);
         return { success: false, error: error.message };
       }
 
+      console.log("🔐 Sign up successful");
       return { success: true };
     } catch (error) {
-      return { success: false, error: "Произошла непредвиденная ошибка" };
+      console.error("🔐 Sign up exception:", error);
+      const errorMessage = error instanceof Error ? error.message : "Произошла непредвиденная ошибка";
+      return { success: false, error: `Ошибка регистрации: ${errorMessage}` };
     } finally {
       setIsLoading(false);
     }

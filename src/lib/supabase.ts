@@ -14,8 +14,12 @@ if (!supabaseUrl || !supabaseAnonKey) {
 // Client-side Supabase client (for browser usage)
 export const createClientComponentClient = () => {
   if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error("Supabase credentials missing");
+    console.error("🔴 Supabase configuration error:");
+    console.error("NEXT_PUBLIC_SUPABASE_URL:", supabaseUrl ? "✅ Set" : "❌ Missing");
+    console.error("NEXT_PUBLIC_SUPABASE_ANON_KEY:", supabaseAnonKey ? "✅ Set" : "❌ Missing");
+    throw new Error("Supabase credentials missing. Please check environment variables.");
   }
+  console.log("🟢 Supabase client created successfully");
   return createBrowserClient<Database>(supabaseUrl, supabaseAnonKey);
 };
 
