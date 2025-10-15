@@ -1,70 +1,76 @@
-import { supabase, supabaseAdmin } from '@/lib/supabase'
-import type { Tournament, TournamentResult } from '@/types'
+import { createClientComponentClient, createAdminClient } from "@/lib/supabase";
+import type { Tournament, TournamentResult } from "@/types";
 
 export class TournamentService {
   // Получить все турниры пользователя
   static async getTournamentsByUserId(userId: string): Promise<Tournament[]> {
-    if (!supabase) {
-      throw new Error('Supabase not configured')
-    }
-    
+    const supabase = createClientComponentClient();
+
     const { data, error } = await supabase
-      .from('tournaments')
+      .from("tournaments")
       .select(`
         *,
         tournament_results (*),
         tournament_photos (*)
       `)
-      .eq('user_id', userId)
-      .order('date', { ascending: false })
+      .eq("user_id", userId)
+      .order("date", { ascending: false });
 
     if (error) {
-      throw new Error(`Failed to fetch tournaments: ${error.message}`)
+      throw new Error(`Failed to fetch tournaments: ${error.message}`);
     }
 
     // Дополнительная проверка: убеждаемся, что все турниры действительно существуют
-    const validTournaments = data.filter(tournament => {
+    const validTournaments = data.filter((tournament) => {
       // Проверяем, что у турнира есть обязательные поля
-      return tournament.id && tournament.name && tournament.user_id === userId
-    })
+      return tournament.id && tournament.name && tournament.user_id === userId;
+    });
 
     if (validTournaments.length !== data.length) {
-      console.warn(`⚠️ Отфильтровано ${data.length - validTournaments.length} некорректных турниров`)
+      console.warn(
+        `⚠️ Отфильтровано ${data.length - validTournaments.length} некорректных турниров`,
+      );
     }
 
-    return validTournaments.map(this.mapDbTournamentToType)
+    return validTournaments.map(TournamentService.mapDbTournamentToType);
   }
 
   // Получить турнир по ID
-  static async getTournamentById(tournamentId: string): Promise<Tournament | null> {
+  static async getTournamentById(
+    tournamentId: string,
+  ): Promise<Tournament | null> {
+    const supabase = createClientComponentClient();
     const { data, error } = await supabase
-      .from('tournaments')
+      .from("tournaments")
       .select(`
         *,
         tournament_results (*),
         tournament_photos (*)
       `)
-      .eq('id', tournamentId)
-      .single()
+      .eq("id", tournamentId)
+      .single();
 
     if (error) {
-      if (error.code === 'PGRST116') {
-        return null
+      if (error.code === "PGRST116") {
+        return null;
       }
-      throw new Error(`Failed to fetch tournament: ${error.message}`)
+      throw new Error(`Failed to fetch tournament: ${error.message}`);
     }
 
     if (!data) {
-      return null
+      return null;
     }
 
-    return this.mapDbTournamentToType(data)
+    return TournamentService.mapDbTournamentToType(data);
   }
 
   // Создать новый турнир
-  static async createTournament(tournament: Omit<Tournament, 'id' | 'createdAt' | 'updatedAt'>): Promise<Tournament> {
+  static async createTournament(
+    tournament: Omit<Tournament, "id" | "createdAt" | "updatedAt">,
+  ): Promise<Tournament> {
+    const supabase = createClientComponentClient();
     const { data, error } = await supabase
-      .from('tournaments')
+      .from("tournaments")
       .insert({
         user_id: tournament.userId,
         name: tournament.name,
@@ -78,30 +84,32 @@ export class TournamentService {
         blind_levels: tournament.blindLevels,
         starting_stack: tournament.startingStack,
         ticket_image_url: tournament.ticketImageUrl,
-        notes: tournament.notes
+        notes: tournament.notes,
       })
       .select(`
         *,
         tournament_results (*),
         tournament_photos (*)
       `)
-      .single()
+      .single();
 
     if (error) {
-      throw new Error(`Failed to create tournament: ${error.message}`)
+      throw new Error(`Failed to create tournament: ${error.message}`);
     }
 
-    return this.mapDbTournamentToType(data)
+    return TournamentService.mapDbTournamentToType(data);
   }
 
   // Создать турнир через админский клиент (для бота)
-  static async createTournamentAsAdmin(tournament: Omit<Tournament, 'id' | 'createdAt' | 'updatedAt'>): Promise<Tournament> {
+  static async createTournamentAsAdmin(
+    tournament: Omit<Tournament, "id" | "createdAt" | "updatedAt">,
+  ): Promise<Tournament> {
+    const supabaseAdmin = createAdminClient();
     if (!supabaseAdmin) {
-      throw new Error('Supabase not configured')
+      throw new Error("Admin client not available");
     }
-    
     const { data, error } = await supabaseAdmin
-      .from('tournaments')
+      .from("tournaments")
       .insert({
         user_id: tournament.userId,
         name: tournament.name,
@@ -115,147 +123,183 @@ export class TournamentService {
         blind_levels: tournament.blindLevels,
         starting_stack: tournament.startingStack,
         ticket_image_url: tournament.ticketImageUrl,
-        notes: tournament.notes
+        notes: tournament.notes,
       })
       .select(`
         *,
         tournament_results (*),
         tournament_photos (*)
       `)
-      .single()
+      .single();
 
     if (error) {
-      throw new Error(`Failed to create tournament: ${error.message}`)
+      throw new Error(`Failed to create tournament: ${error.message}`);
     }
 
-    return this.mapDbTournamentToType(data)
+    return TournamentService.mapDbTournamentToType(data);
   }
 
   // Обновить турнир
-  static async updateTournament(tournamentId: string, updates: Partial<Tournament>): Promise<Tournament> {
-    const updateData: any = {}
-    
-    if (updates.name !== undefined) updateData.name = updates.name
-    if (updates.date !== undefined) updateData.date = updates.date
-    if (updates.venue !== undefined) updateData.venue = updates.venue
-    if (updates.buyin !== undefined) updateData.buyin = updates.buyin
-    if (updates.tournamentType !== undefined) updateData.tournament_type = updates.tournamentType
-    if (updates.structure !== undefined) updateData.structure = updates.structure
-    if (updates.participants !== undefined) updateData.participants = updates.participants
-    if (updates.prizePool !== undefined) updateData.prize_pool = updates.prizePool
-    if (updates.blindLevels !== undefined) updateData.blind_levels = updates.blindLevels
-    if (updates.startingStack !== undefined) updateData.starting_stack = updates.startingStack
-    if (updates.ticketImageUrl !== undefined) updateData.ticket_image_url = updates.ticketImageUrl
-    if (updates.notes !== undefined) updateData.notes = updates.notes
+  static async updateTournament(
+    tournamentId: string,
+    updates: Partial<Tournament>,
+  ): Promise<Tournament> {
+    const updateData: any = {};
 
+    if (updates.name !== undefined) updateData.name = updates.name;
+    if (updates.date !== undefined) updateData.date = updates.date;
+    if (updates.venue !== undefined) updateData.venue = updates.venue;
+    if (updates.buyin !== undefined) updateData.buyin = updates.buyin;
+    if (updates.tournamentType !== undefined)
+      updateData.tournament_type = updates.tournamentType;
+    if (updates.structure !== undefined)
+      updateData.structure = updates.structure;
+    if (updates.participants !== undefined)
+      updateData.participants = updates.participants;
+    if (updates.prizePool !== undefined)
+      updateData.prize_pool = updates.prizePool;
+    if (updates.blindLevels !== undefined)
+      updateData.blind_levels = updates.blindLevels;
+    if (updates.startingStack !== undefined)
+      updateData.starting_stack = updates.startingStack;
+    if (updates.ticketImageUrl !== undefined)
+      updateData.ticket_image_url = updates.ticketImageUrl;
+    if (updates.notes !== undefined) updateData.notes = updates.notes;
+
+    const supabase = createClientComponentClient();
     const { data, error } = await supabase
-      .from('tournaments')
+      .from("tournaments")
       .update(updateData)
-      .eq('id', tournamentId)
+      .eq("id", tournamentId)
       .select(`
         *,
         tournament_results (*),
         tournament_photos (*)
       `)
-      .single()
+      .single();
 
     if (error) {
-      throw new Error(`Failed to update tournament: ${error.message}`)
+      throw new Error(`Failed to update tournament: ${error.message}`);
     }
 
-    return this.mapDbTournamentToType(data)
+    return TournamentService.mapDbTournamentToType(data);
   }
 
   // Удалить турнир
   static async deleteTournament(tournamentId: string): Promise<boolean> {
+    const supabase = createClientComponentClient();
     const { error } = await supabase
-      .from('tournaments')
+      .from("tournaments")
       .delete()
-      .eq('id', tournamentId)
+      .eq("id", tournamentId);
 
     if (error) {
-      throw new Error(`Failed to delete tournament: ${error.message}`)
+      throw new Error(`Failed to delete tournament: ${error.message}`);
     }
 
-    return true
+    return true;
   }
 
   // Добавить результат турнира (UPSERT - INSERT или UPDATE)
-  static async addTournamentResult(tournamentId: string, result: Omit<TournamentResult, 'id' | 'tournamentId' | 'createdAt'>): Promise<TournamentResult> {
+  static async addTournamentResult(
+    tournamentId: string,
+    result: Omit<TournamentResult, "id" | "tournamentId" | "createdAt">,
+  ): Promise<TournamentResult> {
+    const supabase = createClientComponentClient();
     const { data, error } = await supabase
-      .from('tournament_results')
-      .upsert({
-        tournament_id: tournamentId,
-        position: result.position,
-        payout: result.payout,
-        profit: result.profit,
-        roi: result.roi,
-        notes: result.notes,
-        knockouts: result.knockouts,
-        rebuy_count: result.rebuyCount,
-        addon_count: result.addonCount,
-        time_eliminated: result.timeEliminated,
-        final_table_reached: result.finalTableReached
-      }, {
-        onConflict: 'tournament_id'
-      })
+      .from("tournament_results")
+      .upsert(
+        {
+          tournament_id: tournamentId,
+          position: result.position,
+          payout: result.payout,
+          profit: result.profit,
+          roi: result.roi,
+          notes: result.notes,
+          knockouts: result.knockouts,
+          rebuy_count: result.rebuyCount,
+          addon_count: result.addonCount,
+          time_eliminated: result.timeEliminated,
+          final_table_reached: result.finalTableReached,
+        },
+        {
+          onConflict: "tournament_id",
+        },
+      )
       .select()
-      .single()
+      .single();
 
     if (error) {
-      throw new Error(`Failed to add tournament result: ${error.message}`)
+      throw new Error(`Failed to add tournament result: ${error.message}`);
     }
 
-    return this.mapDbResultToType(data)
+    return TournamentService.mapDbResultToType(data);
   }
 
   // Обновить результат турнира
-  static async updateTournamentResult(tournamentId: string, result: Partial<TournamentResult>): Promise<TournamentResult> {
-    const updateData: any = {}
-    
-    if (result.position !== undefined) updateData.position = result.position
-    if (result.payout !== undefined) updateData.payout = result.payout
-    if (result.profit !== undefined) updateData.profit = result.profit
-    if (result.roi !== undefined) updateData.roi = result.roi
-    if (result.notes !== undefined) updateData.notes = result.notes
-    if (result.knockouts !== undefined) updateData.knockouts = result.knockouts
-    if (result.rebuyCount !== undefined) updateData.rebuy_count = result.rebuyCount
-    if (result.addonCount !== undefined) updateData.addon_count = result.addonCount
-    if (result.timeEliminated !== undefined) updateData.time_eliminated = result.timeEliminated
-    if (result.finalTableReached !== undefined) updateData.final_table_reached = result.finalTableReached
+  static async updateTournamentResult(
+    tournamentId: string,
+    result: Partial<TournamentResult>,
+  ): Promise<TournamentResult> {
+    const updateData: any = {};
 
+    if (result.position !== undefined) updateData.position = result.position;
+    if (result.payout !== undefined) updateData.payout = result.payout;
+    if (result.profit !== undefined) updateData.profit = result.profit;
+    if (result.roi !== undefined) updateData.roi = result.roi;
+    if (result.notes !== undefined) updateData.notes = result.notes;
+    if (result.knockouts !== undefined) updateData.knockouts = result.knockouts;
+    if (result.rebuyCount !== undefined)
+      updateData.rebuy_count = result.rebuyCount;
+    if (result.addonCount !== undefined)
+      updateData.addon_count = result.addonCount;
+    if (result.timeEliminated !== undefined)
+      updateData.time_eliminated = result.timeEliminated;
+    if (result.finalTableReached !== undefined)
+      updateData.final_table_reached = result.finalTableReached;
+
+    const supabase = createClientComponentClient();
     const { data, error } = await supabase
-      .from('tournament_results')
+      .from("tournament_results")
       .update(updateData)
-      .eq('tournament_id', tournamentId)
+      .eq("tournament_id", tournamentId)
       .select()
-      .single()
+      .single();
 
     if (error) {
-      throw new Error(`Failed to update tournament result: ${error.message}`)
+      throw new Error(`Failed to update tournament result: ${error.message}`);
     }
 
-    return this.mapDbResultToType(data)
+    return TournamentService.mapDbResultToType(data);
   }
 
   // Получить турниры без результатов для пользователя (для бота)
-  static async getTournamentsWithoutResults(userId: string): Promise<Tournament[]> {
+  static async getTournamentsWithoutResults(
+    userId: string,
+  ): Promise<Tournament[]> {
+    const supabase = createClientComponentClient();
+    const supabaseAdmin = createAdminClient();
+    if (!supabaseAdmin) {
+      throw new Error("Admin client not available");
+    }
     const { data, error } = await supabaseAdmin
-      .from('tournaments')
+      .from("tournaments")
       .select(`
         *,
         tournament_results (*),
         tournament_photos (*)
       `)
-      .eq('user_id', userId)
-      .is('tournament_results.tournament_id', null)
-      .order('date', { ascending: false })
+      .eq("user_id", userId)
+      .is("tournament_results.tournament_id", null)
+      .order("date", { ascending: false });
 
     if (error) {
-      throw new Error(`Failed to fetch tournaments without results: ${error.message}`)
+      throw new Error(
+        `Failed to fetch tournaments without results: ${error.message}`,
+      );
     }
 
-    return data.map(this.mapDbTournamentToType)
+    return data.map(TournamentService.mapDbTournamentToType);
   }
 
   // Маппинг данных из БД в тип приложения
@@ -277,19 +321,24 @@ export class TournamentService {
       notes: dbTournament.notes,
       createdAt: dbTournament.created_at,
       updatedAt: dbTournament.updated_at,
-      result: dbTournament.tournament_results ? 
-        (Array.isArray(dbTournament.tournament_results) 
-          ? (dbTournament.tournament_results[0] ? TournamentService.mapDbResultToType(dbTournament.tournament_results[0]) : undefined)
+      result: dbTournament.tournament_results
+        ? Array.isArray(dbTournament.tournament_results)
+          ? dbTournament.tournament_results[0]
+            ? TournamentService.mapDbResultToType(
+                dbTournament.tournament_results[0],
+              )
+            : undefined
           : TournamentService.mapDbResultToType(dbTournament.tournament_results)
-        ) : undefined,
-      photos: dbTournament.tournament_photos?.map((photo: any) => ({
-        id: photo.id,
-        tournamentId: photo.tournament_id,
-        url: photo.url,
-        caption: photo.caption,
-        uploadedAt: photo.uploaded_at
-      })) || []
-    }
+        : undefined,
+      photos:
+        dbTournament.tournament_photos?.map((photo: any) => ({
+          id: photo.id,
+          tournamentId: photo.tournament_id,
+          url: photo.url,
+          caption: photo.caption,
+          uploadedAt: photo.uploaded_at,
+        })) || [],
+    };
   }
 
   private static mapDbResultToType(dbResult: any): TournamentResult {
@@ -306,73 +355,70 @@ export class TournamentService {
       addonCount: dbResult.addon_count,
       timeEliminated: dbResult.time_eliminated,
       finalTableReached: dbResult.final_table_reached,
-      createdAt: dbResult.created_at
-    }
+      createdAt: dbResult.created_at,
+    };
   }
 
   // Проверить и очистить сиротские данные
   static async cleanupOrphanedData(): Promise<{
-    orphanedResults: number,
-    orphanedPhotos: number,
-    orphanedTransactions: number
+    orphanedResults: number;
+    orphanedPhotos: number;
+    orphanedTransactions: number;
   }> {
     const results = {
       orphanedResults: 0,
       orphanedPhotos: 0,
-      orphanedTransactions: 0
-    }
+      orphanedTransactions: 0,
+    };
 
     try {
       // Найти и удалить сиротские результаты турниров
       const { data: orphanedResults, error: resultsError } = await supabase
-        .from('tournament_results')
-        .select('id, tournament_id')
-        .not('tournament_id', 'in', `(SELECT id FROM tournaments)`)
-      
+        .from("tournament_results")
+        .select("id, tournament_id")
+        .not("tournament_id", "in", `(SELECT id FROM tournaments)`);
+
       if (!resultsError && orphanedResults?.length > 0) {
-        const orphanedIds = orphanedResults.map(r => r.id)
+        const orphanedIds = orphanedResults.map((r) => r.id);
         await supabase
-          .from('tournament_results')
+          .from("tournament_results")
           .delete()
-          .in('id', orphanedIds)
-        results.orphanedResults = orphanedResults.length
+          .in("id", orphanedIds);
+        results.orphanedResults = orphanedResults.length;
       }
 
       // Найти и удалить сиротские фотографии
       const { data: orphanedPhotos, error: photosError } = await supabase
-        .from('tournament_photos')
-        .select('id, tournament_id')
-        .not('tournament_id', 'in', `(SELECT id FROM tournaments)`)
-      
+        .from("tournament_photos")
+        .select("id, tournament_id")
+        .not("tournament_id", "in", `(SELECT id FROM tournaments)`);
+
       if (!photosError && orphanedPhotos?.length > 0) {
-        const orphanedIds = orphanedPhotos.map(p => p.id)
-        await supabase
-          .from('tournament_photos')
-          .delete()
-          .in('id', orphanedIds)
-        results.orphanedPhotos = orphanedPhotos.length
+        const orphanedIds = orphanedPhotos.map((p) => p.id);
+        await supabase.from("tournament_photos").delete().in("id", orphanedIds);
+        results.orphanedPhotos = orphanedPhotos.length;
       }
 
       // Очистить ссылки на несуществующие турниры в транзакциях
-      const { data: orphanedTransactions, error: transactionsError } = await supabase
-        .from('bankroll_transactions')
-        .select('id, tournament_id')
-        .not('tournament_id', 'is', null)
-        .not('tournament_id', 'in', `(SELECT id FROM tournaments)`)
-      
-      if (!transactionsError && orphanedTransactions?.length > 0) {
-        const orphanedIds = orphanedTransactions.map(t => t.id)
+      const { data: orphanedTransactions, error: transactionsError } =
         await supabase
-          .from('bankroll_transactions')
-          .update({ tournament_id: null })
-          .in('id', orphanedIds)
-        results.orphanedTransactions = orphanedTransactions.length
-      }
+          .from("bankroll_transactions")
+          .select("id, tournament_id")
+          .not("tournament_id", "is", null)
+          .not("tournament_id", "in", `(SELECT id FROM tournaments)`);
 
+      if (!transactionsError && orphanedTransactions?.length > 0) {
+        const orphanedIds = orphanedTransactions.map((t) => t.id);
+        await supabase
+          .from("bankroll_transactions")
+          .update({ tournament_id: null })
+          .in("id", orphanedIds);
+        results.orphanedTransactions = orphanedTransactions.length;
+      }
     } catch (error) {
-      console.error('Error cleaning orphaned data:', error)
+      console.error("Error cleaning orphaned data:", error);
     }
 
-    return results
+    return results;
   }
 }

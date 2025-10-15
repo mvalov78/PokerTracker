@@ -9,9 +9,6 @@ export interface BotSessionData {
 }
 
 export class BotSessionService {
-  /**
-   * Получить сессию пользователя
-   */
   static async getSession(telegramUserId: number): Promise<BotSessionData> {
     if (!supabaseAdmin) {
       console.warn('Supabase admin client not available')
@@ -29,7 +26,6 @@ export class BotSessionService {
 
       if (error) {
         if (error.code === 'PGRST116') {
-          // Сессия не найдена - создаем новую
           console.log(`📝 [BotSession] Creating new session for user ${telegramUserId}`)
           return await this.createSession(telegramUserId)
         }
@@ -48,9 +44,6 @@ export class BotSessionService {
     }
   }
 
-  /**
-   * Создать новую сессию
-   */
   static async createSession(telegramUserId: number): Promise<BotSessionData> {
     const sessionData: BotSessionData = {
       userId: telegramUserId.toString(),
@@ -84,9 +77,6 @@ export class BotSessionService {
     }
   }
 
-  /**
-   * Обновить сессию
-   */
   static async updateSession(telegramUserId: number, sessionData: BotSessionData): Promise<boolean> {
     if (!supabaseAdmin) {
       console.warn('Supabase admin client not available')
@@ -101,7 +91,7 @@ export class BotSessionService {
         .upsert({
           user_id: telegramUserId,
           session_data: sessionData,
-          expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 часа
+          expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
         })
 
       if (error) {
@@ -117,9 +107,6 @@ export class BotSessionService {
     }
   }
 
-  /**
-   * Удалить сессию
-   */
   static async deleteSession(telegramUserId: number): Promise<boolean> {
     if (!supabaseAdmin) {
       return false
@@ -144,9 +131,6 @@ export class BotSessionService {
     }
   }
 
-  /**
-   * Очистить просроченные сессии
-   */
   static async cleanupExpiredSessions(): Promise<number> {
     if (!supabaseAdmin) {
       return 0
