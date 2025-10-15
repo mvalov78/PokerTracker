@@ -17,7 +17,7 @@ export default function AuthPage() {
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
   
-  const { login, register, isLoading, isAuthenticated } = useAuth()
+  const { signIn, signUp, isLoading, isAuthenticated } = useAuth()
   const { addToast } = useToast()
   const router = useRouter()
 
@@ -62,29 +62,43 @@ export default function AuthPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!validateForm()) return
+    console.log("🎯 Form submitted, email:", formData.email)
+    
+    if (!validateForm()) {
+      console.log("⚠️ Form validation failed")
+      return
+    }
 
     try {
+      console.log("🚀 Starting authentication process...")
       let result
       if (isLogin) {
-        result = await login(formData.email, formData.password)
+        console.log("📧 Calling signIn")
+        result = await signIn(formData.email, formData.password)
       } else {
-        result = await register(formData.email, formData.password, formData.username)
+        console.log("📝 Calling signUp")
+        result = await signUp(formData.email, formData.password, formData.username)
       }
 
+      console.log("📊 Auth result:", result)
+
       if (result.success) {
+        console.log("✅ Auth successful!")
         addToast({
           type: 'success',
           message: isLogin ? 'Добро пожаловать!' : 'Аккаунт успешно создан!'
         })
         router.push('/')
       } else {
+        console.error("❌ Auth failed:", result.error)
         addToast({
           type: 'error',
           message: result.error || 'Произошла ошибка'
         })
       }
     } catch (error) {
+      console.error("💥 Exception in handleSubmit:", error)
+      console.error("Error details:", error instanceof Error ? error.message : String(error))
       addToast({
         type: 'error',
         message: 'Произошла непредвиденная ошибка'
