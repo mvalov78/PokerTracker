@@ -104,6 +104,29 @@ export default function BotManagementPage() {
     }
   }
   
+  const initializeBot = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch('/api/bot/init', {
+        method: 'POST',
+      })
+      
+      const result = await response.json()
+      
+      if (result.success) {
+        alert(`✅ ${result.message}\n\nРежим: ${result.mode}\n${result.webhookUrl ? `Webhook URL: ${result.webhookUrl}` : ''}`)
+        await loadBotStatus()
+      } else {
+        alert(`❌ Ошибка инициализации:\n${result.error}`)
+      }
+    } catch (error) {
+      alert('❌ Ошибка инициализации бота')
+      console.error('Ошибка инициализации:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+  
   const simulateCommand = async (command: string) => {
     try {
       const response = await fetch('/api/bot/polling', {
@@ -186,13 +209,23 @@ export default function BotManagementPage() {
                 Мониторинг и управление Telegram ботом для PokerTracker Pro
               </p>
             </div>
-            <button
-              onClick={loadBotStatus}
-              disabled={loading}
-              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-            >
-              {loading ? '⏳ Обновление...' : '🔄 Обновить статус'}
-            </button>
+            <div className="flex space-x-2">
+              <button
+                onClick={initializeBot}
+                disabled={loading}
+                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                title="Синхронизировать webhook из переменной окружения BOT_WEBHOOK_URL"
+              >
+                {loading ? '⏳ Загрузка...' : '⚙️ Синхронизировать из .env'}
+              </button>
+              <button
+                onClick={loadBotStatus}
+                disabled={loading}
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+              >
+                {loading ? '⏳ Обновление...' : '🔄 Обновить статус'}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -445,8 +478,28 @@ export default function BotManagementPage() {
           </div>
         </div>
 
+        {/* Environment Variables Info */}
+        <div className="mt-8 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+          <div className="flex items-start space-x-3">
+            <span className="text-green-500 text-xl">⚙️</span>
+            <div className="flex-1">
+              <h3 className="font-semibold text-green-900 dark:text-green-100 mb-2">
+                Автоматическая синхронизация из переменных окружения
+              </h3>
+              <p className="text-green-800 dark:text-green-200 text-sm mb-3">
+                Нажмите кнопку <strong>"⚙️ Синхронизировать из .env"</strong> чтобы автоматически установить webhook из переменной окружения <code className="bg-green-100 dark:bg-green-800 px-1 rounded">BOT_WEBHOOK_URL</code>.
+              </p>
+              <div className="text-xs text-green-700 dark:text-green-300 space-y-1">
+                <div>💡 <strong>Когда использовать:</strong> После деплоя на Vercel или изменения переменных окружения</div>
+                <div>✅ <strong>Что делает:</strong> Читает BOT_MODE и BOT_WEBHOOK_URL из .env и автоматически настраивает webhook в Telegram</div>
+                <div>⚡ <strong>Преимущество:</strong> Не нужно вручную вводить URL - берется из переменных окружения</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Info */}
-        <div className="mt-8 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+        <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
           <div className="flex items-start space-x-3">
             <span className="text-blue-500 text-xl">ℹ️</span>
             <div>
