@@ -1,0 +1,69 @@
+name: Auto-sync Bot Webhook After Deploy
+
+# Запускается после успешного пуша в main
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: # Можно запустить вручную
+
+jobs:
+  wait-for-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for Vercel deployment
+        run: |
+          echo "⏳ Ждем завершения деплоя на Vercel..."
+          echo "Vercel автоматически деплоит при пуше в main"
+          sleep 90
+          echo "✅ Деплой должен завершиться"
+      
+      - name: Initialize Bot with webhook from environment
+        run: |
+          echo "🔗 Синхронизируем webhook из BOT_WEBHOOK_URL..."
+          
+          RESPONSE=$(curl -s -X POST https://poker-tracker-ashy.vercel.app/api/bot/init)
+          
+          echo "📊 Ответ от сервера:"
+          echo "$RESPONSE" | jq '.'
+          
+          SUCCESS=$(echo "$RESPONSE" | jq -r '.success')
+          
+          if [ "$SUCCESS" = "true" ]; then
+            echo "✅ Webhook успешно синхронизирован!"
+            
+            MODE=$(echo "$RESPONSE" | jq -r '.mode')
+            WEBHOOK_URL=$(echo "$RESPONSE" | jq -r '.webhookUrl')
+            
+            echo "📋 Режим: $MODE"
+            echo "🔗 Webhook URL: $WEBHOOK_URL"
+          else
+            echo "❌ Ошибка синхронизации webhook"
+            ERROR=$(echo "$RESPONSE" | jq -r '.error')
+            echo "Ошибка: $ERROR"
+            exit 1
+          fi
+      
+      - name: Verify webhook status
+        run: |
+          echo "🔍 Проверяем статус webhook..."
+          
+          RESPONSE=$(curl -s https://poker-tracker-ashy.vercel.app/api/bot/init)
+          
+          RECOMMENDATION=$(echo "$RESPONSE" | jq -r '.recommendation')
+          TELEGRAM_URL=$(echo "$RESPONSE" | jq -r '.telegram.webhookInfo.url')
+          ENV_URL=$(echo "$RESPONSE" | jq -r '.environment.BOT_WEBHOOK_URL')
+          PENDING=$(echo "$RESPONSE" | jq -r '.telegram.webhookInfo.pending_update_count')
+          
+          echo "📊 Статус проверки:"
+          echo "  - Webhook в Telegram: $TELEGRAM_URL"
+          echo "  - Webhook в .env: $ENV_URL"
+          echo "  - Ожидающих обновлений: $PENDING"
+          echo "  - Рекомендация: $RECOMMENDATION"
+          
+          if [ "$RECOMMENDATION" = "✅ Конфигурация корректна" ]; then
+            echo "✅ Все настроено правильно!"
+          else
+            echo "⚠️ Внимание: $RECOMMENDATION"
+          fi
+
