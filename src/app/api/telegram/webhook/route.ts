@@ -4,7 +4,104 @@
  */
 
 import { type NextRequest, NextResponse } from "next/server";
-import { getBotInstance } from "../../../../bot";
+import { Telegraf } from "telegraf";
+import { BotCommands } from "../../../../bot/commands";
+import { PhotoHandler } from "../../../../bot/handlers/photoHandler";
+
+// Создаем экземпляр бота для webhook режима (глобальный для serverless)
+let webhookBot: Telegraf | null = null;
+let commands: BotCommands | null = null;
+let photoHandler: PhotoHandler | null = null;
+
+/**
+ * Инициализация бота для webhook режима
+ */
+function initializeWebhookBot() {
+  if (webhookBot) {
+    return webhookBot;
+  }
+
+  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+  if (!botToken || botToken === "mock-bot-token") {
+    console.error("[Telegram Webhook] TELEGRAM_BOT_TOKEN не установлен");
+    return null;
+  }
+
+  console.log("[Telegram Webhook] Инициализация бота для webhook режима...");
+
+  webhookBot = new Telegraf(botToken);
+  commands = new BotCommands();
+  photoHandler = new PhotoHandler();
+
+  // Настраиваем обработчики команд
+  webhookBot.command("start", async (ctx) => {
+    console.log("[Telegram Webhook] Команда /start");
+    await commands!.start(ctx);
+  });
+
+  webhookBot.command("link", async (ctx) => {
+    console.log("[Telegram Webhook] Команда /link");
+    await commands!.link(ctx);
+  });
+
+  webhookBot.command("help", async (ctx) => {
+    console.log("[Telegram Webhook] Команда /help");
+    await commands!.help(ctx);
+  });
+
+  webhookBot.command("register", async (ctx) => {
+    console.log("[Telegram Webhook] Команда /register");
+    await commands!.registerTournament(ctx);
+  });
+
+  webhookBot.command("result", async (ctx) => {
+    console.log("[Telegram Webhook] Команда /result");
+    await commands!.addResult(ctx);
+  });
+
+  webhookBot.command("stats", async (ctx) => {
+    console.log("[Telegram Webhook] Команда /stats");
+    await commands!.getStats(ctx);
+  });
+
+  webhookBot.command("tournaments", async (ctx) => {
+    console.log("[Telegram Webhook] Команда /tournaments");
+    await commands!.listTournaments(ctx);
+  });
+
+  webhookBot.command("settings", async (ctx) => {
+    console.log("[Telegram Webhook] Команда /settings");
+    await commands!.settings(ctx);
+  });
+
+  webhookBot.command("venue", async (ctx) => {
+    console.log("[Telegram Webhook] Команда /venue");
+    await commands!.showCurrentVenue(ctx);
+  });
+
+  webhookBot.command("setvenue", async (ctx) => {
+    console.log("[Telegram Webhook] Команда /setvenue");
+    await commands!.setCurrentVenue(ctx);
+  });
+
+  // Обработка фотографий
+  webhookBot.on("photo", async (ctx) => {
+    console.log("[Telegram Webhook] Получена фотография");
+    await photoHandler!.handlePhoto(ctx);
+  });
+
+  // Обработка документов
+  webhookBot.on("document", async (ctx) => {
+    console.log("[Telegram Webhook] Получен документ");
+    if (ctx.message.document.mime_type?.startsWith("image/")) {
+      await photoHandler!.handleDocumentAsPhoto(ctx);
+    }
+  });
+
+  console.log("[Telegram Webhook] Бот инициализирован успешно");
+
+  return webhookBot;
+}
 
 /**
  * POST handler для webhook от Telegram
@@ -22,22 +119,21 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString(),
     });
 
-    // Получаем экземпляр бота
-    const bot = getBotInstance();
+    // Инициализируем бота если нужно
+    const bot = initializeWebhookBot();
 
     if (!bot) {
-      console.error("[Telegram Webhook] Бот не инициализирован");
-      // Возвращаем 200 чтобы Telegram не пытался переотправить
+      console.error("[Telegram Webhook] Не удалось инициализировать бота");
       return NextResponse.json(
         {
           ok: false,
-          error: "Bot not initialized",
+          error: "Bot initialization failed - check TELEGRAM_BOT_TOKEN",
         },
         { status: 200 },
       );
     }
 
-    // Обрабатываем обновление через экземпляр бота
+    // Обрабатываем обновление через Telegraf
     await bot.handleUpdate(update);
 
     console.log(
