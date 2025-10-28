@@ -6,6 +6,25 @@ import type { BotContext } from "./index";
 import { UserSettingsService } from "@/services/userSettingsService";
 import { type Tournament, TournamentFormData } from "../types";
 
+/**
+ * Получить API URL для текущего окружения
+ */
+function getApiUrl(): string {
+  const appUrl =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXT_PUBLIC_API_URL ||
+    process.env.VERCEL_URL ||
+    "http://localhost:3000";
+  
+  // Если URL начинается с http/https - используем как есть
+  if (appUrl.startsWith("http")) {
+    return appUrl;
+  }
+  
+  // Иначе добавляем https протокол (для Vercel URL)
+  return `https://${appUrl}`;
+}
+
 export class BotCommands {
   /**
    * Команда /start - приветствие и инструкции
@@ -79,7 +98,8 @@ export class BotCommands {
       }
 
       // Отправляем запрос к API для связывания
-      const response = await fetch("http://localhost:3000/api/telegram/link", {
+      const apiUrl = getApiUrl();
+      const response = await fetch(`${apiUrl}/api/telegram/link`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -323,8 +343,9 @@ ID турнира: \`${newTournament.id}\`
       const userId = ctx.from?.id.toString() || "user-1";
 
       // Получаем турниры через API
+      const apiUrl = getApiUrl();
       const apiResponse = await fetch(
-        `http://localhost:3000/api/tournaments?userId=${userId}`,
+        `${apiUrl}/api/tournaments?userId=${userId}`,
       );
       if (!apiResponse.ok) {
         throw new Error(`API error: ${apiResponse.status}`);
@@ -439,8 +460,9 @@ ID турнира: \`${newTournament.id}\`
       };
 
       // Получаем турнир и обновляем его с результатом через API
+      const apiUrl = getApiUrl();
       const updateResponse = await fetch(
-        `http://localhost:3000/api/tournaments/${tournamentId}`,
+        `${apiUrl}/api/tournaments/${tournamentId}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -519,8 +541,9 @@ ID турнира: \`${newTournament.id}\`
       const userId = ctx.from?.id.toString();
 
       // Получаем турниры через API
+      const apiUrl = getApiUrl();
       const apiResponse = await fetch(
-        `http://localhost:3000/api/tournaments?userId=${userId}`,
+        `${apiUrl}/api/tournaments?userId=${userId}`,
       );
 
       if (!apiResponse.ok) {
@@ -578,8 +601,9 @@ ${stats.bestPayout ? `💎 **Лучший выигрыш:** $${stats.bestPayout}
       const userId = ctx.from?.id.toString();
 
       // Получаем турниры через API
+      const apiUrl = getApiUrl();
       const apiResponse = await fetch(
-        `http://localhost:3000/api/tournaments?userId=${userId}`,
+        `${apiUrl}/api/tournaments?userId=${userId}`,
       );
 
       if (!apiResponse.ok) {
@@ -815,7 +839,8 @@ ${stats.bestPayout ? `💎 **Лучший выигрыш:** $${stats.bestPayout}
       }
 
       // Создаем турнир через API
-      const response = await fetch("http://localhost:3000/api/tournaments", {
+      const apiUrl = getApiUrl();
+      const response = await fetch(`${apiUrl}/api/tournaments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
