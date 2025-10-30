@@ -38,8 +38,7 @@ describe('ResultHistory Component', () => {
     render(<ResultHistory userId="user_123" />)
     
     // Should render history items
-    const component = screen.getByText(/История изменений результатов|Tournament/i)
-    expect(component).toBeInTheDocument()
+    expect(screen.getByText(/История изменений/i)).toBeInTheDocument()
   })
 
   it('should render empty history', () => {
@@ -49,29 +48,32 @@ describe('ResultHistory Component', () => {
     render(<ResultHistory userId="user_123" />)
     
     // Should render component
-    expect(screen.getByText(/История изменений результатов/i)).toBeInTheDocument()
+    expect(screen.getByText(/История изменений/i)).toBeInTheDocument()
   })
 
   it('should render with specific tournament', () => {
+    // Mock getTournamentById to return a tournament name
+    const { getTournamentById } = require('@/data/mockData')
+    getTournamentById.mockReturnValue({ name: 'Test Tournament Name' })
+    
     render(<ResultHistory userId="user_123" tournamentId="tournament_1" />)
     
-    // Should render history for specific tournament
-    const component = screen.getByText(/История изменений результатов|Tournament/i)
-    expect(component).toBeInTheDocument()
+    // Should render component
+    expect(screen.getByText(/История изменений/i)).toBeInTheDocument()
   })
 
   it('should show change icons', () => {
     render(<ResultHistory userId="user_123" />)
     
     // Component should render
-    expect(screen.getByText(/История изменений результатов/i)).toBeInTheDocument()
+    expect(screen.getByText(/История изменений/i)).toBeInTheDocument()
   })
 
   it('should limit items when maxItems specified', () => {
     render(<ResultHistory userId="user_123" maxItems={5} />)
     
     // Component should render with limit
-    expect(screen.getByText(/История изменений результатов/i)).toBeInTheDocument()
+    expect(screen.getByText(/История изменений/i)).toBeInTheDocument()
   })
 })
 

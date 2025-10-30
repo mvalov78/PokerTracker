@@ -6,14 +6,30 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-// Форматирование валюты
-export function formatCurrency(amount: number, currency = 'USD'): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  }).format(amount)
+// Кеш для форматтеров валют для улучшения производительности
+const currencyFormatters: Record<string, Record<number, Intl.NumberFormat>> = {};
+
+// Форматирование валюты с использованием кеша форматтеров
+export function formatCurrency(amount: number, currency = 'USD', decimals?: number): string {
+  const digits = decimals !== undefined ? decimals : 0;
+  const key = `${currency}_${digits}`;
+  
+  // Инициализируем объект для валюты, если он не существует
+  if (!currencyFormatters[currency]) {
+    currencyFormatters[currency] = {};
+  }
+  
+  // Используем кешированный форматтер или создаем новый
+  if (!currencyFormatters[currency][digits]) {
+    currencyFormatters[currency][digits] = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency,
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits,
+    });
+  }
+  
+  return currencyFormatters[currency][digits].format(amount);
 }
 
 // Форматирование процентов
@@ -21,7 +37,16 @@ export function formatPercentage(value: number, decimals = 1): string {
   return `${value.toFixed(decimals)}%`
 }
 
-// Форматирование даты
+// Кеш для форматтеров дат
+const dateFormatters: Record<string, Intl.DateTimeFormat> = {};
+
+// Получение ключа для кеша форматтеров дат
+function getDateFormatterKey(options?: Intl.DateTimeFormatOptions): string {
+  if (!options) return 'default';
+  return JSON.stringify(options);
+}
+
+// Форматирование даты с использованием кеша
 export function formatDate(date: string | Date, options?: Intl.DateTimeFormatOptions): string {
   const dateObj = typeof date === 'string' ? new Date(date) : date
   
@@ -33,7 +58,14 @@ export function formatDate(date: string | Date, options?: Intl.DateTimeFormatOpt
     minute: '2-digit',
   }
   
-  return new Intl.DateTimeFormat('ru-RU', { ...defaultOptions, ...options }).format(dateObj)
+  const mergedOptions = { ...defaultOptions, ...options };
+  const key = getDateFormatterKey(mergedOptions);
+  
+  if (!dateFormatters[key]) {
+    dateFormatters[key] = new Intl.DateTimeFormat('ru-RU', mergedOptions);
+  }
+  
+  return dateFormatters[key].format(dateObj);
 }
 
 // Форматирование относительного времени

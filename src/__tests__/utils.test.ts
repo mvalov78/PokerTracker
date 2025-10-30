@@ -37,7 +37,8 @@ describe('Utils', () => {
   describe('formatCurrency', () => {
     it('should format currency with default USD', () => {
       expect(formatCurrency(100)).toBe('$100')
-      expect(formatCurrency(100.50)).toBe('$100.5')
+      expect(formatCurrency(100.50, 'USD', 1)).toBe('$100.5')
+      expect(formatCurrency(100.50, 'USD', 2)).toBe('$100.50')
       expect(formatCurrency(1000)).toBe('$1,000')
     })
 

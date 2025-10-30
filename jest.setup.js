@@ -5,6 +5,15 @@
 // Learn more: https://github.com/testing-library/jest-dom
 import '@testing-library/jest-dom'
 
+// Mock ResizeObserver
+class ResizeObserverMock {
+  observe = jest.fn()
+  unobserve = jest.fn()
+  disconnect = jest.fn()
+}
+
+global.ResizeObserver = ResizeObserverMock
+
 // Mock Next.js router
 jest.mock('next/navigation', () => ({
   useRouter: () => ({

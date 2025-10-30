@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
       success: true,
       tournament: newTournament
     })
-  } catch {
+  } catch (error) {
     console.error('Ошибка создания турнира в Supabase:', error)
     return NextResponse.json(
       { 
@@ -158,7 +158,7 @@ export async function DELETE(request: NextRequest) {
         { status: 404 }
       )
     }
-  } catch {
+  } catch (error) {
     console.error('Ошибка удаления турнира из Supabase:', error)
     return NextResponse.json(
       { 

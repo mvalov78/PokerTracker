@@ -330,7 +330,7 @@ describe('BotCommands', () => {
       await commands.link(ctx as any)
 
       expect(ctx.reply).toHaveBeenCalledWith(
-        expect.stringContaining('Ошибка')
+        "❌ Произошла ошибка при связывании аккаунтов. Попробуйте позже."
       )
     })
 

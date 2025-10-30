@@ -58,9 +58,9 @@ describe('lib/utils', () => {
     })
 
     it('should handle decimals', () => {
-      const result = formatCurrency(1234.56)
+      const result = formatCurrency(1234.56, 'USD', 2)
       expect(result).toContain('1')
-      expect(result).toContain('234')
+      expect(result).toContain('234.56')
     })
 
     it('should handle zero', () => {

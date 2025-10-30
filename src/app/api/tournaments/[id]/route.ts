@@ -25,7 +25,7 @@ export async function GET(
       success: true,
       tournament
     })
-  } catch {
+  } catch (error) {
     console.error('Ошибка получения турнира:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to fetch tournament' },
@@ -109,7 +109,7 @@ export async function PUT(
       success: true,
       tournament: updatedTournament
     })
-  } catch {
+  } catch (error) {
     console.error('Ошибка обновления турнира:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to update tournament' },
