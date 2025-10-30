@@ -23,6 +23,14 @@ const customJestConfig = {
     '<rootDir>/.next/',
     '<rootDir>/node_modules/',
     '<rootDir>/src/__tests__/global.d.ts',
+    '<rootDir>/src/__tests__/mocks/',
+    '<rootDir>/src/__tests__/utils/testHelpers.ts',
+    '<rootDir>/mvalovpokertracker/',
+  ],
+  testMatch: [
+    '**/__tests__/**/*.(test|spec).(ts|tsx|js|jsx)',
+    '!**/__tests__/utils/testHelpers.ts',
+    '!**/__tests__/mocks/**',
   ],
   transform: {
     '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { presets: ['next/babel'] }],

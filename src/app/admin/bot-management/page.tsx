@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useEffect, useState } from "react";
 
 interface EnvSettings {
   bot_mode: string;
@@ -38,7 +38,6 @@ export default function BotManagementPage() {
   const [settings, setSettings] = useState<BotSettings | null>(null);
   const [webhookInfo, setWebhookInfo] = useState<WebhookInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSwitching, setIsSwitching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [webhookUrl, setWebhookUrl] = useState("");
   const [lastRefresh, setLastRefresh] = useState(new Date());
@@ -114,8 +113,8 @@ export default function BotManagementPage() {
             if (webhookData.webhookInfo) {
               setWebhookInfo(webhookData.webhookInfo);
             }
-          } catch (webhookError) {
-            console.log("Не удалось получить информацию о webhook");
+          } catch {
+            console.warn("Не удалось получить информацию о webhook");
           }
         }
 

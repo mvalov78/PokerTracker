@@ -62,10 +62,10 @@ export default function BankrollSettingsModal({ onClose }: BankrollSettingsProps
   }
 
   const getRiskLevel = () => {
-    if (settings.riskManagement.maxBuyinPercentage <= 2) return { level: 'Очень низкий', color: 'text-green-600' }
-    if (settings.riskManagement.maxBuyinPercentage <= 5) return { level: 'Низкий', color: 'text-emerald-600' }
-    if (settings.riskManagement.maxBuyinPercentage <= 10) return { level: 'Средний', color: 'text-yellow-600' }
-    if (settings.riskManagement.maxBuyinPercentage <= 20) return { level: 'Высокий', color: 'text-orange-600' }
+    if (settings.riskManagement.maxBuyinPercentage <= 2) {return { level: 'Очень низкий', color: 'text-green-600' }}
+    if (settings.riskManagement.maxBuyinPercentage <= 5) {return { level: 'Низкий', color: 'text-emerald-600' }}
+    if (settings.riskManagement.maxBuyinPercentage <= 10) {return { level: 'Средний', color: 'text-yellow-600' }}
+    if (settings.riskManagement.maxBuyinPercentage <= 20) {return { level: 'Высокий', color: 'text-orange-600' }}
     return { level: 'Очень высокий', color: 'text-red-600' }
   }
 

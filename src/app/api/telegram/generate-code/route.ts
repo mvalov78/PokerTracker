@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
       code: linkingCode,
       expiresAt,
     });
-  } catch (error) {
+  } catch {
     console.error("Error in generate-code API:", error);
     return NextResponse.json(
       {

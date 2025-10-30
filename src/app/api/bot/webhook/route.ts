@@ -3,14 +3,14 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getBotInstance, createBotInstance, initializeBot } from '../../../../bot'
+import { getBotInstance, initializeBot } from '../../../../bot'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const { action, data } = body
     
-    console.log(`[Bot API] Получен запрос: ${action}`)
+    console.warn(`[Bot API] Получен запрос: ${action}`)
 
     let bot = getBotInstance()
     if (!bot) {
@@ -31,15 +31,16 @@ export async function POST(request: NextRequest) {
         await bot.stop()
         return NextResponse.json({ success: true, message: 'Bot stopped' })
         
-      case 'status':
+      case 'status': {
         const status = bot.getStatus()
         return NextResponse.json({ success: true, status })
+      }
         
       default:
         return NextResponse.json({ error: 'Unknown action' }, { status: 400 })
     }
 
-  } catch (error) {
+  } catch {
     console.error('Ошибка обработки запроса к боту:', error)
     return NextResponse.json(
       { error: 'Internal server error' }, 
@@ -64,7 +65,7 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString()
     })
 
-  } catch (error) {
+  } catch {
     console.error('Ошибка проверки статуса бота:', error)
     return NextResponse.json(
       { error: 'Internal server error' }, 

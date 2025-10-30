@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
         username: profile?.username || "Unknown",
       },
     });
-  } catch (error) {
+  } catch {
     console.error("Error in link API:", error);
     return NextResponse.json(
       {

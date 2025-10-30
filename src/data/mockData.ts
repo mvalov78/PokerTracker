@@ -228,7 +228,7 @@ function loadTournamentsFromStorage(): Tournament[] {
 }
 
 function saveTournamentsToStorage(tournaments: Tournament[]): void {
-  if (typeof window === 'undefined') return
+  if (typeof window === 'undefined') {return}
   
   try {
     localStorage.setItem(TOURNAMENTS_STORAGE_KEY, JSON.stringify(tournaments))
@@ -242,7 +242,7 @@ export let mockTournaments: Tournament[] = loadTournamentsFromStorage()
 
 // Функция для инициализации данных (вызывается при первом запуске)
 export function initializeTournamentData(): void {
-  if (typeof window === 'undefined') return
+  if (typeof window === 'undefined') {return}
   
   // Проверяем, есть ли данные в localStorage
   const stored = localStorage.getItem(TOURNAMENTS_STORAGE_KEY)
@@ -431,7 +431,7 @@ export function addTournament(tournamentData: Partial<Tournament>, userId: strin
 // Функция для обновления турнира
 export function updateTournament(id: string, updates: Partial<Tournament>): Tournament | null {
   const index = mockTournaments.findIndex(t => t.id === id)
-  if (index === -1) return null
+  if (index === -1) {return null}
   
   mockTournaments[index] = {
     ...mockTournaments[index],
@@ -448,7 +448,7 @@ export function updateTournament(id: string, updates: Partial<Tournament>): Tour
 // Функция для удаления турнира
 export function deleteTournament(id: string): boolean {
   const index = mockTournaments.findIndex(t => t.id === id)
-  if (index === -1) return false
+  if (index === -1) {return false}
   
   mockTournaments.splice(index, 1)
   
@@ -461,7 +461,7 @@ export function deleteTournament(id: string): boolean {
 // Функция для добавления результата турнира
 export function addTournamentResult(tournamentId: string, resultData: Partial<Tournament['result']>): Tournament | null {
   const tournament = getTournamentById(tournamentId)
-  if (!tournament) return null
+  if (!tournament) {return null}
   
   const updatedResult = {
     position: resultData.position || 0,
@@ -508,7 +508,7 @@ export function addTournamentResult(tournamentId: string, resultData: Partial<To
 // Функция для обновления результата турнира
 export function updateTournamentResult(tournamentId: string, resultData: Partial<Tournament['result']>): Tournament | null {
   const tournament = getTournamentById(tournamentId)
-  if (!tournament || !tournament.result) return null
+  if (!tournament || !tournament.result) {return null}
   
   const updatedResult = {
     ...tournament.result,

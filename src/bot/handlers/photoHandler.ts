@@ -36,11 +36,11 @@ export class PhotoHandler {
 
       // Получаем ссылку на файл
       const fileLink = await ctx.telegram.getFileLink(document.file_id);
-      console.log("📸 Получена ссылка на файл документа:", fileLink.href);
+      console.warn("📸 Получена ссылка на файл документа:", fileLink.href);
 
       // Обрабатываем изображение через мок OCR сервис
       const ocrResult = await processTicketImage(fileLink.href);
-      console.log("🔍 Результат OCR для документа:", ocrResult);
+      console.warn("🔍 Результат OCR для документа:", ocrResult);
 
       if (!ocrResult.success) {
         await ctx.reply(
@@ -58,26 +58,26 @@ export class PhotoHandler {
 
       // Определяем финальную площадку (текущая пользователя или из OCR)
       const telegramId = ctx.from?.id.toString() || "user-1";
-      console.log(
+      console.warn(
         "🔍 [handleDocumentAsPhoto] Получаем текущую площадку пользователя:",
         telegramId,
       );
       const currentVenueDoc =
         await UserSettingsService.getCurrentVenue(telegramId);
-      console.log(
+      console.warn(
         "🏨 [handleDocumentAsPhoto] Текущая площадка пользователя:",
         currentVenueDoc,
       );
-      console.log("🏨 [handleDocumentAsPhoto] Площадка из OCR:", data.venue);
+      console.warn("🏨 [handleDocumentAsPhoto] Площадка из OCR:", data.venue);
       const finalVenueDoc = currentVenueDoc || data.venue || "Не указана";
-      console.log(
+      console.warn(
         "🏨 [handleDocumentAsPhoto] Финальная площадка для отображения:",
         finalVenueDoc,
       );
 
       // Сохраняем данные в сессии (с подстановкой финальной площадки)
       ctx.session.ocrData = { ...data, venue: finalVenueDoc };
-      console.log(
+      console.warn(
         "💾 Данные OCR из документа сохранены в сессии (с финальной площадкой):",
         JSON.stringify(ctx.session.ocrData, null, 2),
       );
@@ -163,11 +163,11 @@ export class PhotoHandler {
 
       // Получаем ссылку на файл
       const fileLink = await ctx.telegram.getFileLink(bestPhoto.file_id);
-      console.log("📸 Получена ссылка на файл:", fileLink.href);
+      console.warn("📸 Получена ссылка на файл:", fileLink.href);
 
       // Обрабатываем изображение через мок OCR сервис
       const ocrResult = await processTicketImage(fileLink.href);
-      console.log("🔍 Результат OCR:", ocrResult);
+      console.warn("🔍 Результат OCR:", ocrResult);
 
       if (!ocrResult.success) {
         await ctx.reply(
@@ -185,39 +185,39 @@ export class PhotoHandler {
 
       // Определяем финальную площадку (текущая пользователя или из OCR)
       const telegramId = ctx.from?.id.toString() || "user-1";
-      console.log("🔍 Получаем текущую площадку пользователя:", telegramId);
+      console.warn("🔍 Получаем текущую площадку пользователя:", telegramId);
       const currentVenue =
         await UserSettingsService.getCurrentVenue(telegramId);
-      console.log("🏨 Текущая площадка пользователя:", currentVenue);
-      console.log("🏨 Площадка из OCR:", data.venue);
+      console.warn("🏨 Текущая площадка пользователя:", currentVenue);
+      console.warn("🏨 Площадка из OCR:", data.venue);
       const finalVenue = currentVenue || data.venue || "Не указана";
-      console.log("🏨 Финальная площадка для отображения:", finalVenue);
+      console.warn("🏨 Финальная площадка для отображения:", finalVenue);
 
       // Сохраняем данные в сессии
       ctx.session.ocrData = data;
-      console.log(
+      console.warn(
         "💾 Данные OCR сохранены в сессии:",
         JSON.stringify(data, null, 2),
       );
 
       // Показываем распознанные данные пользователю
       let venueText = finalVenue;
-      console.log("🔍 [handlePhoto] Проверяем условие для пометки:");
-      console.log("🔍 [handlePhoto] currentVenue:", currentVenue);
-      console.log("🔍 [handlePhoto] data.venue:", data.venue);
-      console.log(
+      console.warn("🔍 [handlePhoto] Проверяем условие для пометки:");
+      console.warn("🔍 [handlePhoto] currentVenue:", currentVenue);
+      console.warn("🔍 [handlePhoto] data.venue:", data.venue);
+      console.warn(
         "🔍 [handlePhoto] currentVenue !== data.venue:",
         currentVenue !== data.venue,
       );
 
       if (currentVenue && currentVenue !== data.venue) {
         venueText += ` *(установлена как текущая)*`;
-        console.log(
+        console.warn(
           "🔍 [handlePhoto] Добавлена пометка, venueText:",
           venueText,
         );
       } else {
-        console.log("🔍 [handlePhoto] Пометка НЕ добавлена");
+        console.warn("🔍 [handlePhoto] Пометка НЕ добавлена");
       }
 
       const confirmMessage = `
@@ -282,12 +282,12 @@ export class PhotoHandler {
       await ctx.answerCbQuery();
 
       // Получаем данные из сессии
-      console.log("🔍 Проверяем сессию:", ctx.session);
+      console.warn("🔍 Проверяем сессию:", ctx.session);
       const data = ctx.session.ocrData;
-      console.log("🔍 Данные OCR из сессии:", data);
+      console.warn("🔍 Данные OCR из сессии:", data);
 
       if (!data) {
-        console.log("❌ Данные OCR не найдены в сессии");
+        console.warn("❌ Данные OCR не найдены в сессии");
         await ctx.reply(
           "❌ Данные OCR не найдены. Попробуйте отправить фото еще раз.",
         );
@@ -298,34 +298,34 @@ export class PhotoHandler {
       const telegramId = ctx.from?.id.toString() || "user-1";
 
       // Получаем UUID пользователя по Telegram ID
-      console.log(
+      console.warn(
         "🔍 [confirmTournament] Получаем UUID пользователя по Telegram ID:",
         telegramId,
       );
       const userUuid = await UserService.getUserUuidByTelegramId(telegramId);
-      console.log("🔍 [confirmTournament] UUID пользователя:", userUuid);
+      console.warn("🔍 [confirmTournament] UUID пользователя:", userUuid);
 
       // Если UUID не найден, используем Telegram ID - API создаст пользователя через getUserOrCreate
       const finalUserId = userUuid || telegramId;
-      console.log(
+      console.warn(
         "🔍 [confirmTournament] Финальный ID для создания турнира:",
         finalUserId,
       );
 
       // Используем текущую площадку пользователя, если установлена, иначе берем из OCR
-      console.log(
+      console.warn(
         "🔍 [confirmTournament] Получаем текущую площадку пользователя:",
         telegramId,
       );
       const currentVenue =
         await UserSettingsService.getCurrentVenue(telegramId);
-      console.log(
+      console.warn(
         "🏨 [confirmTournament] Текущая площадка пользователя:",
         currentVenue,
       );
-      console.log("🏨 [confirmTournament] Площадка из OCR:", data.venue);
+      console.warn("🏨 [confirmTournament] Площадка из OCR:", data.venue);
       const venue = currentVenue || data.venue || "Не указано";
-      console.log(
+      console.warn(
         "🏨 [confirmTournament] Финальная площадка для создания турнира:",
         venue,
       );
@@ -353,7 +353,7 @@ export class PhotoHandler {
       const apiUrl = appUrl.startsWith("http") ? appUrl : `https://${appUrl}`;
       const apiEndpoint = `${apiUrl}/api/tournaments`;
 
-      console.log(
+      console.warn(
         `🌐 [confirmTournament] Отправляем запрос к API: ${apiEndpoint}`,
       );
 
@@ -554,7 +554,7 @@ ID турнира: \`${newTournament.id}\`
     ocrData: any,
   ) {
     // В реальном приложении здесь была бы логика сохранения в базу данных
-    console.log(`Сохранение фото для турнира ${tournamentId}:`, {
+    console.warn(`Сохранение фото для турнира ${tournamentId}:`, {
       fileId,
       ocrData,
       timestamp: new Date().toISOString(),

@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 
 export default function BankrollPage() {
   const router = useRouter()
@@ -44,7 +44,6 @@ export default function BankrollPage() {
 
   const handleAddTransaction = () => {
     // Здесь будет логика добавления транзакции
-    console.log('Добавление транзакции:', { amount, description, type })
     setShowAddForm(false)
     setAmount('')
     setDescription('')

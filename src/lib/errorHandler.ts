@@ -169,7 +169,7 @@ class ErrorHandler {
   }
 
   private async flushErrorQueue() {
-    if (this.errorQueue.length === 0) return
+    if (this.errorQueue.length === 0) {return}
 
     const errors = [...this.errorQueue]
     this.errorQueue = []

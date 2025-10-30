@@ -1,9 +1,9 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
 import { AppProviders } from '@/components/providers/AppProviders'
+import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 
 // Mock компонентов для интеграционных тестов
-const MockTournamentForm = () => {
+const _MockTournamentForm = () => {
   return (
     <div data-testid="tournament-form">
       <h1>Добавить турнир</h1>

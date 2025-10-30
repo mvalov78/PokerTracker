@@ -71,7 +71,7 @@ export default function TicketUpload({ onDataExtracted, className }: TicketUploa
   }
 
   const processImage = async () => {
-    if (!state.uploadedFile) return
+    if (!state.uploadedFile) {return}
 
     setState(prev => ({ ...prev, isProcessing: true, progress: 0 }))
 

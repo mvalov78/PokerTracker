@@ -1,12 +1,11 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
-import { useAuth, ProtectedRoute } from '@/hooks/useAuth'
-import { useTournaments } from '@/hooks/useTournaments'
 import Button from '@/components/ui/Button'
 import Card, { CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
-import { Tournament } from '@/types'
+import { ProtectedRoute, useAuth } from '@/hooks/useAuth'
+import { useTournaments } from '@/hooks/useTournaments'
+import { useRouter } from 'next/navigation'
+import { useMemo, useState } from 'react'
 
 function AnalyticsContent() {
   const router = useRouter()
@@ -16,7 +15,7 @@ function AnalyticsContent() {
 
   // Фильтруем турниры по временному диапазону
   const filteredTournaments = useMemo(() => {
-    if (timeRange === 'all') return tournaments
+    if (timeRange === 'all') {return tournaments}
 
     const now = new Date()
     const startDate = new Date()

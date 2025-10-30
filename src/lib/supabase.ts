@@ -19,7 +19,7 @@ export const createClientComponentClient = () => {
     console.error("NEXT_PUBLIC_SUPABASE_ANON_KEY:", supabaseAnonKey ? "✅ Set" : "❌ Missing");
     throw new Error("Supabase credentials missing. Please check environment variables.");
   }
-  console.log("🟢 Supabase client created successfully");
+  console.warn("🟢 Supabase client created successfully");
   return createBrowserClient<Database>(supabaseUrl, supabaseAnonKey);
 };
 

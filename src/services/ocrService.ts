@@ -145,7 +145,7 @@ export async function processTicketImage(
       () => {
         try {
           // Логируем информацию о файле
-          console.log(
+          console.warn(
             "🔍 OCR: Обработка изображения:",
             typeof file === "string" ? file : file.name,
           );

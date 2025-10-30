@@ -1,8 +1,8 @@
-import { type NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase";
+import { type NextRequest, NextResponse } from "next/server";
 
 // Получение настроек бота
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const supabase = createAdminClient();
     if (!supabase) {
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Преобразуем в объект для удобства
-    const settings: Record<string, any> = {};
+    const settings: Record<string, { value: string | null; description: string | null; updatedAt: string }> = {};
     data?.forEach((setting) => {
       settings[setting.setting_key] = {
         value: setting.setting_value,
@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
       success: true,
       settings,
     });
-  } catch (error) {
+  } catch {
     console.error("Error in bot settings GET:", error);
     return NextResponse.json(
       {
@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
       message: `Setting ${settingKey} updated successfully`,
       setting: data?.[0],
     });
-  } catch (error) {
+  } catch {
     console.error("Error in bot settings POST:", error);
     return NextResponse.json(
       {

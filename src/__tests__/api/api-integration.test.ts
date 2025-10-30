@@ -15,7 +15,7 @@ describe('API Integration Tests', () => {
     it('should handle GET request for tournaments', async () => {
       const { GET } = await import('@/app/api/tournaments/route')
       
-      const { req, res } = createMocks({
+      const { req } = createMocks({
         method: 'GET',
         query: { userId: 'test-user' },
       })

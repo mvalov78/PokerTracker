@@ -3,7 +3,7 @@
  * Tests bundle size, loading times, and memory usage
  */
 
-import { calculateROI, calculateProfit, formatCurrency } from '@/lib/utils'
+import { calculateProfit, calculateROI, formatCurrency } from '@/lib/utils'
 import { processTicketImage } from '@/services/ocrService'
 
 describe('Performance Tests', () => {
@@ -240,7 +240,7 @@ describe('Performance Tests', () => {
 })
 
 // Performance benchmark utilities
-export const benchmarkFunction = (fn: Function, iterations = 1000) => {
+export const benchmarkFunction = (fn: () => void, iterations = 1000) => {
   const startTime = performance.now()
   
   for (let i = 0; i < iterations; i++) {
@@ -256,7 +256,7 @@ export const benchmarkFunction = (fn: Function, iterations = 1000) => {
 }
 
 // Memory usage utility
-export const measureMemoryUsage = (fn: Function) => {
+export const measureMemoryUsage = (fn: () => void) => {
   const beforeMemory = performance.memory?.usedJSHeapSize || 0
   
   fn()

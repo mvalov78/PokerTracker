@@ -1,9 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
 import { BotSessionService } from '@/services/botSessionService'
+import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('🧹 [Cleanup] Starting bot sessions cleanup...')
     const cleanedCount = await BotSessionService.cleanupExpiredSessions()
     
     return NextResponse.json({
@@ -12,7 +11,7 @@ export async function POST(request: NextRequest) {
       cleanedCount,
       timestamp: new Date().toISOString()
     })
-  } catch (error) {
+  } catch {
     console.error('Error cleaning up bot sessions:', error)
     return NextResponse.json({
       success: false,
@@ -34,7 +33,7 @@ export async function GET(request: NextRequest) {
       },
       timestamp: new Date().toISOString()
     })
-  } catch (error) {
+  } catch {
     return NextResponse.json({
       success: false,
       error: 'Failed to get session info',

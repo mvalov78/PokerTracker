@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useAuth } from "@/hooks/useAuth";
 import Button from "@/components/ui/Button";
 import Card, { CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { useToast } from "@/components/ui/Toast";
+import { useAuth } from "@/hooks/useAuth";
+import { useEffect, useState } from "react";
 
 interface TelegramSettings {
   telegramId: string | null;
@@ -59,7 +59,7 @@ export default function TelegramIntegration() {
 
   // Unlink Telegram account
   const unlinkTelegram = async () => {
-    if (!confirm("Вы уверены, что хотите отвязать Telegram аккаунт?")) return;
+    if (!confirm("Вы уверены, что хотите отвязать Telegram аккаунт?")) {return;}
 
     try {
       const response = await fetch("/api/telegram/unlink", {
@@ -183,7 +183,7 @@ export default function TelegramIntegration() {
                   Как подключить:
                 </h4>
                 <ol className="list-decimal list-inside space-y-1">
-                  <li>Нажмите "Создать код связывания"</li>
+                  <li>Нажмите &quot;Создать код связывания&quot;</li>
                   <li>Найдите бот @YourPokerTrackerBot в Telegram</li>
                   <li>
                     Отправьте боту команду{" "}

@@ -49,16 +49,16 @@ class PokerTrackerBot {
 
     // Создаем бота если есть токен
     if (this.config.token && this.config.token !== "mock-bot-token") {
-      console.log(
+      console.warn(
         "🔑 Инициализируем бота с реальным токеном:",
         this.config.token.substring(0, 10) + "...",
       );
       this.bot = new Telegraf<BotContext>(this.config.token);
-      console.log("📝 Настраиваем команды и обработчики...");
+      console.warn("📝 Настраиваем команды и обработчики...");
       this.setupBot();
-      console.log("🤖 PokerTracker Bot инициализирован с реальным токеном");
+      console.warn("🤖 PokerTracker Bot инициализирован с реальным токеном");
     } else {
-      console.log("🤖 PokerTracker Bot инициализирован в мок режиме");
+      console.warn("🤖 PokerTracker Bot инициализирован в мок режиме");
     }
   }
 
@@ -66,12 +66,12 @@ class PokerTrackerBot {
    * Настройка реального Telegraf бота
    */
   private setupBot() {
-    if (!this.bot) return;
+    if (!this.bot) {return;}
 
     // Middleware для сессий (простое хранилище в памяти)
     this.bot.use((ctx, next) => {
       const userId = ctx.from?.id;
-      if (!userId) return next();
+      if (!userId) {return next();}
 
       if (!this.sessions.has(userId)) {
         this.sessions.set(userId, {
@@ -98,12 +98,12 @@ class PokerTrackerBot {
               : "other"
         : "no-message";
 
-      console.log(
+      console.warn(
         `[Real Bot] Message from ${ctx.from?.username || ctx.from?.id}: ${messageType}`,
       );
 
       if (ctx.message && "photo" in ctx.message) {
-        console.log(
+        console.warn(
           `[Real Bot] Photo details: ${ctx.message.photo.length} sizes`,
         );
       }
@@ -114,7 +114,7 @@ class PokerTrackerBot {
     // Команды с логированием
     this.bot.command("start", async (ctx) => {
       try {
-        console.log("🤖 Получена команда /start");
+        console.warn("🤖 Получена команда /start");
         await this.commands.start(ctx);
       } catch (error) {
         console.error("❌ Ошибка при обработке команды /start:", error);
@@ -123,7 +123,7 @@ class PokerTrackerBot {
     });
     this.bot.command("link", async (ctx) => {
       try {
-        console.log("🤖 Получена команда /link");
+        console.warn("🤖 Получена команда /link");
         await this.commands.link(ctx);
       } catch (error) {
         console.error("❌ Ошибка при обработке команды /link:", error);
@@ -132,7 +132,7 @@ class PokerTrackerBot {
     });
     this.bot.command("help", async (ctx) => {
       try {
-        console.log("🤖 Получена команда /help");
+        console.warn("🤖 Получена команда /help");
         await this.commands.help(ctx);
       } catch (error) {
         console.error("❌ Ошибка при обработке команды /help:", error);
@@ -140,50 +140,50 @@ class PokerTrackerBot {
       }
     });
     this.bot.command("register", async (ctx) => {
-      console.log("🤖 Получена команда /register");
+      console.warn("🤖 Получена команда /register");
       await this.commands.registerTournament(ctx);
     });
     this.bot.command("result", async (ctx) => {
-      console.log("🤖 Получена команда /result");
+      console.warn("🤖 Получена команда /result");
       await this.commands.addResult(ctx);
     });
     this.bot.command("stats", async (ctx) => {
-      console.log("🤖 Получена команда /stats");
+      console.warn("🤖 Получена команда /stats");
       await this.commands.getStats(ctx);
     });
     this.bot.command("tournaments", async (ctx) => {
-      console.log("🤖 Получена команда /tournaments");
+      console.warn("🤖 Получена команда /tournaments");
       await this.commands.listTournaments(ctx);
     });
     this.bot.command("settings", async (ctx) => {
-      console.log("🤖 Получена команда /settings");
+      console.warn("🤖 Получена команда /settings");
       await this.commands.settings(ctx);
     });
     this.bot.command("venue", async (ctx) => {
-      console.log("🤖 Получена команда /venue");
+      console.warn("🤖 Получена команда /venue");
       await this.commands.showCurrentVenue(ctx);
     });
     this.bot.command("setvenue", async (ctx) => {
-      console.log("🤖 Получена команда /setvenue");
+      console.warn("🤖 Получена команда /setvenue");
       await this.commands.setCurrentVenue(ctx);
     });
 
     // Обработка фотографий
     this.bot.on(message("photo"), async (ctx) => {
-      console.log("📸 Получена фотография от пользователя!");
-      console.log("📸 Количество фото в сообщении:", ctx.message.photo.length);
+      console.warn("📸 Получена фотография от пользователя!");
+      console.warn("📸 Количество фото в сообщении:", ctx.message.photo.length);
       await this.photoHandler.handlePhoto(ctx);
     });
 
     // Обработка документов (включая фото, отправленные как файлы)
     this.bot.on(message("document"), async (ctx) => {
-      console.log("📄 Получен документ от пользователя!");
-      console.log("📄 MIME type:", ctx.message.document.mime_type);
-      console.log("📄 Имя файла:", ctx.message.document.file_name);
+      console.warn("📄 Получен документ от пользователя!");
+      console.warn("📄 MIME type:", ctx.message.document.mime_type);
+      console.warn("📄 Имя файла:", ctx.message.document.file_name);
 
       // Проверяем, является ли документ изображением
       if (ctx.message.document.mime_type?.startsWith("image/")) {
-        console.log("📸 Документ является изображением, обрабатываем как фото");
+        console.warn("📸 Документ является изображением, обрабатываем как фото");
         await this.photoHandler.handleDocumentAsPhoto(ctx);
       } else {
         await ctx.reply(
@@ -211,7 +211,7 @@ class PokerTrackerBot {
     const startTime = Date.now();
     
     try {
-      console.log(`[Bot Update ${updateId}] 🚀 Processing update`, {
+      console.warn(`[Bot Update ${updateId}] 🚀 Processing update`, {
         updateId: update.update_id,
         updateType: Object.keys(update).filter(key => key !== 'update_id')[0],
         timestamp: new Date().toISOString(),
@@ -221,7 +221,7 @@ class PokerTrackerBot {
 
       // Детальное логирование обновления
       if (update.message) {
-        console.log(`[Bot Update ${updateId}] 💬 Message received:`, {
+        console.warn(`[Bot Update ${updateId}] 💬 Message received:`, {
           messageId: update.message.message_id,
           from: {
             id: update.message.from?.id,
@@ -240,53 +240,53 @@ class PokerTrackerBot {
 
       // Если есть реальный бот (Telegraf), используем его
       if (this.bot) {
-        console.log(`[Bot Update ${updateId}] 🤖 Using Telegraf bot for processing`);
+        console.warn(`[Bot Update ${updateId}] 🤖 Using Telegraf bot for processing`);
         const processStartTime = Date.now();
         
         await this.bot.handleUpdate(update);
         
         const processTime = Date.now() - processStartTime;
-        console.log(`[Bot Update ${updateId}] ✅ Telegraf processing completed in ${processTime}ms`);
+        console.warn(`[Bot Update ${updateId}] ✅ Telegraf processing completed in ${processTime}ms`);
       } else {
         // Fallback на мок обработку
-        console.log(`[Bot Update ${updateId}] 🔧 Using fallback mock processing`);
+        console.warn(`[Bot Update ${updateId}] 🔧 Using fallback mock processing`);
         const ctx = this.createMockContext(update);
 
         // Определяем тип обработки
         let handlerType = 'unknown';
-        let handlerStartTime = Date.now();
+        const handlerStartTime = Date.now();
         
         // Обработка команд
         if (ctx.message?.text?.startsWith("/")) {
           handlerType = 'command';
-          console.log(`[Bot Update ${updateId}] ⚡ Handling command: ${ctx.message.text}`);
+          console.warn(`[Bot Update ${updateId}] ⚡ Handling command: ${ctx.message.text}`);
           await this.handleCommand(ctx);
         }
         // Обработка фотографий
         else if (ctx.message?.photo) {
           handlerType = 'photo';
-          console.log(`[Bot Update ${updateId}] 📸 Handling photo upload`);
+          console.warn(`[Bot Update ${updateId}] 📸 Handling photo upload`);
           await this.photoHandler.handlePhoto(ctx);
         }
         // Обработка текстовых сообщений
         else if (ctx.message?.text) {
           handlerType = 'text';
-          console.log(`[Bot Update ${updateId}] 💭 Handling text message: "${ctx.message.text}"`);
+          console.warn(`[Bot Update ${updateId}] 💭 Handling text message: "${ctx.message.text}"`);
           await this.handleTextMessage(ctx);
         }
         // Обработка callback запросов
         else if (ctx.callbackQuery?.data) {
           handlerType = 'callback';
-          console.log(`[Bot Update ${updateId}] 🔘 Handling callback query: ${ctx.callbackQuery.data}`);
+          console.warn(`[Bot Update ${updateId}] 🔘 Handling callback query: ${ctx.callbackQuery.data}`);
           await this.handleCallbackQuery(ctx);
         }
         
         const handlerTime = Date.now() - handlerStartTime;
-        console.log(`[Bot Update ${updateId}] ✅ ${handlerType} handler completed in ${handlerTime}ms`);
+        console.warn(`[Bot Update ${updateId}] ✅ ${handlerType} handler completed in ${handlerTime}ms`);
       }
 
       const totalTime = Date.now() - startTime;
-      console.log(`[Bot Update ${updateId}] 🏁 Update processing completed successfully in ${totalTime}ms`);
+      console.warn(`[Bot Update ${updateId}] 🏁 Update processing completed successfully in ${totalTime}ms`);
       
     } catch (error) {
       const totalTime = Date.now() - startTime;
@@ -301,7 +301,7 @@ class PokerTrackerBot {
       // Попытка отправить сообщение об ошибке пользователю
       if (update.message?.from?.id) {
         try {
-          console.log(`[Bot Update ${updateId}] 📤 Attempting to send error message to user`);
+          console.warn(`[Bot Update ${updateId}] 📤 Attempting to send error message to user`);
           // Здесь можно добавить отправку сообщения об ошибке
         } catch (replyError) {
           console.error(`[Bot Update ${updateId}] ❌ Failed to send error message:`, replyError);
@@ -320,16 +320,16 @@ class PokerTrackerBot {
       callbackQuery: update.callback_query,
       session: {},
       reply: async (text: string, options?: any) => {
-        console.log(`[Bot Reply] ${text}`);
+        console.warn(`[Bot Reply] ${text}`);
         if (options) {
-          console.log(`[Bot Options]`, options);
+          console.warn(`[Bot Options]`, options);
         }
       },
       answerCbQuery: async (text?: string) => {
-        console.log(`[Bot Callback Answer] ${text || "OK"}`);
+        console.warn(`[Bot Callback Answer] ${text || "OK"}`);
       },
       editMessageText: async (text: string, options?: any) => {
-        console.log(`[Bot Edit] ${text}`);
+        console.warn(`[Bot Edit] ${text}`);
       },
       telegram: {
         getFile: async (fileId: string) => ({
@@ -339,7 +339,7 @@ class PokerTrackerBot {
           href: `https://mock.telegram.org/file/${fileId}`,
         }),
         sendMessage: async (userId: string, text: string) => {
-          console.log(`[Bot Send] To ${userId}: ${text}`);
+          console.warn(`[Bot Send] To ${userId}: ${text}`);
         },
       },
     };
@@ -384,7 +384,7 @@ class PokerTrackerBot {
     const text = ctx.message?.text;
     const session = ctx.session!;
 
-    if (!text) return;
+    if (!text) {return;}
 
     // Если пользователь в процессе регистрации турнира
     if (session.currentAction === "register_tournament") {
@@ -411,7 +411,7 @@ class PokerTrackerBot {
   }
 
   private async handleCallbackQuery(ctx: BotContext) {
-    if (!ctx.callbackQuery?.data) return;
+    if (!ctx.callbackQuery?.data) {return;}
 
     const data = ctx.callbackQuery.data;
     const [action, ...params] = data.split(":");
@@ -445,10 +445,10 @@ class PokerTrackerBot {
    */
   public async start() {
     try {
-      console.log("🤖 Запуск Telegram бота...");
+      console.warn("🤖 Запуск Telegram бота...");
 
       if (this.isRunning) {
-        console.log("⚠️ Бот уже запущен");
+        console.warn("⚠️ Бот уже запущен");
         return;
       }
 
@@ -457,11 +457,11 @@ class PokerTrackerBot {
       const webhookUrl = process.env.BOT_WEBHOOK_URL || "";
       const autoRestart = process.env.BOT_AUTO_RESTART === "true";
 
-      console.log(`🔧 Режим работы бота из .env: ${botMode}`);
-      console.log(`🔄 Автоперезапуск: ${autoRestart ? "включен" : "выключен"}`);
+      console.warn(`🔧 Режим работы бота из .env: ${botMode}`);
+      console.warn(`🔄 Автоперезапуск: ${autoRestart ? "включен" : "выключен"}`);
 
       if (webhookUrl) {
-        console.log(`🔗 Webhook URL: ${webhookUrl}`);
+        console.warn(`🔗 Webhook URL: ${webhookUrl}`);
       }
 
       this.isRunning = true;
@@ -475,32 +475,32 @@ class PokerTrackerBot {
           "auto_restart",
           autoRestart.toString(),
         );
-        console.log("📊 Настройки синхронизированы с БД");
+        console.warn("📊 Настройки синхронизированы с БД");
       } catch (dbError) {
-        console.log("⚠️ БД недоступна, работаем автономно по .env настройкам");
+        console.warn("⚠️ БД недоступна, работаем автономно по .env настройкам");
       }
 
       // Запускаем в соответствующем режиме
       if (this.config.token && this.config.token !== "mock-bot-token") {
         if (botMode === "webhook" && webhookUrl) {
-          console.log("🔗 Запуск в webhook режиме...");
+          console.warn("🔗 Запуск в webhook режиме...");
           await this.startWebhookMode(webhookUrl);
         } else if (botMode === "webhook" && !webhookUrl) {
-          console.log(
+          console.warn(
             "⚠️ Webhook режим выбран, но URL не настроен. Переключаемся на polling.",
           );
-          console.log("🔄 Запуск в polling режиме...");
+          console.warn("🔄 Запуск в polling режиме...");
           await this.startRealPolling();
         } else {
-          console.log("🔄 Запуск в polling режиме...");
+          console.warn("🔄 Запуск в polling режиме...");
           await this.startRealPolling();
         }
       } else {
-        console.log("🧪 Запуск в мок режиме...");
+        console.warn("🧪 Запуск в мок режиме...");
         await this.startMockPolling();
       }
 
-      console.log("✅ Telegram бот успешно запущен!");
+      console.warn("✅ Telegram бот успешно запущен!");
     } catch (error) {
       console.error("❌ Ошибка запуска бота:", error);
       this.isRunning = false;
@@ -522,14 +522,14 @@ class PokerTrackerBot {
     }
 
     try {
-      console.log("🔄 Запуск реального Telegram polling...");
+      console.warn("🔄 Запуск реального Telegram polling...");
 
       // Сначала проверим токен через getMe
       const me = await this.bot.telegram.getMe();
-      console.log(`✅ Бот подключен: @${me.username} (${me.first_name})`);
+      console.warn(`✅ Бот подключен: @${me.username} (${me.first_name})`);
 
       // Запускаем бота в polling режиме
-      console.log("🚀 Вызываем bot.launch() с polling параметрами...");
+      console.warn("🚀 Вызываем bot.launch() с polling параметрами...");
       await this.bot.launch({
         polling: {
           timeout: 30,
@@ -537,12 +537,12 @@ class PokerTrackerBot {
           allowed_updates: ["message", "callback_query"],
         },
       });
-      console.log("🎯 bot.launch() завершен успешно");
+      console.warn("🎯 bot.launch() завершен успешно");
 
-      console.log("✅ Реальный Telegram polling запущен!");
+      console.warn("✅ Реальный Telegram polling запущен!");
 
       // Проверяем, что бот действительно слушает обновления
-      console.log("👂 Бот готов принимать команды и сообщения");
+      console.warn("👂 Бот готов принимать команды и сообщения");
 
       // Graceful shutdown
       process.once("SIGINT", () => this.bot?.stop("SIGINT"));
@@ -576,13 +576,13 @@ class PokerTrackerBot {
     }
 
     try {
-      console.log("🔗 Настройка webhook режима...");
+      console.warn("🔗 Настройка webhook режима...");
 
       if (!webhookUrl) {
         throw new Error("Webhook URL not provided");
       }
 
-      console.log(`🎯 Настройка webhook: ${webhookUrl}`);
+      console.warn(`🎯 Настройка webhook: ${webhookUrl}`);
 
       // Устанавливаем webhook в Telegram
       const result = await this.bot.telegram.setWebhook(webhookUrl, {
@@ -590,14 +590,14 @@ class PokerTrackerBot {
       });
 
       if (result) {
-        console.log(`✅ Webhook установлен: ${webhookUrl}`);
+        console.warn(`✅ Webhook установлен: ${webhookUrl}`);
 
         // Обновляем настройки в БД
         await BotSettingsService.updateSetting("webhook_enabled", true);
         await BotSettingsService.updateSetting("polling_enabled", false);
         await BotSettingsService.updateLastUpdateTime();
 
-        console.log("✅ Webhook режим активирован!");
+        console.warn("✅ Webhook режим активирован!");
       } else {
         throw new Error("Failed to set webhook");
       }
@@ -616,7 +616,7 @@ class PokerTrackerBot {
    * Запуск мок polling для разработки
    */
   private async startMockPolling() {
-    console.log("🧪 Мок polling запущен для разработки");
+    console.warn("🧪 Мок polling запущен для разработки");
 
     // Имитация получения обновлений каждые 5 секунд
     this.pollingInterval = setInterval(() => {
@@ -648,7 +648,7 @@ class PokerTrackerBot {
 
     // Обрабатываем только раз в час для демонстрации
     if (Math.random() < 0.1) {
-      console.log("📱 Симуляция команды /stats от тестового пользователя");
+      console.warn("📱 Симуляция команды /stats от тестового пользователя");
       await this.processUpdate(mockUpdate);
     }
   }
@@ -657,7 +657,7 @@ class PokerTrackerBot {
    * Остановка бота
    */
   public async stop() {
-    console.log("🛑 Остановка Telegram бота...");
+    console.warn("🛑 Остановка Telegram бота...");
 
     this.isRunning = false;
 
@@ -673,14 +673,14 @@ class PokerTrackerBot {
 
           if (botMode === "webhook") {
             // Удаляем webhook
-            console.log("🔗 Удаление webhook...");
+            console.warn("🔗 Удаление webhook...");
             await this.bot.telegram.deleteWebhook();
             await BotSettingsService.updateSetting("webhook_enabled", false);
-            console.log("✅ Webhook удален");
+            console.warn("✅ Webhook удален");
           }
 
           this.bot.stop();
-          console.log("✅ Реальный Telegram бот остановлен");
+          console.warn("✅ Реальный Telegram бот остановлен");
         } catch (error) {
           console.error("Ошибка остановки реального бота:", error);
           await BotSettingsService.incrementErrorCount();
@@ -691,10 +691,10 @@ class PokerTrackerBot {
       if (this.pollingInterval) {
         clearInterval(this.pollingInterval);
         this.pollingInterval = undefined;
-        console.log("✅ Мок polling остановлен");
+        console.warn("✅ Мок polling остановлен");
       }
 
-      console.log("✅ Telegram бот полностью остановлен");
+      console.warn("✅ Telegram бот полностью остановлен");
     } catch (error) {
       console.error("Ошибка остановки бота:", error);
       await BotSettingsService.updateBotStatus("error");
@@ -718,10 +718,10 @@ class PokerTrackerBot {
       if (this.bot) {
         // Отправляем через реального бота
         await this.bot.telegram.sendMessage(userId, message);
-        console.log(`[Real Bot Notification] Sent to ${userId}: ${message}`);
+        console.warn(`[Real Bot Notification] Sent to ${userId}: ${message}`);
       } else {
         // Мок режим
-        console.log(`[Mock Bot Notification] To ${userId}: ${message}`);
+        console.warn(`[Mock Bot Notification] To ${userId}: ${message}`);
       }
     } catch (error) {
       console.error("Ошибка отправки уведомления:", error);

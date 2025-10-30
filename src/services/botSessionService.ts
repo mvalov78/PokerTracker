@@ -16,7 +16,7 @@ export class BotSessionService {
     }
 
     try {
-      console.log(`🔍 [BotSession] Loading session for user ${telegramUserId}`)
+      console.warn(`🔍 [BotSession] Loading session for user ${telegramUserId}`)
       
       const { data, error } = await supabaseAdmin
         .from('bot_sessions')
@@ -26,14 +26,14 @@ export class BotSessionService {
 
       if (error) {
         if (error.code === 'PGRST116') {
-          console.log(`📝 [BotSession] Creating new session for user ${telegramUserId}`)
+          console.warn(`📝 [BotSession] Creating new session for user ${telegramUserId}`)
           return await this.createSession(telegramUserId)
         }
         console.error('Error fetching bot session:', error)
         return { userId: telegramUserId.toString() }
       }
 
-      console.log(`✅ [BotSession] Session loaded for user ${telegramUserId}:`, data.session_data)
+      console.warn(`✅ [BotSession] Session loaded for user ${telegramUserId}:`, data.session_data)
       return {
         userId: telegramUserId.toString(),
         ...data.session_data
@@ -67,7 +67,7 @@ export class BotSessionService {
       if (error) {
         console.error('Error creating bot session:', error)
       } else {
-        console.log(`✅ [BotSession] Created session for user ${telegramUserId}`)
+        console.warn(`✅ [BotSession] Created session for user ${telegramUserId}`)
       }
 
       return sessionData
@@ -84,7 +84,7 @@ export class BotSessionService {
     }
 
     try {
-      console.log(`💾 [BotSession] Updating session for user ${telegramUserId}:`, sessionData)
+      console.warn(`💾 [BotSession] Updating session for user ${telegramUserId}:`, sessionData)
       
       const { error } = await supabaseAdmin
         .from('bot_sessions')
@@ -99,7 +99,7 @@ export class BotSessionService {
         return false
       }
 
-      console.log(`✅ [BotSession] Session updated for user ${telegramUserId}`)
+      console.warn(`✅ [BotSession] Session updated for user ${telegramUserId}`)
       return true
     } catch (error) {
       console.error('Error in updateSession:', error)
@@ -123,7 +123,7 @@ export class BotSessionService {
         return false
       }
 
-      console.log(`🗑️ [BotSession] Session deleted for user ${telegramUserId}`)
+      console.warn(`🗑️ [BotSession] Session deleted for user ${telegramUserId}`)
       return true
     } catch (error) {
       console.error('Error in deleteSession:', error)
@@ -146,7 +146,7 @@ export class BotSessionService {
       }
 
       const cleanedCount = data || 0
-      console.log(`🧹 [BotSession] Cleaned up ${cleanedCount} expired sessions`)
+      console.warn(`🧹 [BotSession] Cleaned up ${cleanedCount} expired sessions`)
       return cleanedCount
     } catch (error) {
       console.error('Error in cleanupExpiredSessions:', error)

@@ -27,7 +27,7 @@ function initializeWebhookBot() {
     return null;
   }
 
-  console.log("[Telegram Webhook] Инициализация бота для webhook режима...");
+  console.warn("[Telegram Webhook] Инициализация бота для webhook режима...");
 
   webhookBot = new Telegraf(botToken);
   commands = new BotCommands();
@@ -35,70 +35,70 @@ function initializeWebhookBot() {
 
   // Настраиваем обработчики команд
   webhookBot.command("start", async (ctx) => {
-    console.log("[Telegram Webhook] Команда /start");
+    console.warn("[Telegram Webhook] Команда /start");
     await commands!.start(ctx);
   });
 
   webhookBot.command("link", async (ctx) => {
-    console.log("[Telegram Webhook] Команда /link");
+    console.warn("[Telegram Webhook] Команда /link");
     await commands!.link(ctx);
   });
 
   webhookBot.command("help", async (ctx) => {
-    console.log("[Telegram Webhook] Команда /help");
+    console.warn("[Telegram Webhook] Команда /help");
     await commands!.help(ctx);
   });
 
   webhookBot.command("register", async (ctx) => {
-    console.log("[Telegram Webhook] Команда /register");
+    console.warn("[Telegram Webhook] Команда /register");
     await commands!.registerTournament(ctx);
   });
 
   webhookBot.command("result", async (ctx) => {
-    console.log("[Telegram Webhook] Команда /result");
+    console.warn("[Telegram Webhook] Команда /result");
     await commands!.addResult(ctx);
   });
 
   webhookBot.command("stats", async (ctx) => {
-    console.log("[Telegram Webhook] Команда /stats");
+    console.warn("[Telegram Webhook] Команда /stats");
     await commands!.getStats(ctx);
   });
 
   webhookBot.command("tournaments", async (ctx) => {
-    console.log("[Telegram Webhook] Команда /tournaments");
+    console.warn("[Telegram Webhook] Команда /tournaments");
     await commands!.listTournaments(ctx);
   });
 
   webhookBot.command("settings", async (ctx) => {
-    console.log("[Telegram Webhook] Команда /settings");
+    console.warn("[Telegram Webhook] Команда /settings");
     await commands!.settings(ctx);
   });
 
   webhookBot.command("venue", async (ctx) => {
-    console.log("[Telegram Webhook] Команда /venue");
+    console.warn("[Telegram Webhook] Команда /venue");
     await commands!.showCurrentVenue(ctx);
   });
 
   webhookBot.command("setvenue", async (ctx) => {
-    console.log("[Telegram Webhook] Команда /setvenue");
+    console.warn("[Telegram Webhook] Команда /setvenue");
     await commands!.setCurrentVenue(ctx);
   });
 
   // Обработка фотографий
   webhookBot.on("photo", async (ctx) => {
-    console.log("[Telegram Webhook] Получена фотография");
+    console.warn("[Telegram Webhook] Получена фотография");
     await photoHandler!.handlePhoto(ctx);
   });
 
   // Обработка документов
   webhookBot.on("document", async (ctx) => {
-    console.log("[Telegram Webhook] Получен документ");
+    console.warn("[Telegram Webhook] Получен документ");
     if (ctx.message.document.mime_type?.startsWith("image/")) {
       await photoHandler!.handleDocumentAsPhoto(ctx);
     }
   });
 
-  console.log("[Telegram Webhook] Бот инициализирован успешно");
+  console.warn("[Telegram Webhook] Бот инициализирован успешно");
 
   return webhookBot;
 }
@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
     // Получаем тело запроса от Telegram
     const update = await request.json();
 
-    console.log("[Telegram Webhook] Получено обновление:", {
+    console.warn("[Telegram Webhook] Получено обновление:", {
       updateId: update.update_id,
       hasMessage: !!update.message,
       hasCallbackQuery: !!update.callback_query,
@@ -136,7 +136,7 @@ export async function POST(request: NextRequest) {
     // Обрабатываем обновление через Telegraf
     await bot.handleUpdate(update);
 
-    console.log(
+    console.warn(
       "[Telegram Webhook] Обновление успешно обработано:",
       update.update_id,
     );
@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
       ok: true,
       message: "Update processed successfully",
     });
-  } catch (error) {
+  } catch {
     console.error("[Telegram Webhook] Ошибка обработки webhook:", error);
 
     // Возвращаем 200 даже при ошибке, чтобы Telegram не спамил повторными попытками

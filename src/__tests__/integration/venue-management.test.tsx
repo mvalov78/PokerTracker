@@ -38,7 +38,7 @@ const MockVenueManager = () => {
   }
 
   const updateVenue = async () => {
-    if (!newVenue.trim()) return
+    if (!newVenue.trim()) {return}
 
     setIsLoading(true)
     try {

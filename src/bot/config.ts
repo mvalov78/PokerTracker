@@ -150,23 +150,23 @@ export function validateBotConfig(config: BotConfig): {
  * Логирование конфигурации (без секретных данных)
  */
 export function logBotConfig(config: BotConfig) {
-  console.log("🤖 Конфигурация Telegram бота:");
-  console.log(`  - Webhook URL: ${config.webhookUrl || "не установлен"}`);
-  console.log(`  - API URL: ${config.apiUrl}`);
-  console.log(`  - OCR включен: ${config.features.ocrEnabled}`);
-  console.log(
+  console.warn("🤖 Конфигурация Telegram бота:");
+  console.warn(`  - Webhook URL: ${config.webhookUrl || "не установлен"}`);
+  console.warn(`  - API URL: ${config.apiUrl}`);
+  console.warn(`  - OCR включен: ${config.features.ocrEnabled}`);
+  console.warn(
     `  - Уведомления включены: ${config.features.notificationsEnabled}`,
   );
-  console.log(`  - Аналитика включена: ${config.features.analyticsEnabled}`);
-  console.log(
+  console.warn(`  - Аналитика включена: ${config.features.analyticsEnabled}`);
+  console.warn(
     `  - Rate limit: ${config.rateLimit.maxRequests} запросов за ${config.rateLimit.windowMs}ms`,
   );
 
   if (config.allowedUsers) {
-    console.log(
+    console.warn(
       `  - Разрешенные пользователи: ${config.allowedUsers.length} пользователей`,
     );
   } else {
-    console.log("  - Разрешенные пользователи: все пользователи");
+    console.warn("  - Разрешенные пользователи: все пользователи");
   }
 }

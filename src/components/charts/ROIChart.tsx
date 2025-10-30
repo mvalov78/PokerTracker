@@ -24,8 +24,8 @@ export default function ROIChart({ data, className }: ROIChartProps) {
   }
 
   const getBarColor = (roi: number) => {
-    if (roi > 20) return '#10b981' // Зеленый для отличного ROI
-    if (roi > 0) return '#f59e0b'  // Желтый для положительного ROI
+    if (roi > 20) {return '#10b981'} // Зеленый для отличного ROI
+    if (roi > 0) {return '#f59e0b'}  // Желтый для положительного ROI
     return '#ef4444'               // Красный для отрицательного ROI
   }
 

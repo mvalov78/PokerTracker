@@ -61,7 +61,7 @@ export default function TournamentDetailPage() {
 
   // Обработчик удаления турнира
   const handleDeleteTournament = () => {
-    if (!tournament) return
+    if (!tournament) {return}
     
     const confirmDelete = confirm(
       `Вы уверены, что хотите удалить турнир "${tournament.name}"?\n\n` +
@@ -106,7 +106,7 @@ export default function TournamentDetailPage() {
   const handleSubmitResult = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!tournament) return
+    if (!tournament) {return}
     
     try {
       // Подготавливаем данные результата

@@ -20,7 +20,7 @@ export class UserService {
       if (error) {
         if (error.code === "PGRST116") {
           // Пользователь не найден - используем getUserOrCreate из lib/supabase
-          console.log(
+          console.warn(
             `Profile with Telegram ID ${telegramId} not found, will create via getUserOrCreate`,
           );
           return null; // Пусть бот передаст telegram_id в API, где сработает getUserOrCreate
@@ -42,13 +42,14 @@ export class UserService {
   static async createUserFromTelegramId(
     telegramId: string,
   ): Promise<any | null> {
-    if (!supabase) {
-      console.warn("Supabase client not available");
-      return null;
-    }
-
     try {
       const supabase = createClientComponentClient();
+      
+      if (!supabase) {
+        console.warn("Supabase client not available");
+        return null;
+      }
+
       const { data, error } = await supabase
         .from("users")
         .insert({
@@ -62,7 +63,7 @@ export class UserService {
         return null;
       }
 
-      console.log(
+      console.warn(
         "✅ Создан новый пользователь:",
         data.id,
         "для Telegram ID:",

@@ -1,7 +1,7 @@
 'use client'
 
-import React, { Suspense, lazy } from 'react'
 import { cn } from '@/lib/utils'
+import React, { Suspense, lazy } from 'react'
 
 interface LazyLoadProps {
   children: React.ReactNode
@@ -40,11 +40,15 @@ export const withLazyLoading = <P extends object>(
 ) => {
   const LazyComponent = lazy(() => Promise.resolve({ default: Component }))
   
-  return React.forwardRef<any, P>((props, ref) => (
+  const WrappedComponent = React.forwardRef<any, P>((props, ref) => (
     <Suspense fallback={fallback || <LoadingSkeleton />}>
       <LazyComponent {...props} ref={ref} />
     </Suspense>
   ))
+  
+  WrappedComponent.displayName = `LazyLoad(${Component.displayName || Component.name || 'Component'})`
+  
+  return WrappedComponent
 }
 
 // Lazy loading for heavy charts
@@ -107,7 +111,7 @@ export const useIntersectionObserver = (
   
   React.useEffect(() => {
     const element = elementRef.current
-    if (!element) return
+    if (!element) {return}
     
     const observer = new IntersectionObserver(
       ([entry]) => {

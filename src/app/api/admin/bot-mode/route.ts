@@ -1,5 +1,5 @@
-import { type NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase";
+import { type NextRequest, NextResponse } from "next/server";
 import { getBotInstance } from "../../../../bot";
 
 // Переключение режима бота
@@ -53,7 +53,6 @@ export async function POST(request: NextRequest) {
     try {
       // Останавливаем текущий режим
       if (bot && settings.bot_status === "active") {
-        console.log("🛑 Остановка текущего режима бота...");
         await bot.stop();
 
         // Обновляем статус
@@ -69,7 +68,6 @@ export async function POST(request: NextRequest) {
 
       if (mode === "webhook") {
         // Настраиваем webhook режим
-        console.log("🔗 Настройка webhook режима...");
 
         // Устанавливаем webhook в Telegram
         const botToken = process.env.TELEGRAM_BOT_TOKEN;
@@ -125,7 +123,6 @@ export async function POST(request: NextRequest) {
         });
       } else {
         // Настраиваем polling режим
-        console.log("🔄 Настройка polling режима...");
 
         // Удаляем webhook из Telegram
         const botToken = process.env.TELEGRAM_BOT_TOKEN;
@@ -156,7 +153,6 @@ export async function POST(request: NextRequest) {
 
         // Запускаем polling если бот доступен
         if (bot) {
-          console.log("🚀 Запуск polling режима...");
           await bot.start();
         }
 
@@ -187,7 +183,7 @@ export async function POST(request: NextRequest) {
         { status: 500 },
       );
     }
-  } catch (error) {
+  } catch {
     console.error("Error in bot mode switch:", error);
     return NextResponse.json(
       {
@@ -200,7 +196,7 @@ export async function POST(request: NextRequest) {
 }
 
 // Получение информации о текущем режиме
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const supabase = createAdminClient();
     if (!supabase) {
@@ -257,7 +253,7 @@ export async function GET(request: NextRequest) {
       botInstanceStatus,
       lastUpdate: new Date().toISOString(),
     });
-  } catch (error) {
+  } catch {
     console.error("Error in bot mode GET:", error);
     return NextResponse.json(
       {

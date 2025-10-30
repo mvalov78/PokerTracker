@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 
 interface TournamentFormData {
   name: string
@@ -125,7 +125,7 @@ export default function EditTournamentPage() {
             ✏️ Редактирование турнира
           </h1>
           <p className="text-gray-600">
-            Обновите информацию о турнире "{formData.name}"
+            Обновите информацию о турнире &quot;{formData.name}&quot;
           </p>
         </div>
 

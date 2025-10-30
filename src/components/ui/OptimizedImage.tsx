@@ -43,7 +43,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
   const observerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (priority) return
+    if (priority) {return}
 
     const observer = new IntersectionObserver(
       ([entry]) => {

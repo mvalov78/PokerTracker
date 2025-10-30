@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { command, data } = body
     
-    console.log(`[Bot Polling API] Команда: ${command}`)
+    console.warn(`[Bot Polling API] Команда: ${command}`)
 
     let bot = getBotInstance()
     if (!bot) {
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
           status: bot.getStatus()
         })
         
-      case 'simulate':
+      case 'simulate': {
         // Симуляция команды для тестирования
         const mockUpdate = {
           update_id: Date.now(),
@@ -85,6 +85,7 @@ export async function POST(request: NextRequest) {
           success: true, 
           message: `Симуляция команды ${data?.command || '/stats'} выполнена`
         })
+      }
         
       default:
         return NextResponse.json({ 
@@ -92,7 +93,7 @@ export async function POST(request: NextRequest) {
         }, { status: 400 })
     }
 
-  } catch (error) {
+  } catch {
     console.error('Ошибка управления polling:', error)
     return NextResponse.json(
       { error: 'Internal server error' }, 
@@ -120,7 +121,7 @@ export async function GET(request: NextRequest) {
       }
     })
 
-  } catch (error) {
+  } catch {
     console.error('Ошибка получения статуса polling:', error)
     return NextResponse.json(
       { error: 'Internal server error' }, 

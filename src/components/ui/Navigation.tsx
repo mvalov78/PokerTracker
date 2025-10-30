@@ -73,7 +73,8 @@ export default function Navigation({ className }: NavigationProps) {
     setUserMenuOpen(false)
   }
 
-  const getInitials = (name: string) => {
+  const getInitials = (name: string | null | undefined) => {
+    if (!name) return '??'
     return name.split(' ').map(word => word.charAt(0).toUpperCase()).slice(0, 2).join('')
   }
 

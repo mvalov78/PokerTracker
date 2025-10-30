@@ -50,24 +50,23 @@ describe('UserSettingsService', () => {
       const mockNewSettings = {
         id: 'new-id',
         user_id: 'newuser',
-        current_venue: 'New Casino',
+        current_venue: null,
         created_at: '2024-01-01T00:00:00Z',
         updated_at: '2024-01-01T00:00:00Z'
       }
 
       setMockData(mockNewSettings)
 
-      const result = await UserSettingsService.createUserSettings('newuser', 'New Casino')
+      const result = await UserSettingsService.createUserSettings('newuser')
 
       expect(result).toBeTruthy()
       expect(result?.userId).toBe('newuser')
-      expect(result?.currentVenue).toBe('New Casino')
     })
 
     it('should handle creation errors', async () => {
       setMockError({ message: 'Creation failed' })
 
-      const result = await UserSettingsService.createUserSettings('user123', 'Casino')
+      const result = await UserSettingsService.createUserSettings('user123')
 
       expect(result).toBeNull()
     })

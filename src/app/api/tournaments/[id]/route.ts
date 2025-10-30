@@ -25,7 +25,7 @@ export async function GET(
       success: true,
       tournament
     })
-  } catch (error) {
+  } catch {
     console.error('Ошибка получения турнира:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to fetch tournament' },
@@ -86,18 +86,18 @@ export async function PUT(
       // Преобразуем данные для обновления
       const updateData: any = {}
       
-      if (tournamentUpdates.name !== undefined) updateData.name = tournamentUpdates.name
-      if (tournamentUpdates.date !== undefined) updateData.date = tournamentUpdates.date
-      if (tournamentUpdates.venue !== undefined) updateData.venue = tournamentUpdates.venue
-      if (tournamentUpdates.buyin !== undefined) updateData.buyin = parseFloat(tournamentUpdates.buyin)
-      if (tournamentUpdates.tournamentType !== undefined) updateData.tournamentType = tournamentUpdates.tournamentType
-      if (tournamentUpdates.structure !== undefined) updateData.structure = tournamentUpdates.structure
-      if (tournamentUpdates.participants !== undefined) updateData.participants = tournamentUpdates.participants ? parseInt(tournamentUpdates.participants) : null
-      if (tournamentUpdates.prizePool !== undefined) updateData.prizePool = tournamentUpdates.prizePool ? parseFloat(tournamentUpdates.prizePool) : null
-      if (tournamentUpdates.blindLevels !== undefined) updateData.blindLevels = tournamentUpdates.blindLevels
-      if (tournamentUpdates.startingStack !== undefined) updateData.startingStack = tournamentUpdates.startingStack ? parseInt(tournamentUpdates.startingStack) : null
-      if (tournamentUpdates.ticketImageUrl !== undefined) updateData.ticketImageUrl = tournamentUpdates.ticketImageUrl
-      if (tournamentUpdates.notes !== undefined) updateData.notes = tournamentUpdates.notes
+      if (tournamentUpdates.name !== undefined) {updateData.name = tournamentUpdates.name}
+      if (tournamentUpdates.date !== undefined) {updateData.date = tournamentUpdates.date}
+      if (tournamentUpdates.venue !== undefined) {updateData.venue = tournamentUpdates.venue}
+      if (tournamentUpdates.buyin !== undefined) {updateData.buyin = parseFloat(tournamentUpdates.buyin)}
+      if (tournamentUpdates.tournamentType !== undefined) {updateData.tournamentType = tournamentUpdates.tournamentType}
+      if (tournamentUpdates.structure !== undefined) {updateData.structure = tournamentUpdates.structure}
+      if (tournamentUpdates.participants !== undefined) {updateData.participants = tournamentUpdates.participants ? parseInt(tournamentUpdates.participants) : null}
+      if (tournamentUpdates.prizePool !== undefined) {updateData.prizePool = tournamentUpdates.prizePool ? parseFloat(tournamentUpdates.prizePool) : null}
+      if (tournamentUpdates.blindLevels !== undefined) {updateData.blindLevels = tournamentUpdates.blindLevels}
+      if (tournamentUpdates.startingStack !== undefined) {updateData.startingStack = tournamentUpdates.startingStack ? parseInt(tournamentUpdates.startingStack) : null}
+      if (tournamentUpdates.ticketImageUrl !== undefined) {updateData.ticketImageUrl = tournamentUpdates.ticketImageUrl}
+      if (tournamentUpdates.notes !== undefined) {updateData.notes = tournamentUpdates.notes}
       
       await TournamentService.updateTournament(tournamentId, updateData)
     }
@@ -109,7 +109,7 @@ export async function PUT(
       success: true,
       tournament: updatedTournament
     })
-  } catch (error) {
+  } catch {
     console.error('Ошибка обновления турнира:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to update tournament' },
@@ -138,7 +138,7 @@ export async function DELETE(
       success: true,
       message: 'Tournament deleted successfully'
     })
-  } catch (error) {
+  } catch {
     console.error('Ошибка удаления турнира:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to delete tournament' },

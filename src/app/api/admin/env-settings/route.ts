@@ -71,8 +71,8 @@ export async function GET(request: NextRequest) {
           last_update_time: botSettings.last_update_time,
         };
       }
-    } catch (dbError) {
-      console.log("БД недоступна для получения статуса");
+    } catch {
+      console.warn("БД недоступна для получения статуса");
     }
 
     return NextResponse.json({
@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
       source: "environment_variables",
       message: "Настройки загружены из переменных окружения",
     });
-  } catch (error) {
+  } catch {
     console.error("Ошибка получения настроек из .env:", error);
     return NextResponse.json(
       {

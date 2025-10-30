@@ -31,6 +31,7 @@
 - **Database**: PostgreSQL (Supabase)
 - **Bot**: Telegraf
 - **Testing**: Jest, React Testing Library
+- **Linting**: ESLint 9 (Flat Config), Biome
 - **Performance**: Bundle Analyzer, Lazy Loading
 
 ## 📁 Структура проекта
@@ -112,9 +113,17 @@ npm run dev          # Запуск dev сервера
 npm run build        # Сборка для продакшена
 npm run start        # Запуск продакшн сервера
 
+# Линтинг и форматирование
+npm run lint         # ESLint проверка
+npm run lint:fix     # ESLint автоисправление
+npm run lint:biome   # Biome проверка
+npm run format       # Biome форматирование
+npm run format:eslint # ESLint форматирование
+
 # Тестирование
 npm test             # Запуск всех тестов
 npm run test:watch   # Тесты в watch режиме
+npm run test:coverage # Покрытие тестами
 
 # Анализ
 npm run analyze      # Анализ размера бандла

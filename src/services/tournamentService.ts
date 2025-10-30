@@ -146,25 +146,25 @@ export class TournamentService {
   ): Promise<Tournament> {
     const updateData: any = {};
 
-    if (updates.name !== undefined) updateData.name = updates.name;
-    if (updates.date !== undefined) updateData.date = updates.date;
-    if (updates.venue !== undefined) updateData.venue = updates.venue;
-    if (updates.buyin !== undefined) updateData.buyin = updates.buyin;
+    if (updates.name !== undefined) {updateData.name = updates.name;}
+    if (updates.date !== undefined) {updateData.date = updates.date;}
+    if (updates.venue !== undefined) {updateData.venue = updates.venue;}
+    if (updates.buyin !== undefined) {updateData.buyin = updates.buyin;}
     if (updates.tournamentType !== undefined)
-      updateData.tournament_type = updates.tournamentType;
+      {updateData.tournament_type = updates.tournamentType;}
     if (updates.structure !== undefined)
-      updateData.structure = updates.structure;
+      {updateData.structure = updates.structure;}
     if (updates.participants !== undefined)
-      updateData.participants = updates.participants;
+      {updateData.participants = updates.participants;}
     if (updates.prizePool !== undefined)
-      updateData.prize_pool = updates.prizePool;
+      {updateData.prize_pool = updates.prizePool;}
     if (updates.blindLevels !== undefined)
-      updateData.blind_levels = updates.blindLevels;
+      {updateData.blind_levels = updates.blindLevels;}
     if (updates.startingStack !== undefined)
-      updateData.starting_stack = updates.startingStack;
+      {updateData.starting_stack = updates.startingStack;}
     if (updates.ticketImageUrl !== undefined)
-      updateData.ticket_image_url = updates.ticketImageUrl;
-    if (updates.notes !== undefined) updateData.notes = updates.notes;
+      {updateData.ticket_image_url = updates.ticketImageUrl;}
+    if (updates.notes !== undefined) {updateData.notes = updates.notes;}
 
     const supabase = createClientComponentClient();
     const { data, error } = await supabase
@@ -243,20 +243,20 @@ export class TournamentService {
   ): Promise<TournamentResult> {
     const updateData: any = {};
 
-    if (result.position !== undefined) updateData.position = result.position;
-    if (result.payout !== undefined) updateData.payout = result.payout;
-    if (result.profit !== undefined) updateData.profit = result.profit;
-    if (result.roi !== undefined) updateData.roi = result.roi;
-    if (result.notes !== undefined) updateData.notes = result.notes;
-    if (result.knockouts !== undefined) updateData.knockouts = result.knockouts;
+    if (result.position !== undefined) {updateData.position = result.position;}
+    if (result.payout !== undefined) {updateData.payout = result.payout;}
+    if (result.profit !== undefined) {updateData.profit = result.profit;}
+    if (result.roi !== undefined) {updateData.roi = result.roi;}
+    if (result.notes !== undefined) {updateData.notes = result.notes;}
+    if (result.knockouts !== undefined) {updateData.knockouts = result.knockouts;}
     if (result.rebuyCount !== undefined)
-      updateData.rebuy_count = result.rebuyCount;
+      {updateData.rebuy_count = result.rebuyCount;}
     if (result.addonCount !== undefined)
-      updateData.addon_count = result.addonCount;
+      {updateData.addon_count = result.addonCount;}
     if (result.timeEliminated !== undefined)
-      updateData.time_eliminated = result.timeEliminated;
+      {updateData.time_eliminated = result.timeEliminated;}
     if (result.finalTableReached !== undefined)
-      updateData.final_table_reached = result.finalTableReached;
+      {updateData.final_table_reached = result.finalTableReached;}
 
     const supabase = createClientComponentClient();
     const { data, error } = await supabase

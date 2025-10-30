@@ -42,17 +42,17 @@ export function formatRelativeTime(date: string | Date): string {
   const dateObj = typeof date === 'string' ? new Date(date) : date
   const diffInSeconds = Math.floor((now.getTime() - dateObj.getTime()) / 1000)
   
-  if (diffInSeconds < 60) return 'только что'
-  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} мин назад`
-  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} ч назад`
-  if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 86400)} дн назад`
+  if (diffInSeconds < 60) {return 'только что'}
+  if (diffInSeconds < 3600) {return `${Math.floor(diffInSeconds / 60)} мин назад`}
+  if (diffInSeconds < 86400) {return `${Math.floor(diffInSeconds / 3600)} ч назад`}
+  if (diffInSeconds < 2592000) {return `${Math.floor(diffInSeconds / 86400)} дн назад`}
   
   return formatDate(dateObj, { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
 // Расчет ROI
 export function calculateROI(buyin: number, payout: number): number {
-  if (buyin === 0) return 0
+  if (buyin === 0) {return 0}
   return ((payout - buyin) / buyin) * 100
 }
 
@@ -80,7 +80,7 @@ export function debounce<T extends (...args: any[]) => any>(
   let timeout: NodeJS.Timeout | null = null
   
   return (...args: Parameters<T>) => {
-    if (timeout) clearTimeout(timeout)
+    if (timeout) {clearTimeout(timeout)}
     timeout = setTimeout(() => func(...args), wait)
   }
 }
@@ -103,7 +103,7 @@ export function throttle<T extends (...args: any[]) => any>(
 
 // Сокращение текста
 export function truncateText(text: string, maxLength: number): string {
-  if (text.length <= maxLength) return text
+  if (text.length <= maxLength) {return text}
   return text.substring(0, maxLength) + '...'
 }
 
@@ -118,26 +118,26 @@ export function getInitials(name: string): string {
 
 // Получение цвета для ROI
 export function getROIColor(roi: number): string {
-  if (roi > 0) return 'text-emerald-600 dark:text-emerald-400'
-  if (roi < 0) return 'text-red-600 dark:text-red-400'
+  if (roi > 0) {return 'text-emerald-600 dark:text-emerald-400'}
+  if (roi < 0) {return 'text-red-600 dark:text-red-400'}
   return 'text-gray-600 dark:text-gray-400'
 }
 
 // Получение цвета для позиции
 export function getPositionColor(position: number): string {
-  if (position === 1) return 'text-yellow-600 dark:text-yellow-400' // Золото
-  if (position === 2) return 'text-gray-600 dark:text-gray-400' // Серебро
-  if (position === 3) return 'text-amber-600 dark:text-amber-400' // Бронза
-  if (position <= 10) return 'text-emerald-600 dark:text-emerald-400' // ITM
+  if (position === 1) {return 'text-yellow-600 dark:text-yellow-400'} // Золото
+  if (position === 2) {return 'text-gray-600 dark:text-gray-400'} // Серебро
+  if (position === 3) {return 'text-amber-600 dark:text-amber-400'} // Бронза
+  if (position <= 10) {return 'text-emerald-600 dark:text-emerald-400'} // ITM
   return 'text-gray-600 dark:text-gray-400'
 }
 
 // Получение эмодзи для позиции
 export function getPositionEmoji(position: number): string {
-  if (position === 1) return '🥇'
-  if (position === 2) return '🥈'
-  if (position === 3) return '🥉'
-  if (position <= 10) return '💰'
+  if (position === 1) {return '🥇'}
+  if (position === 2) {return '🥈'}
+  if (position === 3) {return '🥉'}
+  if (position <= 10) {return '💰'}
   return '❌'
 }
 
@@ -170,8 +170,8 @@ export function filterTournamentsByDateRange<T extends { date: string }>(
   return tournaments.filter(tournament => {
     const tournamentDate = new Date(tournament.date)
     
-    if (startDate && tournamentDate < new Date(startDate)) return false
-    if (endDate && tournamentDate > new Date(endDate)) return false
+    if (startDate && tournamentDate < new Date(startDate)) {return false}
+    if (endDate && tournamentDate > new Date(endDate)) {return false}
     
     return true
   })
@@ -211,7 +211,7 @@ export function isImageFile(file: File): boolean {
 
 // Получение размера файла в читаемом формате
 export function formatFileSize(bytes: number): string {
-  if (bytes === 0) return '0 Bytes'
+  if (bytes === 0) {return '0 Bytes'}
   
   const k = 1024
   const sizes = ['Bytes', 'KB', 'MB', 'GB']

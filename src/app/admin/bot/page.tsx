@@ -487,7 +487,7 @@ export default function BotManagementPage() {
                 Автоматическая синхронизация из переменных окружения
               </h3>
               <p className="text-green-800 dark:text-green-200 text-sm mb-3">
-                Нажмите кнопку <strong>"⚙️ Синхронизировать из .env"</strong> чтобы автоматически установить webhook из переменной окружения <code className="bg-green-100 dark:bg-green-800 px-1 rounded">BOT_WEBHOOK_URL</code>.
+                Нажмите кнопку <strong>&quot;⚙️ Синхронизировать из .env&quot;</strong> чтобы автоматически установить webhook из переменной окружения <code className="bg-green-100 dark:bg-green-800 px-1 rounded">BOT_WEBHOOK_URL</code>.
               </p>
               <div className="text-xs text-green-700 dark:text-green-300 space-y-1">
                 <div>💡 <strong>Когда использовать:</strong> После деплоя на Vercel или изменения переменных окружения</div>

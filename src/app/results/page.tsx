@@ -1,14 +1,13 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { useAuth, ProtectedRoute } from '@/hooks/useAuth'
-import { useTournaments } from '@/hooks/useTournaments'
+import ResultHistory from '@/components/results/ResultHistory'
 import Button from '@/components/ui/Button'
 import Card, { CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import Input, { Select } from '@/components/ui/Input'
 import { Breadcrumbs } from '@/components/ui/Navigation'
-import { Tournament } from '@/types'
-import ResultHistory from '@/components/results/ResultHistory'
+import { ProtectedRoute, useAuth } from '@/hooks/useAuth'
+import { useTournaments } from '@/hooks/useTournaments'
+import { useMemo, useState } from 'react'
 
 function ResultsContent() {
   const { user } = useAuth()
@@ -162,15 +161,15 @@ function ResultsContent() {
   }
 
   const getPositionColor = (position: number, participants: number) => {
-    if (position === 1) return 'text-yellow-600 font-bold'
-    if (position <= 3) return 'text-orange-600 font-semibold'
-    if (position <= participants * 0.15) return 'text-green-600'
+    if (position === 1) {return 'text-yellow-600 font-bold'}
+    if (position <= 3) {return 'text-orange-600 font-semibold'}
+    if (position <= participants * 0.15) {return 'text-green-600'}
     return 'text-gray-600 dark:text-gray-400'
   }
 
   const getROIColor = (roi: number) => {
-    if (roi > 0) return 'text-green-600 dark:text-green-400'
-    if (roi < 0) return 'text-red-600 dark:text-red-400'
+    if (roi > 0) {return 'text-green-600 dark:text-green-400'}
+    if (roi < 0) {return 'text-red-600 dark:text-red-400'}
     return 'text-gray-600 dark:text-gray-400'
   }
 

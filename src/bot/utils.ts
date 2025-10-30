@@ -182,7 +182,7 @@ export function logUserAction(ctx: BotContext, action: string, details?: any) {
   const user = getUserInfo(ctx);
   const timestamp = new Date().toISOString();
 
-  console.log(
+  console.warn(
     `[Bot Action] ${timestamp} - User: ${user.fullName} (${user.id}) - Action: ${action}`,
     details ? JSON.stringify(details) : "",
   );

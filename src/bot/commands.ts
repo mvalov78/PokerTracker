@@ -2,9 +2,9 @@
  * Команды Telegram бота для PokerTracker Pro
  */
 
-import type { BotContext } from "./index";
 import { UserSettingsService } from "@/services/userSettingsService";
-import { type Tournament, TournamentFormData } from "../types";
+import { type Tournament } from "../types";
+import type { BotContext } from "./index";
 
 /**
  * Получить API URL для текущего окружения
@@ -172,7 +172,7 @@ export class BotCommands {
    * Команда /help - справка по командам
    */
   async help(ctx: BotContext) {
-    console.log("📖 Выполняется команда help(), отправляем справку...");
+    console.warn("📖 Выполняется команда help(), отправляем справку...");
 
     const helpMessage = `
 🤖 **Справка по командам PokerTracker Pro Bot**
@@ -207,9 +207,9 @@ export class BotCommands {
     `;
 
     try {
-      console.log("📤 Отправляем справочное сообщение пользователю...");
+      console.warn("📤 Отправляем справочное сообщение пользователю...");
       await ctx.reply(helpMessage, { parse_mode: "Markdown" });
-      console.log("✅ Справочное сообщение успешно отправлено");
+      console.warn("✅ Справочное сообщение успешно отправлено");
     } catch (error) {
       console.error("❌ Ошибка при отправке справочного сообщения:", error);
       // Попробуем отправить без markdown
@@ -217,7 +217,7 @@ export class BotCommands {
         await ctx.reply(
           "🤖 Справка по командам PokerTracker Pro Bot\n\n/start - Главное меню\n/help - Эта справка\n/register - Регистрация турнира\n/result - Добавить результат\n/stats - Статистика\n/tournaments - Список турниров\n/venue - Текущая площадка\n/setvenue <название> - Установить площадку\n/settings - Настройки",
         );
-        console.log("✅ Упрощенная справка отправлена");
+        console.warn("✅ Упрощенная справка отправлена");
       } catch (simpleError) {
         console.error(
           "❌ Ошибка при отправке упрощенной справки:",
@@ -917,9 +917,9 @@ ${stats.bestPayout ? `💎 **Лучший выигрыш:** $${stats.bestPayout}
 
         // Проверяем, что дата валидная
         if (
-          date.getFullYear() == parseInt(year) &&
-          date.getMonth() == parseInt(month) - 1 &&
-          date.getDate() == parseInt(day)
+          date.getFullYear() === parseInt(year) &&
+          date.getMonth() === parseInt(month) - 1 &&
+          date.getDate() === parseInt(day)
         ) {
           return date.toISOString();
         }

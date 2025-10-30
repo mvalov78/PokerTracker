@@ -21,6 +21,56 @@ jest.mock('next/navigation', () => ({
   usePathname: () => '/',
 }))
 
+// Mock Next.js server components
+global.Request = class Request {
+  constructor(input, init) {
+    this.url = input
+    this.method = init?.method || 'GET'
+    this.headers = new Map(Object.entries(init?.headers || {}))
+    this._body = init?.body
+  }
+  
+  get body() {
+    return this._body
+  }
+  
+  async json() {
+    if (typeof this._body === 'string') {
+      return JSON.parse(this._body)
+    }
+    if (typeof this._body === 'object' && this._body !== null) {
+      return this._body
+    }
+    return {}
+  }
+  
+  async text() {
+    if (typeof this._body === 'string') {
+      return this._body
+    }
+    if (typeof this._body === 'object' && this._body !== null) {
+      return JSON.stringify(this._body)
+    }
+    return ''
+  }
+}
+
+global.Response = class Response {
+  constructor(body, init) {
+    this.body = body
+    this.status = init?.status || 200
+    this.headers = new Map(Object.entries(init?.headers || {}))
+  }
+  
+  async json() {
+    return typeof this.body === 'string' ? JSON.parse(this.body) : this.body
+  }
+}
+
+global.NextResponse = {
+  json: (data, init) => new Response(JSON.stringify(data), init),
+}
+
 // Mock environment variables
 process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://localhost:54321'
 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key'
@@ -42,14 +92,43 @@ const createMockChain = () => ({
   limit: jest.fn(() => createMockChain()),
   not: jest.fn(() => createMockChain()),
   in: jest.fn(() => createMockChain()),
+  rpc: jest.fn(() => Promise.resolve({ data: mockData, error: mockError })),
   then: jest.fn((callback) => callback({ data: mockData, error: mockError })),
   catch: jest.fn(),
+  auth: {
+    getUser: jest.fn(() => Promise.resolve({ 
+      data: { user: { id: 'test-user-id' } }, 
+      error: null 
+    })),
+    getSession: jest.fn(() => Promise.resolve({ 
+      data: { session: { user: { id: 'test-user-id' } } }, 
+      error: null 
+    })),
+    signOut: jest.fn(() => Promise.resolve({ error: null })),
+    onAuthStateChange: jest.fn(() => ({
+      data: {
+        subscription: {
+          unsubscribe: jest.fn()
+        }
+      }
+    })),
+  }
 })
 
 const mockSupabaseClient = createMockChain()
 
+// Mock для createClientComponentClient
+const mockCreateClientComponentClient = jest.fn(() => mockSupabaseClient)
+
+// Mock для createAdminClient
+const mockCreateAdminClient = jest.fn(() => mockSupabaseClient)
+
 jest.mock('@/lib/supabase', () => ({
   supabase: mockSupabaseClient,
+  createClientComponentClient: mockCreateClientComponentClient,
+  createAdminClient: mockCreateAdminClient,
+  createServerComponentClient: jest.fn(() => mockSupabaseClient),
+  supabaseAdmin: mockSupabaseClient,
 }))
 
 // Глобальные функции для управления моками

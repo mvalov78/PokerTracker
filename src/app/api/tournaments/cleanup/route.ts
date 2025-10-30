@@ -28,7 +28,7 @@ export async function POST() {
         totalCleaned: results.orphanedResults + results.orphanedPhotos + results.orphanedTransactions
       }
     })
-  } catch (error) {
+  } catch {
     console.error('Ошибка при очистке данных:', error)
     return NextResponse.json(
       { 

@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
       message: 'Notification sent successfully'
     })
 
-  } catch (error) {
+  } catch {
     console.error('Ошибка отправки уведомления:', error)
     return NextResponse.json(
       { error: 'Failed to send notification' },
@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString()
     })
 
-  } catch (error) {
+  } catch {
     console.error('Ошибка получения настроек уведомлений:', error)
     return NextResponse.json(
       { error: 'Internal server error' },

@@ -49,7 +49,7 @@ export class NotificationService {
     type: keyof NotificationSettings,
   ): boolean {
     const settings = this.getUserSettings(userId);
-    if (type === "userId") return false;
+    if (type === "userId") {return false;}
 
     const newValue = !settings[type];
     this.updateUserSettings(userId, { [type]: newValue });
@@ -283,7 +283,7 @@ ${description}
   scheduleNotifications(userId: string) {
     // В реальном приложении здесь была бы логика планирования уведомлений
     // через cron jobs или другие планировщики
-    console.log(`Планирование уведомлений для пользователя ${userId}`);
+    console.warn(`Планирование уведомлений для пользователя ${userId}`);
   }
 
   /**

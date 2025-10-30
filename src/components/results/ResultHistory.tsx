@@ -1,9 +1,9 @@
 'use client'
 
-import { useMemo } from 'react'
 import Card, { CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
-import { ResultChangeHistory, Tournament } from '@/types'
 import { getResultHistory, getTournamentById } from '@/data/mockData'
+import { ResultChangeHistory } from '@/types'
+import { useMemo } from 'react'
 
 interface ResultHistoryProps {
   userId: string
@@ -58,7 +58,7 @@ export default function ResultHistory({
   }
 
   const formatValue = (field: string, value: any) => {
-    if (value === null || value === undefined) return '-'
+    if (value === null || value === undefined) {return '-'}
     
     switch (field) {
       case 'payout':
