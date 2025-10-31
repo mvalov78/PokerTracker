@@ -32,6 +32,38 @@ function initializeWebhookBot() {
   webhookBot = new Telegraf(botToken);
   commands = new BotCommands();
   photoHandler = new PhotoHandler();
+  
+  // Хранилище сессий для webhook режима
+  const sessions = new Map();
+  
+  // Middleware для сессий (аналогично как в src/bot/index.ts)
+  webhookBot.use((ctx, next) => {
+    const userId = ctx.from?.id;
+    if (!userId) {
+      console.warn("[Telegram Webhook] Нет userId, пропускаем middleware сессии");
+      return next();
+    }
+    
+    if (!sessions.has(userId)) {
+      console.warn(`[Telegram Webhook] Создаем новую сессию для пользователя: ${userId}`);
+      sessions.set(userId, {
+        userId: userId.toString(),
+        currentAction: undefined,
+        tournamentData: undefined,
+        ocrData: undefined,
+      });
+    }
+    
+    const session = sessions.get(userId);
+    if (!session) {
+      console.error(`[Telegram Webhook] Не удалось получить сессию для пользователя: ${userId}`);
+      return next();
+    }
+    
+    ctx.session = session;
+    console.warn(`[Telegram Webhook] Сессия установлена для пользователя: ${userId}`);
+    return next();
+  });
 
   // Настраиваем обработчики команд
   webhookBot.command("start", async (ctx) => {
@@ -98,6 +130,29 @@ function initializeWebhookBot() {
     }
   });
 
+  // Обработка callback queries (кнопки inline клавиатуры)
+  webhookBot.on("callback_query", async (ctx) => {
+    console.warn("[Telegram Webhook] Получен callback_query:", ctx.callbackQuery.data);
+    
+    if (!ctx.callbackQuery.data) {
+      return;
+    }
+
+    switch (ctx.callbackQuery.data) {
+      case "confirm_tournament":
+        await photoHandler!.confirmTournament(ctx);
+        break;
+      case "cancel_tournament":
+        await photoHandler!.cancelTournament(ctx);
+        break;
+      case "edit_tournament":
+        await photoHandler!.editTournament(ctx);
+        break;
+      default:
+        await ctx.answerCbQuery("Неизвестная команда");
+    }
+  });
+
   console.warn("[Telegram Webhook] Бот инициализирован успешно");
 
   return webhookBot;
@@ -146,7 +201,7 @@ export async function POST(request: NextRequest) {
       ok: true,
       message: "Update processed successfully",
     });
-  } catch {
+  } catch (error) {
     console.error("[Telegram Webhook] Ошибка обработки webhook:", error);
 
     // Возвращаем 200 даже при ошибке, чтобы Telegram не спамил повторными попытками
