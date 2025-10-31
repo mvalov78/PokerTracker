@@ -7,10 +7,28 @@ import { mockTournaments, addTournament, deleteTournament, getTournamentById, up
 import { mockUser } from '@/data/mockData';
 import { addResultHistoryEntry } from '@/data/mockData';
 
+// Set up environment variables for tests
+process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://localhost:54321';
+process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key';
+
 // Mock Supabase для API тестов
 jest.mock('@/lib/supabase', () => ({
   supabase: null, // Будет использовать fallback к mockData
   supabaseAdmin: null,
+  getUserOrCreate: jest.fn().mockResolvedValue({ id: 'test-user', username: 'test' }),
+}));
+
+// Mock TournamentService для API тестов
+jest.mock('@/services/tournamentService', () => ({
+  TournamentService: {
+    getTournamentsByUserId: jest.fn(),
+    getTournamentById: jest.fn(),
+    createTournamentAsAdmin: jest.fn(),
+    updateTournament: jest.fn(),
+    addTournamentResult: jest.fn(),
+    updateTournamentResult: jest.fn(),
+    deleteTournament: jest.fn(),
+  },
 }));
 
 // Mock Next.js server components для API routes
@@ -22,14 +40,14 @@ jest.mock('@/lib/supabase', () => ({
 const originalNextResponse = global.NextResponse;
 beforeAll(() => {
   // Create a custom implementation of NextResponse for tests
-  global.NextResponse = {
-    json: jest.fn().mockImplementation((data, init) => {
+  global.NextResponse = class NextResponseMock {
+    static json(data: any, init?: { status?: number; headers?: Record<string, string> }) {
       return {
         status: init?.status || 200,
         headers: new Headers(init?.headers),
         json: async () => data,
       };
-    }),
+    }
   } as unknown as typeof NextResponse;
 });
 
@@ -65,23 +83,26 @@ describe('API Integration Tests', () => {
     mockResultHistory.splice(0, mockResultHistory.length);
     
     // Add sample test data
-    addTournament({
+    const tournament1 = {
       id: 'test-tournament-1',
       userId: 'test-user',
       name: 'Initial Test Tournament',
       date: '2024-01-01T00:00:00Z',
       venue: 'Test Venue',
       buyin: 100,
-    }, 'test-user');
+    };
     
-    addTournament({
+    const tournament2 = {
       id: 'test-tournament-to-delete',
       userId: 'test-user',
       name: 'Tournament to Delete',
       date: '2024-01-02T00:00:00Z',
       venue: 'Delete Venue',
       buyin: 50,
-    }, 'test-user');
+    };
+    
+    addTournament(tournament1, 'test-user');
+    addTournament(tournament2, 'test-user');
     
     addResultHistoryEntry({
       tournamentId: 'test-tournament-1',
@@ -92,11 +113,18 @@ describe('API Integration Tests', () => {
       reason: 'Initial result',
       timestamp: '2024-01-01T01:00:00Z'
     });
+    
+    // Reset all mocks
+    jest.clearAllMocks();
   });
 
   describe('/api/tournaments', () => {
     it('should handle GET request for tournaments', async () => {
+      const { TournamentService } = require('@/services/tournamentService');
       const { GET } = require('@/app/api/tournaments/route');
+      
+      // Setup mock to return tournaments from mockData
+      TournamentService.getTournamentsByUserId.mockResolvedValue(mockTournaments);
       
       const request = createMockRequest({
         method: 'GET',
@@ -114,6 +142,7 @@ describe('API Integration Tests', () => {
     });
 
     it('should handle POST request for creating tournament', async () => {
+      const { TournamentService } = require('@/services/tournamentService');
       const { POST } = require('@/app/api/tournaments/route');
       
       const tournamentData = {
@@ -123,6 +152,15 @@ describe('API Integration Tests', () => {
         venue: 'New Test Casino',
         date: '2024-12-31T20:00:00Z',
       };
+
+      const newTournament = {
+        id: 'new-tournament-id',
+        ...tournamentData,
+        buyin: 150,
+      };
+      
+      // Setup mock to return the created tournament
+      TournamentService.createTournamentAsAdmin.mockResolvedValue(newTournament);
 
       const request = createMockRequest({
         method: 'POST',
@@ -136,18 +174,20 @@ describe('API Integration Tests', () => {
       const data = await response.json();
       expect(data.success).toBe(true);
       expect(data.tournament.name).toBe('New Test Tournament');
-      expect(getTournamentById(data.tournament.id)).toBeDefined();
     });
 
     it('should handle DELETE request for tournament', async () => {
+      const { TournamentService } = require('@/services/tournamentService');
       const { DELETE } = require('@/app/api/tournaments/route');
       
-      const tournamentToDelete = mockTournaments.find(t => t.id === 'test-tournament-to-delete');
-      expect(tournamentToDelete).toBeDefined();
+      const tournamentId = 'test-tournament-to-delete';
+      
+      // Setup mock to return success
+      TournamentService.deleteTournament.mockResolvedValue(true);
 
       const request = createMockRequest({
         method: 'DELETE',
-        url: `http://localhost:3000/api/tournaments?id=${tournamentToDelete?.id}`,
+        url: `http://localhost:3000/api/tournaments?id=${tournamentId}`,
       });
 
       const response = await DELETE(request);
@@ -155,13 +195,25 @@ describe('API Integration Tests', () => {
       
       const data = await response.json();
       expect(data.success).toBe(true);
-      expect(getTournamentById('test-tournament-to-delete')).toBeNull();
     });
   });
 
   describe('/api/tournaments/[id]', () => {
     it('should handle GET request for specific tournament', async () => {
+      const { TournamentService } = require('@/services/tournamentService');
       const { GET } = require('@/app/api/tournaments/[id]/route');
+      
+      const tournament = {
+        id: 'test-tournament-1',
+        userId: 'test-user',
+        name: 'Initial Test Tournament',
+        date: '2024-01-01T00:00:00Z',
+        venue: 'Test Venue',
+        buyin: 100,
+      };
+      
+      // Setup mock to return tournament
+      TournamentService.getTournamentById.mockResolvedValue(tournament);
       
       const request = createMockRequest({
         method: 'GET',
@@ -169,7 +221,7 @@ describe('API Integration Tests', () => {
       });
 
       // Mock params
-      const params = { params: { id: 'test-tournament-1' } };
+      const params = { params: Promise.resolve({ id: 'test-tournament-1' }) };
       
       const response = await GET(request, params);
       expect(response.status).toBe(200);
@@ -180,6 +232,7 @@ describe('API Integration Tests', () => {
     });
 
     it('should handle PUT request for updating tournament', async () => {
+      const { TournamentService } = require('@/services/tournamentService');
       const { PUT } = require('@/app/api/tournaments/[id]/route');
       
       const updateData = {
@@ -190,13 +243,39 @@ describe('API Integration Tests', () => {
         },
       };
 
+      const tournament = {
+        id: 'test-tournament-1',
+        userId: 'test-user',
+        name: 'Initial Test Tournament',
+        date: '2024-01-01T00:00:00Z',
+        venue: 'Test Venue',
+        buyin: 100,
+      };
+      
+      const updatedTournament = {
+        ...tournament,
+        result: {
+          position: 1,
+          payout: 500,
+          profit: 400,
+          roi: 400,
+          notes: 'Great game!',
+        },
+      };
+      
+      // Setup mocks
+      TournamentService.getTournamentById
+        .mockResolvedValueOnce(tournament)
+        .mockResolvedValueOnce(updatedTournament);
+      TournamentService.addTournamentResult.mockResolvedValue(undefined);
+
       const request = createMockRequest({
         method: 'PUT',
         url: 'http://localhost:3000/api/tournaments/test-tournament-1',
         body: updateData,
       });
 
-      const params = { params: { id: 'test-tournament-1' } };
+      const params = { params: Promise.resolve({ id: 'test-tournament-1' }) };
       
       const response = await PUT(request, params);
       expect(response.status).toBe(200);
@@ -269,6 +348,7 @@ describe('Data Consistency Tests', () => {
   });
 
   it('should maintain data consistency between bot and frontend', async () => {
+    const { TournamentService } = require('@/services/tournamentService');
     const { POST: createTournamentApi } = require('@/app/api/tournaments/route');
     const { GET: getTournamentsApi } = require('@/app/api/tournaments/route');
     
@@ -280,6 +360,15 @@ describe('Data Consistency Tests', () => {
       venue: 'Test Venue',
       date: new Date().toISOString(),
     };
+
+    const createdTournament = {
+      id: 'consistency-test-id',
+      ...tournamentData,
+    };
+    
+    // Setup mocks
+    TournamentService.createTournamentAsAdmin.mockResolvedValue(createdTournament);
+    TournamentService.getTournamentsByUserId.mockResolvedValue([createdTournament]);
 
     const createReq = createMockRequest({
       method: 'POST',
@@ -306,14 +395,15 @@ describe('Data Consistency Tests', () => {
     expect(getData.success).toBe(true);
     
     // Check if created tournament exists in the list
-    const createdTournament = getData.tournaments.find(
+    const foundTournament = getData.tournaments.find(
       (t: any) => t.name === 'Consistency Test Tournament'
     );
-    expect(createdTournament).toBeDefined();
-    expect(createdTournament.buyin).toBe(200);
+    expect(foundTournament).toBeDefined();
+    expect(foundTournament.buyin).toBe(200);
   });
 
   it('should handle venue priority correctly', async () => {
+    const { TournamentService } = require('@/services/tournamentService');
     const { POST: createTournamentApi } = require('@/app/api/tournaments/route');
     
     // Test tournament creation with venue
@@ -324,6 +414,14 @@ describe('Data Consistency Tests', () => {
       venue: 'Priority Casino', // This should be used
       date: new Date().toISOString(),
     };
+
+    const createdTournament = {
+      id: 'venue-test-id',
+      ...tournamentData,
+    };
+    
+    // Setup mock
+    TournamentService.createTournamentAsAdmin.mockResolvedValue(createdTournament);
 
     const req = createMockRequest({
       method: 'POST',

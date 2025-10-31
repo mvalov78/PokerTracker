@@ -15,21 +15,24 @@ export async function GET(
     const tournament = await TournamentService.getTournamentById(tournamentId)
     
     if (!tournament) {
-      return NextResponse.json(
-        { success: false, error: 'Tournament not found' },
-        { status: 404 }
-      )
+    return new NextResponse(
+      JSON.stringify({ success: false, error: 'Tournament not found' }),
+      { status: 404, headers: { 'content-type': 'application/json' } }
+    )
     }
     
-    return NextResponse.json({
-      success: true,
-      tournament
-    })
+    return new NextResponse(
+      JSON.stringify({
+        success: true,
+        tournament
+      }),
+      { status: 200, headers: { 'content-type': 'application/json' } }
+    )
   } catch (error) {
     console.error('Ошибка получения турнира:', error)
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch tournament' },
-      { status: 500 }
+    return new NextResponse(
+      JSON.stringify({ success: false, error: 'Failed to fetch tournament' }),
+      { status: 500, headers: { 'content-type': 'application/json' } }
     )
   }
 }
@@ -49,10 +52,10 @@ export async function PUT(
       // Вычисляем profit и ROI
       const tournament = await TournamentService.getTournamentById(tournamentId)
       if (!tournament) {
-        return NextResponse.json(
-          { success: false, error: 'Tournament not found' },
-          { status: 404 }
-        )
+    return new NextResponse(
+      JSON.stringify({ success: false, error: 'Tournament not found' }),
+      { status: 404, headers: { 'content-type': 'application/json' } }
+    )
       }
       
       const profit = resultData.payout - tournament.buyin
@@ -105,15 +108,18 @@ export async function PUT(
     // Возвращаем обновленный турнир
     const updatedTournament = await TournamentService.getTournamentById(tournamentId)
     
-    return NextResponse.json({
-      success: true,
-      tournament: updatedTournament
-    })
+    return new NextResponse(
+      JSON.stringify({
+        success: true,
+        tournament: updatedTournament
+      }),
+      { status: 200, headers: { 'content-type': 'application/json' } }
+    )
   } catch (error) {
     console.error('Ошибка обновления турнира:', error)
-    return NextResponse.json(
-      { success: false, error: 'Failed to update tournament' },
-      { status: 500 }
+    return new NextResponse(
+      JSON.stringify({ success: false, error: 'Failed to update tournament' }),
+      { status: 500, headers: { 'content-type': 'application/json' } }
     )
   }
 }
@@ -128,21 +134,24 @@ export async function DELETE(
     const success = await TournamentService.deleteTournament(tournamentId)
     
     if (!success) {
-      return NextResponse.json(
-        { success: false, error: 'Tournament not found' },
-        { status: 404 }
-      )
+    return new NextResponse(
+      JSON.stringify({ success: false, error: 'Tournament not found' }),
+      { status: 404, headers: { 'content-type': 'application/json' } }
+    )
     }
     
-    return NextResponse.json({
-      success: true,
-      message: 'Tournament deleted successfully'
-    })
-  } catch {
+    return new NextResponse(
+      JSON.stringify({
+        success: true,
+        message: 'Tournament deleted successfully'
+      }),
+      { status: 200, headers: { 'content-type': 'application/json' } }
+    )
+  } catch (error) {
     console.error('Ошибка удаления турнира:', error)
-    return NextResponse.json(
-      { success: false, error: 'Failed to delete tournament' },
-      { status: 500 }
+    return new NextResponse(
+      JSON.stringify({ success: false, error: 'Failed to delete tournament' }),
+      { status: 500, headers: { 'content-type': 'application/json' } }
     )
   }
 }

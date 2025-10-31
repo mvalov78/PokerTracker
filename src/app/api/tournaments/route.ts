@@ -15,10 +15,13 @@ export async function GET(request: NextRequest) {
     const isSupabaseConfigured = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
     if (!isSupabaseConfigured) {
-      return NextResponse.json({
-        success: false,
-        error: 'Supabase не настроен. Проверьте переменные окружения NEXT_PUBLIC_SUPABASE_URL и NEXT_PUBLIC_SUPABASE_ANON_KEY'
-      }, { status: 500 })
+      return new NextResponse(
+        JSON.stringify({
+          success: false,
+          error: 'Supabase не настроен. Проверьте переменные окружения NEXT_PUBLIC_SUPABASE_URL и NEXT_PUBLIC_SUPABASE_ANON_KEY'
+        }),
+        { status: 500, headers: { 'content-type': 'application/json' } }
+      )
     }
 
     let tournaments
@@ -49,19 +52,25 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({
-      success: true,
-      tournaments: tournaments || []
-    })
+    return new NextResponse(
+      JSON.stringify({
+        success: true,
+        tournaments: tournaments || []
+      }),
+      { 
+        status: 200, 
+        headers: { 'content-type': 'application/json' } 
+      }
+    )
   } catch (error) {
     console.error('Ошибка получения турниров из Supabase:', error)
-    return NextResponse.json(
-      { 
+    return new NextResponse(
+      JSON.stringify({ 
         success: false, 
         error: 'Ошибка при получении турниров из базы данных',
         details: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
+      }),
+      { status: 500, headers: { 'content-type': 'application/json' } }
     )
   }
 }
@@ -72,10 +81,13 @@ export async function POST(request: NextRequest) {
     const isSupabaseConfigured = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
     
     if (!isSupabaseConfigured) {
-      return NextResponse.json({
-        success: false,
-        error: 'Supabase не настроен. Проверьте переменные окружения NEXT_PUBLIC_SUPABASE_URL и NEXT_PUBLIC_SUPABASE_ANON_KEY'
-      }, { status: 500 })
+      return new NextResponse(
+        JSON.stringify({
+          success: false,
+          error: 'Supabase не настроен. Проверьте переменные окружения NEXT_PUBLIC_SUPABASE_URL и NEXT_PUBLIC_SUPABASE_ANON_KEY'
+        }),
+        { status: 500, headers: { 'content-type': 'application/json' } }
+      )
     }
 
     // Используем только Supabase
@@ -106,19 +118,25 @@ export async function POST(request: NextRequest) {
     
     const newTournament = await TournamentService.createTournamentAsAdmin(tournamentData)
     
-    return NextResponse.json({
-      success: true,
-      tournament: newTournament
-    })
+    return new NextResponse(
+      JSON.stringify({
+        success: true,
+        tournament: newTournament
+      }),
+      { 
+        status: 201, 
+        headers: { 'content-type': 'application/json' } 
+      }
+    )
   } catch (error) {
     console.error('Ошибка создания турнира в Supabase:', error)
-    return NextResponse.json(
-      { 
+    return new NextResponse(
+      JSON.stringify({ 
         success: false, 
         error: 'Ошибка при создании турнира в базе данных',
         details: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
+      }),
+      { status: 500, headers: { 'content-type': 'application/json' } }
     )
   }
 }
@@ -129,44 +147,53 @@ export async function DELETE(request: NextRequest) {
     const tournamentId = searchParams.get('id')
     
     if (!tournamentId) {
-      return NextResponse.json(
-        { success: false, error: 'Tournament ID is required' },
-        { status: 400 }
+      return new NextResponse(
+        JSON.stringify({ success: false, error: 'Tournament ID is required' }),
+        { status: 400, headers: { 'content-type': 'application/json' } }
       )
     }
     
     const isSupabaseConfigured = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
     
     if (!isSupabaseConfigured) {
-      return NextResponse.json({
-        success: false,
-        error: 'Supabase не настроен. Проверьте переменные окружения NEXT_PUBLIC_SUPABASE_URL и NEXT_PUBLIC_SUPABASE_ANON_KEY'
-      }, { status: 500 })
+      return new NextResponse(
+        JSON.stringify({
+          success: false,
+          error: 'Supabase не настроен. Проверьте переменные окружения NEXT_PUBLIC_SUPABASE_URL и NEXT_PUBLIC_SUPABASE_ANON_KEY'
+        }),
+        { status: 500, headers: { 'content-type': 'application/json' } }
+      )
     }
 
     // Используем только Supabase
     const success = await TournamentService.deleteTournament(tournamentId)
     
     if (success) {
-      return NextResponse.json({
-        success: true,
-        message: 'Tournament deleted successfully'
-      })
+      return new NextResponse(
+        JSON.stringify({
+          success: true,
+          message: 'Tournament deleted successfully'
+        }),
+        { 
+          status: 200, 
+          headers: { 'content-type': 'application/json' } 
+        }
+      )
     } else {
-      return NextResponse.json(
-        { success: false, error: 'Tournament not found' },
-        { status: 404 }
+      return new NextResponse(
+        JSON.stringify({ success: false, error: 'Tournament not found' }),
+        { status: 404, headers: { 'content-type': 'application/json' } }
       )
     }
   } catch (error) {
     console.error('Ошибка удаления турнира из Supabase:', error)
-    return NextResponse.json(
-      { 
+    return new NextResponse(
+      JSON.stringify({ 
         success: false, 
         error: 'Ошибка при удалении турнира из базы данных',
         details: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
+      }),
+      { status: 500, headers: { 'content-type': 'application/json' } }
     )
   }
 }
