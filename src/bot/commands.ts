@@ -377,9 +377,26 @@ ID турнира: \`${newTournament.id}\`
       }
 
       const tournaments = apiResult.tournaments;
-      const tournamentsWithoutResults = tournaments.filter(
-        (t: any) => !t.result,
-      );
+      
+      console.log('[BOT addResult] Всего турниров получено:', tournaments.length);
+      
+      // Фильтруем турниры без результатов
+      // Проверяем и tournament_results (объект/массив), и result (fallback)
+      const tournamentsWithoutResults = tournaments.filter((t: any) => {
+        const hasResult = !!(
+          t.result || 
+          (Array.isArray(t.tournament_results) && t.tournament_results.length > 0) ||
+          (t.tournament_results && typeof t.tournament_results === 'object' && !Array.isArray(t.tournament_results))
+        );
+        
+        if (hasResult) {
+          console.log('[BOT addResult] Турнир с результатом (пропускаем):', t.name, t.id);
+        }
+        
+        return !hasResult;
+      });
+      
+      console.log('[BOT addResult] Турниров без результатов:', tournamentsWithoutResults.length);
 
       if (tournamentsWithoutResults.length === 0) {
         await ctx.reply("📝 У вас нет турниров без результатов.");
