@@ -222,41 +222,49 @@ export default function TournamentsPage() {
 
                   {/* Result Info */}
                   <div className="flex flex-col lg:items-end space-y-2">
-                    {tournament.result ? (
-                      <div className="flex items-center space-x-4">
-                        <div className="text-right">
-                          <div className="text-sm text-gray-500">Место</div>
-                          <div className="text-lg font-bold text-gray-900">
-                            #{tournament.result.position}
+                    {(() => {
+                      // Получаем результат из правильного поля
+                      const result = tournament.result || 
+                        (Array.isArray(tournament.tournament_results) 
+                          ? tournament.tournament_results[0] 
+                          : tournament.tournament_results);
+                      
+                      return result ? (
+                        <div className="flex items-center space-x-4">
+                          <div className="text-right">
+                            <div className="text-sm text-gray-500">Место</div>
+                            <div className="text-lg font-bold text-gray-900">
+                              #{result.position}
+                            </div>
+                          </div>
+                          
+                          <div className="text-right">
+                            <div className="text-sm text-gray-500">Выигрыш</div>
+                            <div className={`text-lg font-bold ${
+                              result.payout > 0 ? 'text-green-600' : 'text-gray-500'
+                            }`}>
+                              {result.payout > 0 ? `$${result.payout}` : 'Без призов'}
+                            </div>
+                          </div>
+                          
+                          <div className="text-right">
+                            <div className="text-sm text-gray-500">ROI</div>
+                            <div className={`text-lg font-bold ${
+                              result.roi > 0 ? 'text-green-600' : 'text-red-600'
+                            }`}>
+                              {result.roi > 0 ? '+' : ''}{result.roi.toFixed(1)}%
+                            </div>
                           </div>
                         </div>
-                        
-                        <div className="text-right">
-                          <div className="text-sm text-gray-500">Выигрыш</div>
-                          <div className={`text-lg font-bold ${
-                            tournament.result.payout > 0 ? 'text-green-600' : 'text-gray-500'
-                          }`}>
-                            {tournament.result.payout > 0 ? `$${tournament.result.payout}` : 'Без призов'}
+                      ) : (
+                        <div className="text-center lg:text-right">
+                          <div className="text-blue-600 font-semibold">Предстоящий</div>
+                          <div className="text-sm text-gray-500">
+                            {new Date(tournament.date).toLocaleDateString('ru-RU')}
                           </div>
                         </div>
-                        
-                        <div className="text-right">
-                          <div className="text-sm text-gray-500">ROI</div>
-                          <div className={`text-lg font-bold ${
-                            tournament.result.roi > 0 ? 'text-green-600' : 'text-red-600'
-                          }`}>
-                            {tournament.result.roi > 0 ? '+' : ''}{tournament.result.roi.toFixed(1)}%
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="text-center lg:text-right">
-                        <div className="text-blue-600 font-semibold">Предстоящий</div>
-                        <div className="text-sm text-gray-500">
-                          {new Date(tournament.date).toLocaleDateString('ru-RU')}
-                        </div>
-                      </div>
-                    )}
+                      );
+                    })()}
                     
                     {/* Action Buttons */}
                     <div className="flex space-x-2 mt-4">

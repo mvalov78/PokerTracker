@@ -349,53 +349,61 @@ export default function TournamentDetailPage() {
             </div>
 
             {/* Result Details */}
-            {tournament.result && (
-              <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">Результат турнира</h2>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex justify-between py-2 border-b border-gray-100">
-                    <span className="text-gray-600">Место:</span>
-                    <span className="font-medium">#{tournament.result.position}</span>
-                  </div>
+            {(() => {
+              // Получаем результат из правильного поля
+              const result = tournament.result || 
+                (Array.isArray(tournament.tournament_results) 
+                  ? tournament.tournament_results[0] 
+                  : tournament.tournament_results);
+              
+              return result && (
+                <div className="bg-white rounded-lg shadow p-6">
+                  <h2 className="text-xl font-semibold text-gray-900 mb-4">Результат турнира</h2>
                   
-                  <div className="flex justify-between py-2 border-b border-gray-100">
-                    <span className="text-gray-600">Выигрыш:</span>
-                    <span className={`font-medium ${tournament.result.payout > 0 ? 'text-green-600' : 'text-gray-500'}`}>
-                      {tournament.result.payout > 0 ? formatCurrency(tournament.result.payout) : 'Без призов'}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex justify-between py-2 border-b border-gray-100">
+                      <span className="text-gray-600">Место:</span>
+                      <span className="font-medium">#{result.position}</span>
+                    </div>
+                    
+                    <div className="flex justify-between py-2 border-b border-gray-100">
+                      <span className="text-gray-600">Выигрыш:</span>
+                      <span className={`font-medium ${result.payout > 0 ? 'text-green-600' : 'text-gray-500'}`}>
+                        {result.payout > 0 ? formatCurrency(result.payout) : 'Без призов'}
+                      </span>
+                    </div>
+                    
+                    <div className="flex justify-between py-2 border-b border-gray-100">
+                      <span className="text-gray-600">Прибыль:</span>
+                      <span className={`font-medium ${result.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {result.profit >= 0 ? '+' : ''}{formatCurrency(result.profit)}
+                      </span>
+                    </div>
+                    
+                    <div className="flex justify-between py-2 border-b border-gray-100">
+                      <span className="text-gray-600">ROI:</span>
+                      <span className={`font-medium ${result.roi >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {result.roi >= 0 ? '+' : ''}{result.roi.toFixed(1)}%
                     </span>
                   </div>
                   
-                  <div className="flex justify-between py-2 border-b border-gray-100">
-                    <span className="text-gray-600">Прибыль:</span>
-                    <span className={`font-medium ${tournament.result.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {tournament.result.profit >= 0 ? '+' : ''}{formatCurrency(tournament.result.profit)}
-                    </span>
-                  </div>
-                  
-                  <div className="flex justify-between py-2 border-b border-gray-100">
-                    <span className="text-gray-600">ROI:</span>
-                    <span className={`font-medium ${tournament.result.roi >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {tournament.result.roi >= 0 ? '+' : ''}{tournament.result.roi.toFixed(1)}%
-                    </span>
-                  </div>
-                  
-                  {tournament.result.knockouts !== undefined && (
+                  {result.knockouts !== undefined && (
                     <div className="flex justify-between py-2 border-b border-gray-100">
                       <span className="text-gray-600">Нокауты:</span>
-                      <span className="font-medium">{tournament.result.knockouts}</span>
+                      <span className="font-medium">{result.knockouts}</span>
                     </div>
                   )}
                 </div>
 
-                {tournament.result.notes && (
+                {result.notes && (
                   <div className="mt-4">
                     <h3 className="font-medium text-gray-900 mb-2">Заметки о результате:</h3>
-                    <p className="text-gray-600">{tournament.result.notes}</p>
+                    <p className="text-gray-600">{result.notes}</p>
                   </div>
                 )}
               </div>
-            )}
+              );
+            })()}
           </div>
 
           {/* Sidebar */}
@@ -408,9 +416,31 @@ export default function TournamentDetailPage() {
                 <div className="flex justify-between">
                   <span className="text-gray-600">Статус:</span>
                   <span className={`font-medium ${
-                    tournament.result ? 'text-green-600' : 'text-blue-600'
+                    (() => {
+                      const hasResult = !!(
+                        tournament.result || 
+                        (Array.isArray(tournament.tournament_results) && tournament.tournament_results.length > 0) ||
+                        (tournament.tournament_results && 
+                         typeof tournament.tournament_results === 'object' && 
+                         !Array.isArray(tournament.tournament_results) &&
+                         tournament.tournament_results !== null &&
+                         Object.keys(tournament.tournament_results).length > 0)
+                      );
+                      return hasResult ? 'text-green-600' : 'text-blue-600';
+                    })()
                   }`}>
-                    {tournament.result ? 'Завершен' : 'Предстоящий'}
+                    {(() => {
+                      const hasResult = !!(
+                        tournament.result || 
+                        (Array.isArray(tournament.tournament_results) && tournament.tournament_results.length > 0) ||
+                        (tournament.tournament_results && 
+                         typeof tournament.tournament_results === 'object' && 
+                         !Array.isArray(tournament.tournament_results) &&
+                         tournament.tournament_results !== null &&
+                         Object.keys(tournament.tournament_results).length > 0)
+                      );
+                      return hasResult ? 'Завершен' : 'Предстоящий';
+                    })()}
                   </span>
                 </div>
                 
