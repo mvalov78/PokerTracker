@@ -44,7 +44,7 @@ export class UserService {
   ): Promise<any | null> {
     try {
       const supabase = createClientComponentClient();
-      
+
       if (!supabase) {
         console.warn("Supabase client not available");
         return null;

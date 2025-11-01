@@ -57,17 +57,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const fetchProfile = async (userId: string) => {
     try {
       // Add timeout protection for production (increased to 10 seconds)
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Profile fetch timeout')), 10000)
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Profile fetch timeout")), 10000),
       );
-      
+
       const fetchPromise = supabase
         .from("profiles")
         .select("*")
         .eq("id", userId)
         .single();
 
-      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
+      const { data, error } = (await Promise.race([
+        fetchPromise,
+        timeoutPromise,
+      ])) as any;
 
       if (error) {
         console.error("🔴 Error fetching profile:", error);
@@ -76,12 +79,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
           id: userId,
           email: null,
           username: null,
-          role: 'player' as const,
+          role: "player" as const,
           avatar_url: null,
           telegram_id: null,
           preferences: {},
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         };
       }
 
@@ -93,12 +96,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
         id: userId,
         email: null,
         username: null,
-        role: 'player' as const,
+        role: "player" as const,
         avatar_url: null,
         telegram_id: null,
         preferences: {},
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       };
     }
   };
@@ -108,20 +111,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const initializeAuth = async () => {
       try {
         console.warn("🔐 Initializing auth...");
-        
+
         // Add timeout protection for the entire auth initialization (increased to 15 seconds)
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Auth initialization timeout')), 15000)
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(
+            () => reject(new Error("Auth initialization timeout")),
+            15000,
+          ),
         );
-        
+
         const authPromise = (async () => {
           // Get current user (secure method)
           const {
             data: { user },
-            error
+            error,
           } = await supabase.auth.getUser();
 
-          console.warn("🔐 User status:", user ? 'Authenticated' : 'None');
+          console.warn("🔐 User status:", user ? "Authenticated" : "None");
           if (error) {
             console.warn("🔐 Auth error:", error.message);
           }
@@ -131,7 +137,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             const userProfile = await fetchProfile(user.id);
             setUser({ ...user, profile: userProfile });
             setProfile(userProfile);
-            console.warn("🔐 Profile loaded:", userProfile?.role || 'fallback');
+            console.warn("🔐 Profile loaded:", userProfile?.role || "fallback");
           }
         })();
 
@@ -153,11 +159,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.warn("🔐 Auth state change:", event);
-      
+
       if (event === "SIGNED_IN") {
         // Always use getUser() for security, don't trust session data
-        const { data: { user }, error } = await supabase.auth.getUser();
-        
+        const {
+          data: { user },
+          error,
+        } = await supabase.auth.getUser();
+
         if (user && !error) {
           console.warn("🔐 User signed in, fetching profile...");
           const userProfile = await fetchProfile(user.id);
@@ -175,8 +184,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
       } else if (event === "TOKEN_REFRESHED") {
         console.warn("🔐 Token refreshed, re-fetching user...");
         // Re-fetch user data after token refresh
-        const { data: { user }, error } = await supabase.auth.getUser();
-        
+        const {
+          data: { user },
+          error,
+        } = await supabase.auth.getUser();
+
         if (user && !error) {
           const userProfile = await fetchProfile(user.id);
           setUser({ ...user, profile: userProfile });
@@ -192,7 +204,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Sign in with email/password
   const signIn = async (email: string, password: string) => {
     try {
-      console.warn('🔐 Attempting sign in...');
+      console.warn("🔐 Attempting sign in...");
       setIsLoading(true);
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -200,17 +212,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
       });
 
       if (error) {
-        console.error('🔐 Sign in error:', error.message);
+        console.error("🔐 Sign in error:", error.message);
         setIsLoading(false);
         return { success: false, error: error.message };
       }
 
-      console.warn('🔐 Sign in successful, waiting for auth state update...');
+      console.warn("🔐 Sign in successful, waiting for auth state update...");
       // Не сбрасываем isLoading здесь - это сделает обработчик onAuthStateChange
       // после успешной загрузки профиля
       return { success: true };
     } catch (error) {
-      console.error('🔐 Unexpected sign in error:', error);
+      console.error("🔐 Unexpected sign in error:", error);
       setIsLoading(false);
       return { success: false, error: "Произошла непредвиденная ошибка" };
     }
@@ -221,7 +233,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       setIsLoading(true);
       console.warn("🔐 Attempting sign up...");
-      
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -241,7 +253,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return { success: true };
     } catch (error) {
       console.error("🔐 Sign up exception:", error);
-      const errorMessage = error instanceof Error ? error.message : "Произошла непредвиденная ошибка";
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Произошла непредвиденная ошибка";
       return { success: false, error: `Ошибка регистрации: ${errorMessage}` };
     } finally {
       setIsLoading(false);

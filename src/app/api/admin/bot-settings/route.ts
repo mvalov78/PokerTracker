@@ -32,7 +32,10 @@ export async function GET(_request: NextRequest) {
     }
 
     // Преобразуем в объект для удобства
-    const settings: Record<string, { value: string | null; description: string | null; updatedAt: string }> = {};
+    const settings: Record<
+      string,
+      { value: string | null; description: string | null; updatedAt: string }
+    > = {};
     data?.forEach((setting) => {
       settings[setting.setting_key] = {
         value: setting.setting_value,
@@ -123,4 +126,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

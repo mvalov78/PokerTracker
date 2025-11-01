@@ -49,7 +49,9 @@ export class NotificationService {
     type: keyof NotificationSettings,
   ): boolean {
     const settings = this.getUserSettings(userId);
-    if (type === "userId") {return false;}
+    if (type === "userId") {
+      return false;
+    }
 
     const newValue = !settings[type];
     this.updateUserSettings(userId, { [type]: newValue });

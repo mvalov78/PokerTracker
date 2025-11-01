@@ -1,7 +1,7 @@
 ---
 description: main rule
 globs: main.mdc
-alwaysApply: false
+alwaysApply: true
 ---
 # 🔍 ISOLATION-FOCUSED MEMORY BANK SYSTEM
 

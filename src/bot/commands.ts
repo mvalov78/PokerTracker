@@ -15,12 +15,12 @@ function getApiUrl(): string {
     process.env.NEXT_PUBLIC_API_URL ||
     process.env.VERCEL_URL ||
     "http://localhost:3000";
-  
+
   // Если URL начинается с http/https - используем как есть
   if (appUrl.startsWith("http")) {
     return appUrl;
   }
-  
+
   // Иначе добавляем https протокол (для Vercel URL)
   return `https://${appUrl}`;
 }
@@ -268,12 +268,12 @@ export class BotCommands {
     try {
       // Улучшенная логика разбора с поддержкой разных разделителей
       let parts: string[] = [];
-      
+
       // Определяем разделитель и разбиваем строку
       if (text.includes(" | ")) {
         parts = text.split(" | ");
       } else if (text.includes("|")) {
-        parts = text.split("|").map(p => p.trim());
+        parts = text.split("|").map((p) => p.trim());
       } else if (text.includes(" - ")) {
         parts = text.split(" - ");
       } else if (text.includes(" – ")) {
@@ -281,9 +281,9 @@ export class BotCommands {
       } else if (text.includes(" — ")) {
         parts = text.split(" — ");
       }
-      
+
       // Убираем лишние пробелы
-      parts = parts.map(p => p.trim()).filter(p => p.length > 0);
+      parts = parts.map((p) => p.trim()).filter((p) => p.length > 0);
 
       if (parts.length < 4) {
         await ctx.reply(
@@ -377,38 +377,53 @@ ID турнира: \`${newTournament.id}\`
       }
 
       const tournaments = apiResult.tournaments;
-      
-      console.warn('[BOT addResult] Всего турниров получено:', tournaments.length);
-      
+
+      console.warn(
+        "[BOT addResult] Всего турниров получено:",
+        tournaments.length,
+      );
+
       // Фильтруем турниры без результатов
       // Проверяем и tournament_results (объект/массив), и result (fallback)
       const tournamentsWithoutResults = tournaments.filter((t: any) => {
-        console.warn('[BOT addResult] Проверяем турнир:', {
+        console.warn("[BOT addResult] Проверяем турнир:", {
           name: t.name,
           id: t.id,
           has_result_field: !!t.result,
           tournament_results_type: typeof t.tournament_results,
           tournament_results_value: t.tournament_results,
-          is_array: Array.isArray(t.tournament_results)
+          is_array: Array.isArray(t.tournament_results),
         });
-        
+
         // Проверяем наличие результата более строго
         const hasResult = !!(
-          t.result || 
-          (Array.isArray(t.tournament_results) && t.tournament_results.length > 0) ||
-          (t.tournament_results && 
-           typeof t.tournament_results === 'object' && 
-           !Array.isArray(t.tournament_results) &&
-           t.tournament_results !== null &&
-           Object.keys(t.tournament_results).length > 0)  // Проверяем, что объект не пустой
+          (
+            t.result ||
+            (Array.isArray(t.tournament_results) &&
+              t.tournament_results.length > 0) ||
+            (t.tournament_results &&
+              typeof t.tournament_results === "object" &&
+              !Array.isArray(t.tournament_results) &&
+              t.tournament_results !== null &&
+              Object.keys(t.tournament_results).length > 0)
+          ) // Проверяем, что объект не пустой
         );
-        
-        console.warn('[BOT addResult]', hasResult ? '✅ Есть результат (пропускаем)' : '❌ Нет результата (показываем)', t.name);
-        
+
+        console.warn(
+          "[BOT addResult]",
+          hasResult
+            ? "✅ Есть результат (пропускаем)"
+            : "❌ Нет результата (показываем)",
+          t.name,
+        );
+
         return !hasResult;
       });
-      
-      console.warn('[BOT addResult] Турниров без результатов:', tournamentsWithoutResults.length);
+
+      console.warn(
+        "[BOT addResult] Турниров без результатов:",
+        tournamentsWithoutResults.length,
+      );
 
       if (tournamentsWithoutResults.length === 0) {
         await ctx.reply("📝 У вас нет турниров без результатов.");
@@ -440,15 +455,21 @@ ID турнира: \`${newTournament.id}\`
    * Выбор турнира для добавления результата
    */
   async selectTournament(ctx: BotContext, tournamentId: string) {
-    console.log('[BOT selectTournament] Турнир выбран:', tournamentId);
-    console.log('[BOT selectTournament] Сессия до изменения:', ctx.session);
-    
+    console.log("[BOT selectTournament] Турнир выбран:", tournamentId);
+    console.log("[BOT selectTournament] Сессия до изменения:", ctx.session);
+
     ctx.session!.currentAction = "add_result";
     ctx.session!.tournamentData = { tournamentId };
 
-    console.log('[BOT selectTournament] Сессия после изменения:', ctx.session);
-    console.log('[BOT selectTournament] currentAction установлен:', ctx.session!.currentAction);
-    console.log('[BOT selectTournament] tournamentData установлен:', ctx.session!.tournamentData);
+    console.log("[BOT selectTournament] Сессия после изменения:", ctx.session);
+    console.log(
+      "[BOT selectTournament] currentAction установлен:",
+      ctx.session!.currentAction,
+    );
+    console.log(
+      "[BOT selectTournament] tournamentData установлен:",
+      ctx.session!.tournamentData,
+    );
 
     await ctx.answerCbQuery();
 
@@ -467,7 +488,7 @@ ID турнира: \`${newTournament.id}\`
     `;
 
     await ctx.reply(message, { parse_mode: "Markdown" });
-    console.log('[BOT selectTournament] Сообщение отправлено пользователю');
+    console.log("[BOT selectTournament] Сообщение отправлено пользователю");
   }
 
   /**
@@ -484,14 +505,14 @@ ID турнира: \`${newTournament.id}\`
     try {
       // Улучшенная логика разбора с поддержкой разных разделителей
       let parts: string[] = [];
-      
+
       // Сначала пробуем разделить по " | " (вертикальная черта с пробелами)
       if (text.includes(" | ")) {
         parts = text.split(" | ");
       }
       // Затем пробуем по "|" без пробелов
       else if (text.includes("|")) {
-        parts = text.split("|").map(p => p.trim());
+        parts = text.split("|").map((p) => p.trim());
       }
       // Затем пробуем по " - " (дефис с пробелами)
       else if (text.includes(" - ")) {
@@ -507,20 +528,20 @@ ID турнира: \`${newTournament.id}\`
       }
       // В крайнем случае пробуем просто по пробелу (формат "15 0")
       else if (text.includes(" ")) {
-        parts = text.split(/\s+/).filter(p => p.length > 0);
+        parts = text.split(/\s+/).filter((p) => p.length > 0);
       }
-      
+
       // Убираем лишние пробелы
-      parts = parts.map(p => p.trim()).filter(p => p.length > 0);
+      parts = parts.map((p) => p.trim()).filter((p) => p.length > 0);
 
       if (parts.length !== 2) {
         await ctx.reply(
-          "❌ Неверный формат. Используйте:\n" + 
-          "`Место | Выигрыш` или `Место - Выигрыш`\n\n" +
-          "Примеры:\n" +
-          "• `15 | 0`\n" +
-          "• `15 - 0`\n" +
-          "• `1 2500` (просто через пробел)",
+          "❌ Неверный формат. Используйте:\n" +
+            "`Место | Выигрыш` или `Место - Выигрыш`\n\n" +
+            "Примеры:\n" +
+            "• `15 | 0`\n" +
+            "• `15 - 0`\n" +
+            "• `1 2500` (просто через пробел)",
           { parse_mode: "Markdown" },
         );
         return;
@@ -550,62 +571,69 @@ ID турнира: \`${newTournament.id}\`
         notes: "Добавлено через Telegram бота",
       };
 
-      console.log('[BOT] Подготовка к отправке результата:', {
+      console.log("[BOT] Подготовка к отправке результата:", {
         tournamentId,
         position,
         payout,
-        resultData
+        resultData,
       });
 
       // Получаем турнир и обновляем его с результатом через API
       const apiUrl = getApiUrl();
       const requestUrl = `${apiUrl}/api/tournaments/${tournamentId}`;
-      
-      console.log('[BOT] API URL:', apiUrl);
-      console.log('[BOT] Request URL:', requestUrl);
-      console.log('[BOT] Request body:', JSON.stringify({ result: resultData }, null, 2));
 
-      const updateResponse = await fetch(
-        requestUrl,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            result: resultData,
-          }),
-        },
+      console.log("[BOT] API URL:", apiUrl);
+      console.log("[BOT] Request URL:", requestUrl);
+      console.log(
+        "[BOT] Request body:",
+        JSON.stringify({ result: resultData }, null, 2),
       );
 
-      console.log('[BOT] Response status:', updateResponse.status);
-      console.log('[BOT] Response ok:', updateResponse.ok);
+      const updateResponse = await fetch(requestUrl, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          result: resultData,
+        }),
+      });
+
+      console.log("[BOT] Response status:", updateResponse.status);
+      console.log("[BOT] Response ok:", updateResponse.ok);
 
       if (!updateResponse.ok) {
         const errorText = await updateResponse.text();
-        console.error('[BOT] Ошибка ответа API:', errorText);
-        await ctx.reply(`❌ Ошибка при обновлении турнира (status: ${updateResponse.status})`);
+        console.error("[BOT] Ошибка ответа API:", errorText);
+        await ctx.reply(
+          `❌ Ошибка при обновлении турнира (status: ${updateResponse.status})`,
+        );
         return;
       }
 
       const updateResult = await updateResponse.json();
-      console.log('[BOT] Response body:', JSON.stringify(updateResult, null, 2));
-      
+      console.log(
+        "[BOT] Response body:",
+        JSON.stringify(updateResult, null, 2),
+      );
+
       if (!updateResult.success) {
-        console.error('[BOT] API вернул success: false:', updateResult.error);
+        console.error("[BOT] API вернул success: false:", updateResult.error);
         await ctx.reply("❌ Турнир не найден");
         return;
       }
 
       const updatedTournament = updateResult.tournament;
-      console.log('[BOT] Обновленный турнир получен:', {
+      console.log("[BOT] Обновленный турнир получен:", {
         id: updatedTournament?.id,
         name: updatedTournament?.name,
         has_result: !!updatedTournament?.result,
-        result_type: Array.isArray(updatedTournament?.tournament_results) ? 'array' : typeof updatedTournament?.tournament_results,
-        tournament_results: updatedTournament?.tournament_results
+        result_type: Array.isArray(updatedTournament?.tournament_results)
+          ? "array"
+          : typeof updatedTournament?.tournament_results,
+        tournament_results: updatedTournament?.tournament_results,
       });
-      
+
       if (!updatedTournament) {
-        console.error('[BOT] Турнир не вернулся от API!');
+        console.error("[BOT] Турнир не вернулся от API!");
         await ctx.reply("❌ Турнир не найден");
         return;
       }
@@ -616,28 +644,51 @@ ID турнира: \`${newTournament.id}\`
 
       // Проверяем, есть ли результат в обновленном турнире
       let result;
-      if (Array.isArray(updatedTournament.tournament_results) && updatedTournament.tournament_results.length > 0) {
+      if (
+        Array.isArray(updatedTournament.tournament_results) &&
+        updatedTournament.tournament_results.length > 0
+      ) {
         // Результат пришел как массив
         result = updatedTournament.tournament_results[0];
-        console.log('[BOT] ✅ Результат найден в tournament_results (array):', result);
-      } else if (updatedTournament.tournament_results && typeof updatedTournament.tournament_results === 'object' && !Array.isArray(updatedTournament.tournament_results)) {
+        console.log(
+          "[BOT] ✅ Результат найден в tournament_results (array):",
+          result,
+        );
+      } else if (
+        updatedTournament.tournament_results &&
+        typeof updatedTournament.tournament_results === "object" &&
+        !Array.isArray(updatedTournament.tournament_results)
+      ) {
         // Результат пришел как объект (НЕ массив) - ЭТО НАША ПРОБЛЕМА!
         result = updatedTournament.tournament_results;
-        console.log('[BOT] ✅ Результат найден в tournament_results (object):', result);
+        console.log(
+          "[BOT] ✅ Результат найден в tournament_results (object):",
+          result,
+        );
       } else if (updatedTournament.result) {
         // Fallback: результат в поле result
         result = updatedTournament.result;
-        console.log('[BOT] ✅ Результат найден в result:', result);
+        console.log("[BOT] ✅ Результат найден в result:", result);
       } else {
         // Результат не найден нигде - используем локальные данные
-        console.error('[BOT] ❌ Результат НЕ НАЙДЕН в обновленном турнире! Используем локальные данные.');
-        console.error('[BOT] tournament_results type:', typeof updatedTournament.tournament_results);
-        console.error('[BOT] tournament_results value:', updatedTournament.tournament_results);
+        console.error(
+          "[BOT] ❌ Результат НЕ НАЙДЕН в обновленном турнире! Используем локальные данные.",
+        );
+        console.error(
+          "[BOT] tournament_results type:",
+          typeof updatedTournament.tournament_results,
+        );
+        console.error(
+          "[BOT] tournament_results value:",
+          updatedTournament.tournament_results,
+        );
         result = {
           position,
           payout,
           profit: payout - updatedTournament.buyin,
-          roi: ((payout - updatedTournament.buyin) / updatedTournament.buyin) * 100,
+          roi:
+            ((payout - updatedTournament.buyin) / updatedTournament.buyin) *
+            100,
           notes: "Добавлено через Telegram бота",
         };
       }

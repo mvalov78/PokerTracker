@@ -1,100 +1,103 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { getAllTournaments, deleteTournament } from '@/data/mockData'
-import type { Tournament } from '@/types'
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { getAllTournaments, deleteTournament } from "@/data/mockData";
+import type { Tournament } from "@/types";
 
 export default function TournamentsPage() {
-  const router = useRouter()
-  const [searchTerm, setSearchTerm] = useState('')
-  const [tournaments, setTournaments] = useState<Tournament[]>([])
+  const router = useRouter();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
 
   // Загружаем турниры при монтировании компонента
   useEffect(() => {
     const loadTournaments = async () => {
       try {
         // Сначала пробуем загрузить через API
-        const response = await fetch('/api/tournaments')
+        const response = await fetch("/api/tournaments");
         if (response.ok) {
-          const data = await response.json()
+          const data = await response.json();
           if (data.success) {
-            console.warn('[WEB] Загружено турниров:', data.tournaments.length)
+            console.warn("[WEB] Загружено турниров:", data.tournaments.length);
             data.tournaments.forEach((t: any) => {
-              console.warn('[WEB] Турнир:', {
+              console.warn("[WEB] Турнир:", {
                 name: t.name,
                 id: t.id,
                 has_result: !!t.result,
                 has_tournament_results: !!t.tournament_results,
                 tournament_results_type: typeof t.tournament_results,
-                tournament_results_value: t.tournament_results
-              })
-            })
-            setTournaments(data.tournaments)
-            return
+                tournament_results_value: t.tournament_results,
+              });
+            });
+            setTournaments(data.tournaments);
+            return;
           }
         }
       } catch (error) {
-        console.error('Ошибка загрузки турниров через API:', error)
+        console.error("Ошибка загрузки турниров через API:", error);
       }
-      
+
       // Fallback на localStorage
-      const allTournaments = getAllTournaments()
-      setTournaments(allTournaments)
-    }
-    
-    loadTournaments()
-    
+      const allTournaments = getAllTournaments();
+      setTournaments(allTournaments);
+    };
+
+    loadTournaments();
+
     // Обновляем каждые 2 секунды для синхронизации с ботом
-    const interval = setInterval(loadTournaments, 2000)
-    return () => clearInterval(interval)
-  }, [])
+    const interval = setInterval(loadTournaments, 2000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Обработчик удаления турнира
   const handleDeleteTournament = async (tournament: Tournament) => {
     const confirmDelete = confirm(
       `Вы уверены, что хотите удалить турнир "${tournament.name}"?\n\n` +
-      `Это действие нельзя отменить. Будут удалены:\n` +
-      `• Данные турнира\n` +
-      `• Результаты (если есть)\n` +
-      `• Вся связанная информация`
-    )
-    
+        `Это действие нельзя отменить. Будут удалены:\n` +
+        `• Данные турнира\n` +
+        `• Результаты (если есть)\n` +
+        `• Вся связанная информация`,
+    );
+
     if (confirmDelete) {
       try {
         // Пробуем удалить через API
         const response = await fetch(`/api/tournaments?id=${tournament.id}`, {
-          method: 'DELETE'
-        })
-        
+          method: "DELETE",
+        });
+
         if (response.ok) {
           // Обновляем список турниров немедленно
-          const updatedTournaments = tournaments.filter(t => t.id !== tournament.id)
-          setTournaments(updatedTournaments)
-          alert(`Турнир "${tournament.name}" успешно удален`)
+          const updatedTournaments = tournaments.filter(
+            (t) => t.id !== tournament.id,
+          );
+          setTournaments(updatedTournaments);
+          alert(`Турнир "${tournament.name}" успешно удален`);
         } else {
-          throw new Error('API deletion failed')
+          throw new Error("API deletion failed");
         }
       } catch (error) {
-        console.error('Ошибка удаления через API, пробуем fallback:', error)
-        
+        console.error("Ошибка удаления через API, пробуем fallback:", error);
+
         // Fallback на localStorage
-        const success = deleteTournament(tournament.id)
+        const success = deleteTournament(tournament.id);
         if (success) {
-          const updatedTournaments = getAllTournaments()
-          setTournaments(updatedTournaments)
-          alert(`Турнир "${tournament.name}" успешно удален`)
+          const updatedTournaments = getAllTournaments();
+          setTournaments(updatedTournaments);
+          alert(`Турнир "${tournament.name}" успешно удален`);
         } else {
-          alert('Ошибка при удалении турнира')
+          alert("Ошибка при удалении турнира");
         }
       }
     }
-  }
+  };
 
-  const filteredTournaments = tournaments.filter(tournament =>
-    tournament.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    tournament.venue.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const filteredTournaments = tournaments.filter(
+    (tournament) =>
+      tournament.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      tournament.venue.toLowerCase().includes(searchTerm.toLowerCase()),
+  );
 
   return (
     <div className="min-h-screen bg-gray-100 p-8">
@@ -121,13 +124,13 @@ export default function TournamentsPage() {
             />
             <div className="flex gap-3">
               <button
-                onClick={() => router.push('/tournaments/add')}
+                onClick={() => router.push("/tournaments/add")}
                 className="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition-colors"
               >
                 ➕ Добавить турнир
               </button>
               <button
-                onClick={() => router.push('/analytics')}
+                onClick={() => router.push("/analytics")}
                 className="bg-purple-500 text-white px-6 py-2 rounded-lg hover:bg-purple-600 transition-colors"
               >
                 📊 Статистика
@@ -144,17 +147,21 @@ export default function TournamentsPage() {
             </div>
             <div className="text-gray-600">Всего турниров</div>
           </div>
-          
+
           <div className="bg-white rounded-lg shadow p-6 text-center">
             <div className="text-3xl font-bold text-green-600 mb-2">
               ${filteredTournaments.reduce((sum, t) => sum + t.buyin, 0)}
             </div>
             <div className="text-gray-600">Общий бай-ин</div>
           </div>
-          
+
           <div className="bg-white rounded-lg shadow p-6 text-center">
             <div className="text-3xl font-bold text-purple-600 mb-2">
-              ${filteredTournaments.reduce((sum, t) => sum + (t.result?.payout || 0), 0)}
+              $
+              {filteredTournaments.reduce(
+                (sum, t) => sum + (t.result?.payout || 0),
+                0,
+              )}
             </div>
             <div className="text-gray-600">Общий выигрыш</div>
           </div>
@@ -172,7 +179,7 @@ export default function TournamentsPage() {
                 Попробуйте изменить поиск или добавить новый турнир
               </p>
               <button
-                onClick={() => router.push('/tournaments/add')}
+                onClick={() => router.push("/tournaments/add")}
                 className="bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 transition-colors"
               >
                 ➕ Добавить первый турнир
@@ -180,24 +187,40 @@ export default function TournamentsPage() {
             </div>
           ) : (
             filteredTournaments.map((tournament) => (
-              <div key={tournament.id} className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow p-6">
+              <div
+                key={tournament.id}
+                className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow p-6"
+              >
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between">
                   {/* Tournament Info */}
                   <div className="flex items-start space-x-4 mb-4 lg:mb-0">
                     {/* Status Icon */}
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-xl ${
-                      tournament.result?.position === 1 ? 'bg-yellow-500' :
-                      tournament.result?.position <= 3 ? 'bg-gray-400' :
-                      tournament.result && tournament.result.payout > 0 ? 'bg-green-500' :
-                      tournament.result ? 'bg-red-500' : 'bg-blue-500'
-                    }`}>
-                      {tournament.result ? 
-                        (tournament.result.position === 1 ? '🥇' : 
-                         tournament.result.position === 2 ? '🥈' : 
-                         tournament.result.position === 3 ? '🥉' : 
-                         tournament.result.payout > 0 ? '💰' : '❌') : '⏳'}
+                    <div
+                      className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-xl ${
+                        tournament.result?.position === 1
+                          ? "bg-yellow-500"
+                          : tournament.result?.position <= 3
+                            ? "bg-gray-400"
+                            : tournament.result && tournament.result.payout > 0
+                              ? "bg-green-500"
+                              : tournament.result
+                                ? "bg-red-500"
+                                : "bg-blue-500"
+                      }`}
+                    >
+                      {tournament.result
+                        ? tournament.result.position === 1
+                          ? "🥇"
+                          : tournament.result.position === 2
+                            ? "🥈"
+                            : tournament.result.position === 3
+                              ? "🥉"
+                              : tournament.result.payout > 0
+                                ? "💰"
+                                : "❌"
+                        : "⏳"}
                     </div>
-                    
+
                     {/* Tournament Details */}
                     <div className="flex-1">
                       <div className="flex items-center space-x-3 mb-2">
@@ -208,9 +231,14 @@ export default function TournamentsPage() {
                           {tournament.tournamentType}
                         </span>
                       </div>
-                      
+
                       <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
-                        <span>📅 {new Date(tournament.date).toLocaleDateString('ru-RU')}</span>
+                        <span>
+                          📅{" "}
+                          {new Date(tournament.date).toLocaleDateString(
+                            "ru-RU",
+                          )}
+                        </span>
                         <span>🏨 {tournament.venue}</span>
                         <span>💵 Бай-ин: ${tournament.buyin}</span>
                         {tournament.participants && (
@@ -224,11 +252,12 @@ export default function TournamentsPage() {
                   <div className="flex flex-col lg:items-end space-y-2">
                     {(() => {
                       // Получаем результат из правильного поля
-                      const result = tournament.result || 
-                        (Array.isArray(tournament.tournament_results) 
-                          ? tournament.tournament_results[0] 
+                      const result =
+                        tournament.result ||
+                        (Array.isArray(tournament.tournament_results)
+                          ? tournament.tournament_results[0]
                           : tournament.tournament_results);
-                      
+
                       return result ? (
                         <div className="flex items-center space-x-4">
                           <div className="text-right">
@@ -237,45 +266,64 @@ export default function TournamentsPage() {
                               #{result.position}
                             </div>
                           </div>
-                          
+
                           <div className="text-right">
                             <div className="text-sm text-gray-500">Выигрыш</div>
-                            <div className={`text-lg font-bold ${
-                              result.payout > 0 ? 'text-green-600' : 'text-gray-500'
-                            }`}>
-                              {result.payout > 0 ? `$${result.payout}` : 'Без призов'}
+                            <div
+                              className={`text-lg font-bold ${
+                                result.payout > 0
+                                  ? "text-green-600"
+                                  : "text-gray-500"
+                              }`}
+                            >
+                              {result.payout > 0
+                                ? `$${result.payout}`
+                                : "Без призов"}
                             </div>
                           </div>
-                          
+
                           <div className="text-right">
                             <div className="text-sm text-gray-500">ROI</div>
-                            <div className={`text-lg font-bold ${
-                              result.roi > 0 ? 'text-green-600' : 'text-red-600'
-                            }`}>
-                              {result.roi > 0 ? '+' : ''}{result.roi.toFixed(1)}%
+                            <div
+                              className={`text-lg font-bold ${
+                                result.roi > 0
+                                  ? "text-green-600"
+                                  : "text-red-600"
+                              }`}
+                            >
+                              {result.roi > 0 ? "+" : ""}
+                              {result.roi.toFixed(1)}%
                             </div>
                           </div>
                         </div>
                       ) : (
                         <div className="text-center lg:text-right">
-                          <div className="text-blue-600 font-semibold">Предстоящий</div>
+                          <div className="text-blue-600 font-semibold">
+                            Предстоящий
+                          </div>
                           <div className="text-sm text-gray-500">
-                            {new Date(tournament.date).toLocaleDateString('ru-RU')}
+                            {new Date(tournament.date).toLocaleDateString(
+                              "ru-RU",
+                            )}
                           </div>
                         </div>
                       );
                     })()}
-                    
+
                     {/* Action Buttons */}
                     <div className="flex space-x-2 mt-4">
-                      <button 
-                        onClick={() => router.push(`/tournaments/${tournament.id}`)}
+                      <button
+                        onClick={() =>
+                          router.push(`/tournaments/${tournament.id}`)
+                        }
                         className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors text-sm"
                       >
                         👁️ Подробнее
                       </button>
-                      <button 
-                        onClick={() => router.push(`/tournaments/${tournament.id}/edit`)}
+                      <button
+                        onClick={() =>
+                          router.push(`/tournaments/${tournament.id}/edit`)
+                        }
                         className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition-colors text-sm"
                       >
                         ✏️ Редактировать
@@ -283,34 +331,49 @@ export default function TournamentsPage() {
                       {(() => {
                         // Проверяем наличие результата (как в боте)
                         const hasResult = !!(
-                          tournament.result || 
-                          (Array.isArray(tournament.tournament_results) && tournament.tournament_results.length > 0) ||
-                          (tournament.tournament_results && 
-                           typeof tournament.tournament_results === 'object' && 
-                           !Array.isArray(tournament.tournament_results) &&
-                           tournament.tournament_results !== null &&
-                           Object.keys(tournament.tournament_results).length > 0)
+                          tournament.result ||
+                          (Array.isArray(tournament.tournament_results) &&
+                            tournament.tournament_results.length > 0) ||
+                          (tournament.tournament_results &&
+                            typeof tournament.tournament_results === "object" &&
+                            !Array.isArray(tournament.tournament_results) &&
+                            tournament.tournament_results !== null &&
+                            Object.keys(tournament.tournament_results).length >
+                              0)
                         );
-                        
-                        console.warn('[WEB] Проверка результата для', tournament.name, ':', hasResult);
-                        
+
+                        console.warn(
+                          "[WEB] Проверка результата для",
+                          tournament.name,
+                          ":",
+                          hasResult,
+                        );
+
                         return hasResult ? (
-                          <button 
-                            onClick={() => router.push(`/tournaments/${tournament.id}#edit-result`)}
+                          <button
+                            onClick={() =>
+                              router.push(
+                                `/tournaments/${tournament.id}#edit-result`,
+                              )
+                            }
                             className="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600 transition-colors text-sm"
                           >
                             ✏️ Редактировать результат
                           </button>
                         ) : (
-                          <button 
-                            onClick={() => router.push(`/tournaments/${tournament.id}#add-result`)}
+                          <button
+                            onClick={() =>
+                              router.push(
+                                `/tournaments/${tournament.id}#add-result`,
+                              )
+                            }
                             className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors text-sm"
                           >
                             ➕ Добавить результат
                           </button>
                         );
                       })()}
-                      <button 
+                      <button
                         onClick={() => handleDeleteTournament(tournament)}
                         className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors text-sm"
                         title="Удалить турнир"
@@ -328,7 +391,7 @@ export default function TournamentsPage() {
         {/* Back to Home */}
         <div className="mt-8 text-center">
           <button
-            onClick={() => router.push('/')}
+            onClick={() => router.push("/")}
             className="bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition-colors"
           >
             ← Вернуться на главную
@@ -336,5 +399,5 @@ export default function TournamentsPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

@@ -96,8 +96,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           {
             success: false,
-            error:
-              error instanceof Error ? error.message : "Unknown error",
+            error: error instanceof Error ? error.message : "Unknown error",
             mode: "webhook",
             webhookUrl: webhookUrl,
           },
@@ -204,8 +203,7 @@ export async function GET(request: NextRequest) {
       recommendation:
         botMode === "webhook" && !webhookUrl
           ? "⚠️ BOT_MODE=webhook но BOT_WEBHOOK_URL не задан"
-          : botMode === "webhook" &&
-              webhookInfo.result?.url !== webhookUrl
+          : botMode === "webhook" && webhookInfo.result?.url !== webhookUrl
             ? "⚠️ Webhook URL в Telegram не совпадает с BOT_WEBHOOK_URL. Вызовите POST /api/bot/init для синхронизации"
             : "✅ Конфигурация корректна",
     });
@@ -220,4 +218,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-

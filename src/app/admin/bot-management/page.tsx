@@ -48,7 +48,9 @@ export default function BotManagementPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Проверка аутентификации...</p>
+          <p className="text-gray-600 dark:text-gray-400">
+            Проверка аутентификации...
+          </p>
         </div>
       </div>
     );
@@ -58,12 +60,14 @@ export default function BotManagementPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-red-600 mb-4">Доступ запрещен</h1>
+          <h1 className="text-2xl font-bold text-red-600 mb-4">
+            Доступ запрещен
+          </h1>
           <p className="text-gray-600 dark:text-gray-400 mb-4">
             {!user ? "Требуется авторизация" : "Требуются права администратора"}
           </p>
-          <a 
-            href="/auth" 
+          <a
+            href="/auth"
             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
           >
             Перейти к авторизации

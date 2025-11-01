@@ -1,0 +1,71 @@
+# Cursor Rules Configuration
+# Custom modes for structured development workflow
+
+## Mode System
+This project uses a structured development workflow with custom modes:
+
+### VAN Mode - Initialization & Analysis
+- Platform detection and environment setup
+- File structure verification
+- Complexity determination
+- Technical validation (VAN QA)
+
+### PLAN Mode - Task Planning
+- Task breakdown and analysis
+- Timeline estimation
+- Risk assessment
+- Documentation planning
+
+### CREATIVE Mode - Design Decisions
+- Architecture design
+- UI/UX decisions
+- Technology selection
+- Pattern selection
+
+### BUILD Mode - Implementation
+- Code implementation
+- Testing
+- Documentation
+- Progress tracking
+
+### REFLECT Mode - Review & Retrospective
+- Task review
+- Lessons learned
+- Metrics analysis
+- Improvements identification
+
+### ARCHIVE Mode - Documentation
+- Task documentation
+- Knowledge base update
+- Archive creation
+- Future reference preparation
+
+## Usage
+Type the mode name (e.g., "VAN", "PLAN", "CREATIVE", etc.) to activate that mode.
+
+### Quick Mode Activation Commands:
+- Type `VAN` to start initialization and analysis
+- Type `PLAN` to begin task planning
+- Type `CREATIVE` to make design decisions
+- Type `BUILD` to start implementation
+- Type `REFLECT` to review completed work
+- Type `ARCHIVE` to document the task
+- Type `VAN QA` for technical validation
+
+### Mode Indicators:
+When a mode is active, the AI will respond with:
+- `OK VAN - Beginning Initialization Process`
+- `OK PLAN - Beginning Task Planning`
+- `OK CREATIVE - Beginning Design Phase`
+- `OK BUILD - Beginning Implementation`
+- `OK REFLECT - Beginning Task Review`
+- `OK ARCHIVE - Beginning Documentation`
+
+## Memory Bank
+All modes use a centralized Memory Bank system located in `memory-bank/` directory.
+
+## Always Applied Rules
+- `.cursor/rules/basic-rules.mdc` - Core coding standards
+- `.cursor/rules/isolation_rules/main.mdc` - Main workflow system
+- `.cursor/rules/global.mdc` - Project architecture and guidelines
+

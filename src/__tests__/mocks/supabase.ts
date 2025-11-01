@@ -3,13 +3,13 @@
  */
 
 export interface MockSupabaseResponse<T = any> {
-  data: T | null
-  error: any | null
+  data: T | null;
+  error: any | null;
 }
 
 export function createMockSupabaseClient() {
-  let mockData: any = null
-  let mockError: any = null
+  let mockData: any = null;
+  let mockError: any = null;
 
   const createChain = () => ({
     from: jest.fn(() => createChain()),
@@ -19,7 +19,9 @@ export function createMockSupabaseClient() {
     upsert: jest.fn(() => createChain()),
     delete: jest.fn(() => createChain()),
     eq: jest.fn(() => createChain()),
-    single: jest.fn(() => Promise.resolve({ data: mockData, error: mockError })),
+    single: jest.fn(() =>
+      Promise.resolve({ data: mockData, error: mockError }),
+    ),
     order: jest.fn(() => createChain()),
     limit: jest.fn(() => createChain()),
     not: jest.fn(() => createChain()),
@@ -27,53 +29,59 @@ export function createMockSupabaseClient() {
     rpc: jest.fn(() => Promise.resolve({ data: mockData, error: mockError })),
     then: jest.fn((callback) => callback({ data: mockData, error: mockError })),
     catch: jest.fn(),
-  })
+  });
 
   return {
     client: createChain(),
-    setMockData: (data: any) => { mockData = data },
-    setMockError: (error: any) => { mockError = error },
-    resetMocks: () => {
-      mockData = null
-      mockError = null
+    setMockData: (data: any) => {
+      mockData = data;
     },
-  }
+    setMockError: (error: any) => {
+      mockError = error;
+    },
+    resetMocks: () => {
+      mockData = null;
+      mockError = null;
+    },
+  };
 }
 
 export function createMockAdminClient() {
-  return createMockSupabaseClient()
+  return createMockSupabaseClient();
 }
 
 export interface MockBotSession {
-  user_id: number
-  session_data: any
-  expires_at: string
-  created_at: string
-  updated_at: string
+  user_id: number;
+  session_data: any;
+  expires_at: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface MockBotSetting {
-  id: string
-  setting_key: string
-  setting_value: string
-  created_at: string
-  updated_at: string
+  id: string;
+  setting_key: string;
+  setting_value: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface MockUserSettings {
-  id: string
-  user_id: string
-  current_venue?: string
-  notification_preferences: any
-  created_at: string
-  updated_at: string
+  id: string;
+  user_id: string;
+  current_venue?: string;
+  notification_preferences: any;
+  created_at: string;
+  updated_at: string;
 }
 
-export function createMockBotSession(overrides?: Partial<MockBotSession>): MockBotSession {
+export function createMockBotSession(
+  overrides?: Partial<MockBotSession>,
+): MockBotSession {
   return {
     user_id: 123456789,
     session_data: {
-      userId: '123456789',
+      userId: "123456789",
       currentAction: undefined,
       tournamentData: undefined,
       ocrData: undefined,
@@ -82,13 +90,13 @@ export function createMockBotSession(overrides?: Partial<MockBotSession>): MockB
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     ...overrides,
-  }
+  };
 }
 
 export function createMockBotSetting(
   key: string,
   value: string,
-  overrides?: Partial<MockBotSetting>
+  overrides?: Partial<MockBotSetting>,
 ): MockBotSetting {
   return {
     id: `setting_${key}`,
@@ -97,14 +105,16 @@ export function createMockBotSetting(
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     ...overrides,
-  }
+  };
 }
 
-export function createMockUserSettings(overrides?: Partial<MockUserSettings>): MockUserSettings {
+export function createMockUserSettings(
+  overrides?: Partial<MockUserSettings>,
+): MockUserSettings {
   return {
-    id: 'settings_123',
-    user_id: 'user_123',
-    current_venue: 'Test Casino',
+    id: "settings_123",
+    user_id: "user_123",
+    current_venue: "Test Casino",
     notification_preferences: {
       reminders: true,
       weeklyStats: true,
@@ -113,13 +123,5 @@ export function createMockUserSettings(overrides?: Partial<MockUserSettings>): M
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     ...overrides,
-  }
+  };
 }
-
-
-
-
-
-
-
-

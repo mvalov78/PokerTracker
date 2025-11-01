@@ -59,7 +59,9 @@ export default function TelegramIntegration() {
 
   // Unlink Telegram account
   const unlinkTelegram = async () => {
-    if (!confirm("Вы уверены, что хотите отвязать Telegram аккаунт?")) {return;}
+    if (!confirm("Вы уверены, что хотите отвязать Telegram аккаунт?")) {
+      return;
+    }
 
     try {
       const response = await fetch("/api/telegram/unlink", {
@@ -241,4 +243,3 @@ export default function TelegramIntegration() {
     </Card>
   );
 }
-

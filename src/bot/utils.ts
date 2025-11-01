@@ -1,83 +1,28 @@
 /**
- * Утилиты для Telegram бота
+ * Telegram bot utilities
  */
 
+import {
+  formatCurrency as commonFormatCurrency,
+  formatPercentage as commonFormatPercentage,
+  formatDate,
+  formatTimeUntil,
+} from "@/lib/common/formatters";
 import type { BotContext } from "./index";
 
-/**
- * Форматирование валюты
- */
-export function formatCurrency(
-  amount: number,
-  currency: string = "USD",
-): string {
-  const symbols: Record<string, string> = {
-    USD: "$",
-    EUR: "€",
-    RUB: "₽",
-  };
-
-  const symbol = symbols[currency] || "$";
-  return `${symbol}${amount.toLocaleString()}`;
+// Re-export formatters with bot-specific behavior
+export function formatCurrency(amount: number, currency = "USD"): string {
+  return commonFormatCurrency(amount, currency);
 }
 
-/**
- * Форматирование процентов
- */
 export function formatPercentage(value: number, decimals: number = 1): string {
-  const sign = value > 0 ? "+" : "";
-  return `${sign}${value.toFixed(decimals)}%`;
+  return commonFormatPercentage(value, decimals, true);
 }
 
-/**
- * Форматирование даты для Telegram
- */
-export function formatDate(
-  date: string | Date,
-  options?: Intl.DateTimeFormatOptions,
-): string {
-  const dateObj = typeof date === "string" ? new Date(date) : date;
-
-  const defaultOptions: Intl.DateTimeFormatOptions = {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  };
-
-  return dateObj.toLocaleDateString("ru-RU", { ...defaultOptions, ...options });
-}
+export { formatDate, formatTimeUntil };
 
 /**
- * Форматирование времени до события
- */
-export function formatTimeUntil(date: string | Date): string {
-  const targetDate = typeof date === "string" ? new Date(date) : date;
-  const now = new Date();
-  const diffMs = targetDate.getTime() - now.getTime();
-
-  if (diffMs < 0) {
-    return "Прошло";
-  }
-
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  const diffHours = Math.floor(
-    (diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
-  );
-  const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-
-  if (diffDays > 0) {
-    return `через ${diffDays} дн. ${diffHours} ч.`;
-  } else if (diffHours > 0) {
-    return `через ${diffHours} ч. ${diffMinutes} мин.`;
-  } else {
-    return `через ${diffMinutes} мин.`;
-  }
-}
-
-/**
- * Создание клавиатуры с кнопками
+ * Create inline keyboard with buttons
  */
 export function createInlineKeyboard(
   buttons: Array<Array<{ text: string; data: string }>>,
@@ -93,7 +38,7 @@ export function createInlineKeyboard(
 }
 
 /**
- * Создание клавиатуры для выбора из списка
+ * Create selection keyboard from a list of items
  */
 export function createSelectionKeyboard<T>(
   items: T[],
@@ -116,14 +61,14 @@ export function createSelectionKeyboard<T>(
 }
 
 /**
- * Экранирование специальных символов для Markdown
+ * Escape special characters for Markdown
  */
 export function escapeMarkdown(text: string): string {
   return text.replace(/[_*[\]()~`>#+=|{}.!-]/g, "\\$&");
 }
 
 /**
- * Получение информации о пользователе
+ * Get user information from context
  */
 export function getUserInfo(ctx: BotContext): {
   id: string;
@@ -156,14 +101,14 @@ export function getUserInfo(ctx: BotContext): {
 }
 
 /**
- * Проверка прав доступа пользователя
+ * Check if user has access based on allowed users list
  */
 export function checkUserAccess(
   ctx: BotContext,
   allowedUsers?: string[],
 ): boolean {
   if (!allowedUsers || allowedUsers.length === 0) {
-    return true; // Доступ для всех, если список не задан
+    return true; // Access for everyone if list is not set
   }
 
   const userId = ctx.from?.id.toString();
@@ -176,7 +121,7 @@ export function checkUserAccess(
 }
 
 /**
- * Логирование действий пользователя
+ * Log user action
  */
 export function logUserAction(ctx: BotContext, action: string, details?: any) {
   const user = getUserInfo(ctx);
@@ -189,7 +134,7 @@ export function logUserAction(ctx: BotContext, action: string, details?: any) {
 }
 
 /**
- * Создание прогресс-бара
+ * Create progress bar
  */
 export function createProgressBar(
   current: number,
@@ -207,7 +152,7 @@ export function createProgressBar(
 }
 
 /**
- * Генерация случайного ID
+ * Generate random ID
  */
 export function generateId(prefix: string = "", length: number = 8): string {
   const chars =
@@ -222,7 +167,7 @@ export function generateId(prefix: string = "", length: number = 8): string {
 }
 
 /**
- * Валидация данных турнира
+ * Validate tournament data
  */
 export function validateTournamentData(data: any): {
   valid: boolean;
@@ -253,7 +198,7 @@ export function validateTournamentData(data: any): {
 }
 
 /**
- * Валидация результата турнира
+ * Validate tournament result
  */
 export function validateTournamentResult(data: any): {
   valid: boolean;
@@ -283,7 +228,7 @@ export function validateTournamentResult(data: any): {
 }
 
 /**
- * Парсинг команды с параметрами
+ * Parse command with parameters
  */
 export function parseCommand(text: string): {
   command: string;
@@ -297,7 +242,7 @@ export function parseCommand(text: string): {
 }
 
 /**
- * Создание сообщения об ошибке
+ * Create error message
  */
 export function createErrorMessage(error: string, suggestion?: string): string {
   let message = `❌ ${error}`;
@@ -310,7 +255,7 @@ export function createErrorMessage(error: string, suggestion?: string): string {
 }
 
 /**
- * Создание сообщения об успехе
+ * Create success message
  */
 export function createSuccessMessage(
   message: string,
@@ -326,7 +271,7 @@ export function createSuccessMessage(
 }
 
 /**
- * Ограничение длины текста
+ * Truncate text to max length
  */
 export function truncateText(text: string, maxLength: number = 4096): string {
   if (text.length <= maxLength) {
@@ -337,7 +282,7 @@ export function truncateText(text: string, maxLength: number = 4096): string {
 }
 
 /**
- * Создание меню с пагинацией
+ * Create menu with pagination
  */
 export function createPaginatedMenu<T>(
   items: T[],
@@ -358,7 +303,7 @@ export function createPaginatedMenu<T>(
     },
   ]);
 
-  // Добавляем кнопки навигации
+  // Add navigation buttons
   const navButtons = [];
   if (page > 0) {
     navButtons.push({

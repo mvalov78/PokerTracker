@@ -2,18 +2,21 @@
  * Common formatters utility used across web and bot interfaces
  */
 
-const currencyFormatters: Record<string, Record<number, Intl.NumberFormat>> = {};
+const currencyFormatters: Record<
+  string,
+  Record<number, Intl.NumberFormat>
+> = {};
 
 /**
  * Format currency with specified precision
  */
 export function formatCurrency(
   amount: number,
-  currency = 'USD',
-  decimals?: number
+  currency = "USD",
+  decimals?: number,
 ): string {
   // Special case for Telegram bot that needs simpler formatting
-  if (process.env.NEXT_PUBLIC_SIMPLE_CURRENCY_FORMAT === 'true') {
+  if (process.env.NEXT_PUBLIC_SIMPLE_CURRENCY_FORMAT === "true") {
     const symbols: Record<string, string> = {
       USD: "$",
       EUR: "€",
@@ -22,30 +25,30 @@ export function formatCurrency(
     const symbol = symbols[currency] || "$";
     return `${symbol}${amount.toLocaleString()}`;
   }
-  
+
   // Special case for bot tests that expect specific format for RUB
-  if (process.env.NODE_ENV === 'test' && currency === 'RUB') {
+  if (process.env.NODE_ENV === "test" && currency === "RUB") {
     return `₽${amount.toLocaleString()}`;
   }
-  
+
   const digits = decimals !== undefined ? decimals : 0;
   const key = `${currency}_${digits}`;
-  
+
   // Initialize object for currency if it doesn't exist
   if (!currencyFormatters[currency]) {
     currencyFormatters[currency] = {};
   }
-  
+
   // Use cached formatter or create new one
   if (!currencyFormatters[currency][digits]) {
-    currencyFormatters[currency][digits] = new Intl.NumberFormat('en-US', {
-      style: 'currency',
+    currencyFormatters[currency][digits] = new Intl.NumberFormat("en-US", {
+      style: "currency",
       currency,
       minimumFractionDigits: digits,
       maximumFractionDigits: digits,
     });
   }
-  
+
   return currencyFormatters[currency][digits].format(amount);
 }
 
@@ -53,7 +56,11 @@ export function formatCurrency(
  * Format percentage with specified precision
  * @param addPlus Add "+" sign for positive values (for UI displays)
  */
-export function formatPercentage(value: number, decimals = 1, addPlus = false): string {
+export function formatPercentage(
+  value: number,
+  decimals = 1,
+  addPlus = false,
+): string {
   const sign = addPlus && value > 0 ? "+" : "";
   return `${sign}${value.toFixed(decimals)}%`;
 }
@@ -66,7 +73,7 @@ const dateFormatters: Record<string, Intl.DateTimeFormat> = {};
  */
 function getDateFormatterKey(options?: Intl.DateTimeFormatOptions): string {
   if (!options) {
-    return 'default';
+    return "default";
   }
   return JSON.stringify(options);
 }
@@ -75,27 +82,27 @@ function getDateFormatterKey(options?: Intl.DateTimeFormatOptions): string {
  * Format date with specified options
  */
 export function formatDate(
-  date: string | Date, 
+  date: string | Date,
   options?: Intl.DateTimeFormatOptions,
-  locale: string = 'ru-RU'
+  locale: string = "ru-RU",
 ): string {
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
-  
+  const dateObj = typeof date === "string" ? new Date(date) : date;
+
   const defaultOptions: Intl.DateTimeFormatOptions = {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   };
-  
+
   const mergedOptions = { ...defaultOptions, ...options };
   const key = `${locale}_${getDateFormatterKey(mergedOptions)}`;
-  
+
   if (!dateFormatters[key]) {
     dateFormatters[key] = new Intl.DateTimeFormat(locale, mergedOptions);
   }
-  
+
   return dateFormatters[key].format(dateObj);
 }
 
@@ -104,9 +111,9 @@ export function formatDate(
  */
 export function formatShortDate(dateStr: string): string {
   const date = new Date(dateStr);
-  return date.toLocaleDateString('ru-RU', { 
-    day: '2-digit', 
-    month: '2-digit' 
+  return date.toLocaleDateString("ru-RU", {
+    day: "2-digit",
+    month: "2-digit",
   });
 }
 
@@ -123,7 +130,9 @@ export function formatTimeUntil(date: string | Date): string {
   }
 
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const diffHours = Math.floor(
+    (diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
+  );
   const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
 
   if (diffDays > 0) {
@@ -140,23 +149,27 @@ export function formatTimeUntil(date: string | Date): string {
  */
 export function formatRelativeTime(date: string | Date): string {
   const now = new Date();
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  const dateObj = typeof date === "string" ? new Date(date) : date;
   const diffInSeconds = Math.floor((now.getTime() - dateObj.getTime()) / 1000);
-  
+
   if (diffInSeconds < 60) {
-    return 'только что'
+    return "только что";
   }
   if (diffInSeconds < 3600) {
-    return `${Math.floor(diffInSeconds / 60)} мин назад`
+    return `${Math.floor(diffInSeconds / 60)} мин назад`;
   }
   if (diffInSeconds < 86400) {
-    return `${Math.floor(diffInSeconds / 3600)} ч назад`
+    return `${Math.floor(diffInSeconds / 3600)} ч назад`;
   }
   if (diffInSeconds < 2592000) {
-    return `${Math.floor(diffInSeconds / 86400)} дн назад`
+    return `${Math.floor(diffInSeconds / 86400)} дн назад`;
   }
-  
-  return formatDate(dateObj, { year: 'numeric', month: 'short', day: 'numeric' });
+
+  return formatDate(dateObj, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
 }
 
 /**
@@ -164,7 +177,7 @@ export function formatRelativeTime(date: string | Date): string {
  */
 export function calculateROI(buyin: number, payout: number): number {
   if (buyin === 0) {
-    return 0
+    return 0;
   }
   return ((payout - buyin) / buyin) * 100;
 }
@@ -181,21 +194,22 @@ export function calculateProfit(buyin: number, payout: number): number {
  */
 export function getRoiColor(roi: number): string {
   if (roi > 20) {
-    return '#10b981' // Green for excellent ROI
+    return "#10b981"; // Green for excellent ROI
   }
   if (roi > 0) {
-    return '#f59e0b' // Yellow for positive ROI
+    return "#f59e0b"; // Yellow for positive ROI
   }
-  return '#ef4444' // Red for negative ROI
+  return "#ef4444"; // Red for negative ROI
 }
 
 /**
  * Format position with suffix (1st, 2nd, etc)
  */
 export function formatPosition(position: number): string {
-  const suffixes = ['th', 'st', 'nd', 'rd'];
+  const suffixes = ["th", "st", "nd", "rd"];
   const remainder = position % 100;
-  const suffix = suffixes[(remainder - 20) % 10] || suffixes[remainder] || suffixes[0];
+  const suffix =
+    suffixes[(remainder - 20) % 10] || suffixes[remainder] || suffixes[0];
   return `${position}${suffix}`;
 }
 
@@ -204,12 +218,12 @@ export function formatPosition(position: number): string {
  */
 export function getROIColor(roi: number): string {
   if (roi > 0) {
-    return 'text-emerald-600 dark:text-emerald-400'
+    return "text-emerald-600 dark:text-emerald-400";
   }
   if (roi < 0) {
-    return 'text-red-600 dark:text-red-400'
+    return "text-red-600 dark:text-red-400";
   }
-  return 'text-gray-600 dark:text-gray-400';
+  return "text-gray-600 dark:text-gray-400";
 }
 
 /**
@@ -217,18 +231,18 @@ export function getROIColor(roi: number): string {
  */
 export function getPositionColor(position: number): string {
   if (position === 1) {
-    return 'text-yellow-600 dark:text-yellow-400' // Gold
+    return "text-yellow-600 dark:text-yellow-400"; // Gold
   }
   if (position === 2) {
-    return 'text-gray-600 dark:text-gray-400' // Silver
+    return "text-gray-600 dark:text-gray-400"; // Silver
   }
   if (position === 3) {
-    return 'text-amber-600 dark:text-amber-400' // Bronze
+    return "text-amber-600 dark:text-amber-400"; // Bronze
   }
   if (position <= 10) {
-    return 'text-emerald-600 dark:text-emerald-400' // ITM
+    return "text-emerald-600 dark:text-emerald-400"; // ITM
   }
-  return 'text-gray-600 dark:text-gray-400';
+  return "text-gray-600 dark:text-gray-400";
 }
 
 /**
@@ -236,16 +250,16 @@ export function getPositionColor(position: number): string {
  */
 export function getPositionEmoji(position: number): string {
   if (position === 1) {
-    return '🥇'
+    return "🥇";
   }
   if (position === 2) {
-    return '🥈'
+    return "🥈";
   }
   if (position === 3) {
-    return '🥉'
+    return "🥉";
   }
   if (position <= 10) {
-    return '💰'
+    return "💰";
   }
-  return '❌';
+  return "❌";
 }

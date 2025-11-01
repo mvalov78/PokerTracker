@@ -1,8 +1,11 @@
-'use client'
+"use client";
 
-import React, { ReactNode } from 'react'
-import { ResponsiveContainer, Tooltip, TooltipProps } from 'recharts'
-import { getDefaultTooltipStyles, formatTooltipValue } from './utils/formatting'
+import React, { ReactNode } from "react";
+import { ResponsiveContainer, Tooltip, TooltipProps } from "recharts";
+import {
+  getDefaultTooltipStyles,
+  formatTooltipValue,
+} from "./utils/formatting";
 
 export interface ChartFactoryProps {
   /**
@@ -14,12 +17,12 @@ export interface ChartFactoryProps {
    * Width of the chart container
    */
   width?: string | number;
-  
+
   /**
    * Height of the chart container
    */
   height?: string | number;
-  
+
   /**
    * Additional CSS classes
    */
@@ -33,8 +36,12 @@ export interface ChartFactoryProps {
   /**
    * Custom tooltip formatter
    */
-  tooltipFormatter?: (value: number, name: string, props: any) => [string, string];
-  
+  tooltipFormatter?: (
+    value: number,
+    name: string,
+    props: any,
+  ) => [string, string];
+
   /**
    * Custom label formatter for tooltip
    */
@@ -53,10 +60,14 @@ export interface ChartFactoryProps {
 export function createChart<TProps extends object = Record<string, never>>(
   ChartComponent: React.ComponentType<TProps>,
   defaultConfig: {
-    tooltipFormatter?: (value: number, name: string, props: any) => [string, string];
+    tooltipFormatter?: (
+      value: number,
+      name: string,
+      props: any,
+    ) => [string, string];
     labelFormatter?: (label: string) => string;
     chartProps?: Partial<TProps>;
-  } = {}
+  } = {},
 ) {
   // Return a higher-order component that wraps BaseChart
   return function EnhancedChart({
@@ -66,13 +77,17 @@ export function createChart<TProps extends object = Record<string, never>>(
     labelFormatter = defaultConfig.labelFormatter,
     chartProps = {},
     ...rest
-  }: { 
-    data: any[],
-    className?: string,
-    tooltipFormatter?: (value: number, name: string, props: any) => [string, string];
+  }: {
+    data: any[];
+    className?: string;
+    tooltipFormatter?: (
+      value: number,
+      name: string,
+      props: any,
+    ) => [string, string];
     labelFormatter?: (label: string) => string;
     chartProps?: Partial<TProps>;
-  } & Omit<ChartFactoryProps, 'children'>) {
+  } & Omit<ChartFactoryProps, "children">) {
     return (
       <BaseChart
         className={className}
@@ -82,12 +97,12 @@ export function createChart<TProps extends object = Record<string, never>>(
       >
         <ChartComponent
           data={data}
-          {...defaultConfig.chartProps as any}
-          {...chartProps as any}
+          {...(defaultConfig.chartProps as any)}
+          {...(chartProps as any)}
         />
       </BaseChart>
-    )
-  }
+    );
+  };
 }
 
 /**
@@ -105,10 +120,10 @@ export function BaseChart({
   showTooltip = true,
 }: ChartFactoryProps) {
   const defaultTooltipStyles = getDefaultTooltipStyles();
-  
+
   const mergedTooltipStyles = {
     ...defaultTooltipStyles,
-    ...tooltipStyles
+    ...tooltipStyles,
   };
 
   // Safe check for null or missing children
@@ -131,14 +146,14 @@ export function BaseChart({
         {React.cloneElement(
           children,
           {},
-          ...(React.Children.toArray(children.props?.children || [])),
+          ...React.Children.toArray(children.props?.children || []),
           showTooltip && (
-            <Tooltip 
+            <Tooltip
               formatter={tooltipFormatter}
               labelFormatter={labelFormatter}
               contentStyle={mergedTooltipStyles}
             />
-          )
+          ),
         )}
       </ResponsiveContainer>
     </div>

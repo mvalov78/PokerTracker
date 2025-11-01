@@ -1,12 +1,8 @@
-'use client'
+"use client";
 
-import React, { ReactNode } from 'react'
-import { 
-  ResponsiveContainer, 
-  Tooltip, 
-  TooltipProps
-} from 'recharts'
-import { getDefaultTooltipStyles } from './utils/formatting'
+import React, { ReactNode } from "react";
+import { ResponsiveContainer, Tooltip, TooltipProps } from "recharts";
+import { getDefaultTooltipStyles } from "./utils/formatting";
 
 export interface BaseChartProps {
   /**
@@ -18,12 +14,12 @@ export interface BaseChartProps {
    * Width of the chart container
    */
   width?: string | number;
-  
+
   /**
    * Height of the chart container
    */
   height?: string | number;
-  
+
   /**
    * Additional CSS classes
    */
@@ -37,8 +33,12 @@ export interface BaseChartProps {
   /**
    * Custom tooltip formatter
    */
-  tooltipFormatter?: (value: number, name: string, props: any) => [string, string];
-  
+  tooltipFormatter?: (
+    value: number,
+    name: string,
+    props: any,
+  ) => [string, string];
+
   /**
    * Custom label formatter for tooltip
    */
@@ -65,10 +65,10 @@ export function BaseChart({
   showTooltip = true,
 }: BaseChartProps) {
   const defaultTooltipStyles = getDefaultTooltipStyles();
-  
+
   const mergedTooltipStyles = {
     ...defaultTooltipStyles,
-    ...tooltipStyles
+    ...tooltipStyles,
   };
 
   // Безопасная проверка на null или отсутствие children
@@ -91,14 +91,14 @@ export function BaseChart({
         {React.cloneElement(
           children,
           {},
-          ...(React.Children.toArray(children.props?.children || [])),
+          ...React.Children.toArray(children.props?.children || []),
           showTooltip && (
-            <Tooltip 
+            <Tooltip
               formatter={tooltipFormatter}
               labelFormatter={labelFormatter}
               contentStyle={mergedTooltipStyles}
             />
-          )
+          ),
         )}
       </ResponsiveContainer>
     </div>

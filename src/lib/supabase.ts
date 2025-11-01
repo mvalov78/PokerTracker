@@ -15,9 +15,17 @@ if (!supabaseUrl || !supabaseAnonKey) {
 export const createClientComponentClient = () => {
   if (!supabaseUrl || !supabaseAnonKey) {
     console.error("🔴 Supabase configuration error:");
-    console.error("NEXT_PUBLIC_SUPABASE_URL:", supabaseUrl ? "✅ Set" : "❌ Missing");
-    console.error("NEXT_PUBLIC_SUPABASE_ANON_KEY:", supabaseAnonKey ? "✅ Set" : "❌ Missing");
-    throw new Error("Supabase credentials missing. Please check environment variables.");
+    console.error(
+      "NEXT_PUBLIC_SUPABASE_URL:",
+      supabaseUrl ? "✅ Set" : "❌ Missing",
+    );
+    console.error(
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY:",
+      supabaseAnonKey ? "✅ Set" : "❌ Missing",
+    );
+    throw new Error(
+      "Supabase credentials missing. Please check environment variables.",
+    );
   }
   console.warn("🟢 Supabase client created successfully");
   return createBrowserClient<Database>(supabaseUrl, supabaseAnonKey);
@@ -66,9 +74,11 @@ export const createAdminClient = () => {
     hasUrl: !!supabaseUrl,
     urlPreview: supabaseUrl ? `${supabaseUrl.substring(0, 30)}...` : "missing",
     hasServiceKey: !!supabaseServiceKey,
-    keyPreview: supabaseServiceKey ? `${supabaseServiceKey.substring(0, 20)}...` : "missing",
+    keyPreview: supabaseServiceKey
+      ? `${supabaseServiceKey.substring(0, 20)}...`
+      : "missing",
     isPlaceholder: supabaseServiceKey === "YOUR_SERVICE_ROLE_KEY_HERE",
-    env: process.env.NODE_ENV
+    env: process.env.NODE_ENV,
   });
 
   if (
@@ -77,9 +87,11 @@ export const createAdminClient = () => {
     supabaseServiceKey === "YOUR_SERVICE_ROLE_KEY_HERE"
   ) {
     console.error("❌ [Supabase Admin] Admin client not available:", {
-      reason: !supabaseUrl ? "Missing SUPABASE_URL" :
-              !supabaseServiceKey ? "Missing SUPABASE_SERVICE_ROLE_KEY" :
-              "Service key is placeholder value"
+      reason: !supabaseUrl
+        ? "Missing SUPABASE_URL"
+        : !supabaseServiceKey
+          ? "Missing SUPABASE_SERVICE_ROLE_KEY"
+          : "Service key is placeholder value",
     });
     return null;
   }

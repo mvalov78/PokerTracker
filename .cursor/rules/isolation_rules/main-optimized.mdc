@@ -1,7 +1,7 @@
 ---
 description: Optimized main rule for improved token efficiency
 globs: main-optimized.mdc
-alwaysApply: false
+alwaysApply: true
 ---
 # 🔍 OPTIMIZED MEMORY BANK SYSTEM
 

@@ -33,15 +33,17 @@ function initializeWebhookBot() {
   webhookBot = new Telegraf(botToken);
   commands = new BotCommands();
   photoHandler = new PhotoHandler();
-  
+
   // Middleware для сессий (загрузка из БД через BotSessionService)
   webhookBot.use(async (ctx, next) => {
     const userId = ctx.from?.id;
     if (!userId) {
-      console.warn("[Telegram Webhook] Нет userId, пропускаем middleware сессии");
+      console.warn(
+        "[Telegram Webhook] Нет userId, пропускаем middleware сессии",
+      );
       return next();
     }
-    
+
     try {
       // Загружаем сессию из БД
       const sessionData = await BotSessionService.getSession(userId);
@@ -50,21 +52,21 @@ function initializeWebhookBot() {
         userId,
         currentAction: sessionData.currentAction,
         hasTournamentData: !!sessionData.tournamentData,
-        sessionKeys: Object.keys(sessionData)
+        sessionKeys: Object.keys(sessionData),
       });
-      
+
       // Выполняем обработчик
       await next();
-      
+
       // Сохраняем сессию обратно в БД
       await BotSessionService.updateSession(userId, ctx.session);
       console.warn(`[Telegram Webhook] Сессия сохранена в БД:`, {
         userId,
         currentAction: ctx.session.currentAction,
-        hasTournamentData: !!ctx.session.tournamentData
+        hasTournamentData: !!ctx.session.tournamentData,
       });
     } catch (error) {
-      console.error('[Telegram Webhook] Session middleware error:', error);
+      console.error("[Telegram Webhook] Session middleware error:", error);
       // Fallback на пустую сессию
       ctx.session = {
         userId: userId.toString(),
@@ -145,50 +147,57 @@ function initializeWebhookBot() {
   webhookBot.on("text", async (ctx) => {
     const text = ctx.message.text;
     const session = ctx.session;
-    
+
     console.warn(`[Telegram Webhook] Текстовое сообщение получено:`, {
       text,
       userId: ctx.from?.id,
       hasSession: !!session,
       currentAction: session?.currentAction,
-      sessionData: session ? {
-        userId: session.userId,
-        currentAction: session.currentAction,
-        hasTournamentData: !!session.tournamentData
-      } : null
+      sessionData: session
+        ? {
+            userId: session.userId,
+            currentAction: session.currentAction,
+            hasTournamentData: !!session.tournamentData,
+          }
+        : null,
     });
-    
+
     // Если текст является командой, пропускаем (обработается command handler)
     if (text.startsWith("/")) {
       console.warn("[Telegram Webhook] Это команда, пропускаем text handler");
       return;
     }
-    
+
     // Если пользователь в процессе регистрации турнира
     if (session?.currentAction === "register_tournament") {
       console.warn("[Telegram Webhook] Обработка регистрации турнира");
       await commands!.handleTournamentRegistration(ctx, text);
       return;
     }
-    
+
     // Если пользователь добавляет результат
     if (session?.currentAction === "add_result") {
-      console.warn("[Telegram Webhook] Обработка ввода результата, tournamentId:", session.tournamentData?.tournamentId);
+      console.warn(
+        "[Telegram Webhook] Обработка ввода результата, tournamentId:",
+        session.tournamentData?.tournamentId,
+      );
       await commands!.handleResultInput(ctx, text);
       return;
     }
-    
+
     // Если пользователь редактирует данные турнира
     if (session?.currentAction === "edit_tournament") {
       console.warn("[Telegram Webhook] Обработка редактирования турнира");
       await commands!.handleTournamentEdit(ctx, text);
       return;
     }
-    
+
     // Обычное текстовое сообщение без контекста
-    console.warn("[Telegram Webhook] Текстовое сообщение без активного действия, отправляем help message");
+    console.warn(
+      "[Telegram Webhook] Текстовое сообщение без активного действия, отправляем help message",
+    );
     await ctx.reply(
-      "🤖 Я не понимаю эту команду. Используйте /help для получения списка доступных команд."
+      "🤖 Я не понимаю эту команду. Используйте /help для получения списка доступных команд.",
     );
   });
 
@@ -196,7 +205,7 @@ function initializeWebhookBot() {
   webhookBot.on("callback_query", async (ctx) => {
     const callbackData = ctx.callbackQuery.data;
     console.warn("[Telegram Webhook] Получен callback_query:", callbackData);
-    
+
     if (!callbackData) {
       await ctx.answerCbQuery("Нет данных в callback");
       return;
@@ -208,19 +217,25 @@ function initializeWebhookBot() {
     try {
       switch (action) {
         case "tournament_select":
-          console.warn(`[Telegram Webhook] Обработка выбора турнира: ${params[0]}`);
+          console.warn(
+            `[Telegram Webhook] Обработка выбора турнира: ${params[0]}`,
+          );
           await commands!.selectTournament(ctx, params[0]);
           console.warn(`[Telegram Webhook] После selectTournament, сессия:`, {
             currentAction: ctx.session?.currentAction,
-            tournamentId: ctx.session?.tournamentData?.tournamentId
+            tournamentId: ctx.session?.tournamentData?.tournamentId,
           });
           break;
         case "result_confirm":
-          console.warn(`[Telegram Webhook] Обработка подтверждения результата: ${params[0]}`);
+          console.warn(
+            `[Telegram Webhook] Обработка подтверждения результата: ${params[0]}`,
+          );
           await commands!.confirmResult(ctx, params[0]);
           break;
         case "notification_toggle":
-          console.warn(`[Telegram Webhook] Переключение уведомлений: ${params[0]}`);
+          console.warn(
+            `[Telegram Webhook] Переключение уведомлений: ${params[0]}`,
+          );
           await commands!.toggleNotification(ctx, params[0]);
           break;
         case "confirm_tournament":
@@ -236,11 +251,16 @@ function initializeWebhookBot() {
           await photoHandler!.editTournament(ctx);
           break;
         default:
-          console.warn(`[Telegram Webhook] Неизвестный callback action: ${action}`);
+          console.warn(
+            `[Telegram Webhook] Неизвестный callback action: ${action}`,
+          );
           await ctx.answerCbQuery("Неизвестная команда");
       }
     } catch (error) {
-      console.error(`[Telegram Webhook] Ошибка обработки callback_query:`, error);
+      console.error(
+        `[Telegram Webhook] Ошибка обработки callback_query:`,
+        error,
+      );
       await ctx.answerCbQuery("Произошла ошибка при обработке команды");
     }
   });
@@ -318,4 +338,3 @@ export async function GET(request: NextRequest) {
     info: "Send POST requests with Telegram updates to this endpoint",
   });
 }
-

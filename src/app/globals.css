@@ -74,33 +74,9 @@
   .input {
     @apply w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:border-poker-green-500 focus:ring-1 focus:ring-poker-green-500 transition-colors duration-200;
   }
-  
-  .gradient-bg {
-    @apply bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900;
-  }
-  
-  .glass-card {
-    @apply bg-white/10 backdrop-blur-md border border-white/20;
-  }
 }
 
 /* Дополнительные анимации */
-@keyframes slideDown {
-  0% {
-    transform: translateY(-10px);
-    opacity: 0;
-  }
-  100% {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-.animate-slide-down {
-  animation: slideDown 0.3s ease-out;
-}
-
-/* Дополнительные анимации для улучшенного дизайна */
 @keyframes fadeInUp {
   0% {
     opacity: 0;
@@ -112,38 +88,8 @@
   }
 }
 
-@keyframes scaleIn {
-  0% {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes shimmer {
-  0% {
-    background-position: -200px 0;
-  }
-  100% {
-    background-position: calc(200px + 100%) 0;
-  }
-}
-
 .animate-fade-in-up {
   animation: fadeInUp 0.6s ease-out;
-}
-
-.animate-scale-in {
-  animation: scaleIn 0.4s ease-out;
-}
-
-.shimmer {
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-  background-size: 200px 100%;
-  animation: shimmer 1.5s infinite;
 }
 
 /* Кастомные градиенты */
@@ -151,37 +97,6 @@
   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
 }
 
-.gradient-blue {
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-}
-
 .gradient-purple {
   background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
-}
-
-.gradient-gold {
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-}
-
-/* Эффекты для карточек */
-.card-glow {
-  box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
-}
-
-.card-glow-blue {
-  box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
-}
-
-.card-glow-purple {
-  box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
-}
-
-/* Hover эффекты */
-.hover-lift {
-  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-}
-
-.hover-lift:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }

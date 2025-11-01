@@ -67,25 +67,29 @@ class PokerTrackerBot {
    * Настройка реального Telegraf бота
    */
   private setupBot() {
-    if (!this.bot) {return;}
+    if (!this.bot) {
+      return;
+    }
 
     // Middleware для сессий (загрузка из БД)
     this.bot.use(async (ctx, next) => {
       const userId = ctx.from?.id;
-      if (!userId) {return next();}
+      if (!userId) {
+        return next();
+      }
 
       try {
         // Загружаем сессию из БД
         const sessionData = await BotSessionService.getSession(userId);
         ctx.session = sessionData;
-        
+
         // Выполняем обработчик
         await next();
-        
+
         // Сохраняем сессию обратно в БД
         await BotSessionService.updateSession(userId, ctx.session);
       } catch (error) {
-        console.error('Session middleware error:', error);
+        console.error("Session middleware error:", error);
         // Создаем пустую сессию в случае ошибки
         ctx.session = {
           userId: userId.toString(),
@@ -194,7 +198,9 @@ class PokerTrackerBot {
 
       // Проверяем, является ли документ изображением
       if (ctx.message.document.mime_type?.startsWith("image/")) {
-        console.warn("📸 Документ является изображением, обрабатываем как фото");
+        console.warn(
+          "📸 Документ является изображением, обрабатываем как фото",
+        );
         await this.photoHandler.handleDocumentAsPhoto(ctx);
       } else {
         await ctx.reply(
@@ -220,14 +226,14 @@ class PokerTrackerBot {
   private async processUpdate(update: any) {
     const updateId = Math.random().toString(36).substring(7);
     const startTime = Date.now();
-    
+
     try {
       console.warn(`[Bot Update ${updateId}] 🚀 Processing update`, {
         updateId: update.update_id,
-        updateType: Object.keys(update).filter(key => key !== 'update_id')[0],
+        updateType: Object.keys(update).filter((key) => key !== "update_id")[0],
         timestamp: new Date().toISOString(),
-        botMode: this.isRunning ? 'running' : 'stopped',
-        hasRealBot: !!this.bot
+        botMode: this.isRunning ? "running" : "stopped",
+        hasRealBot: !!this.bot,
       });
 
       // Детальное логирование обновления
@@ -237,64 +243,78 @@ class PokerTrackerBot {
           from: {
             id: update.message.from?.id,
             username: update.message.from?.username,
-            firstName: update.message.from?.first_name
+            firstName: update.message.from?.first_name,
           },
           chat: {
             id: update.message.chat?.id,
-            type: update.message.chat?.type
+            type: update.message.chat?.type,
           },
           text: update.message.text,
           hasPhoto: !!update.message.photo,
-          hasDocument: !!update.message.document
+          hasDocument: !!update.message.document,
         });
       }
 
       // Если есть реальный бот (Telegraf), используем его
       if (this.bot) {
-        console.warn(`[Bot Update ${updateId}] 🤖 Using Telegraf bot for processing`);
+        console.warn(
+          `[Bot Update ${updateId}] 🤖 Using Telegraf bot for processing`,
+        );
         const processStartTime = Date.now();
-        
+
         await this.bot.handleUpdate(update);
-        
+
         const processTime = Date.now() - processStartTime;
-        console.warn(`[Bot Update ${updateId}] ✅ Telegraf processing completed in ${processTime}ms`);
+        console.warn(
+          `[Bot Update ${updateId}] ✅ Telegraf processing completed in ${processTime}ms`,
+        );
       } else {
         // Fallback на мок обработку
-        console.warn(`[Bot Update ${updateId}] 🔧 Using fallback mock processing`);
+        console.warn(
+          `[Bot Update ${updateId}] 🔧 Using fallback mock processing`,
+        );
         const ctx = await this.createMockContext(update);
 
         // Определяем тип обработки
-        let handlerType = 'unknown';
+        let handlerType = "unknown";
         const handlerStartTime = Date.now();
-        
+
         // Обработка команд
         if (ctx.message?.text?.startsWith("/")) {
-          handlerType = 'command';
-          console.warn(`[Bot Update ${updateId}] ⚡ Handling command: ${ctx.message.text}`);
+          handlerType = "command";
+          console.warn(
+            `[Bot Update ${updateId}] ⚡ Handling command: ${ctx.message.text}`,
+          );
           await this.handleCommand(ctx);
         }
         // Обработка фотографий
         else if (ctx.message?.photo) {
-          handlerType = 'photo';
+          handlerType = "photo";
           console.warn(`[Bot Update ${updateId}] 📸 Handling photo upload`);
           await this.photoHandler.handlePhoto(ctx);
         }
         // Обработка текстовых сообщений
         else if (ctx.message?.text) {
-          handlerType = 'text';
-          console.warn(`[Bot Update ${updateId}] 💭 Handling text message: "${ctx.message.text}"`);
+          handlerType = "text";
+          console.warn(
+            `[Bot Update ${updateId}] 💭 Handling text message: "${ctx.message.text}"`,
+          );
           await this.handleTextMessage(ctx);
         }
         // Обработка callback запросов
         else if (ctx.callbackQuery?.data) {
-          handlerType = 'callback';
-          console.warn(`[Bot Update ${updateId}] 🔘 Handling callback query: ${ctx.callbackQuery.data}`);
+          handlerType = "callback";
+          console.warn(
+            `[Bot Update ${updateId}] 🔘 Handling callback query: ${ctx.callbackQuery.data}`,
+          );
           await this.handleCallbackQuery(ctx);
         }
-        
+
         const handlerTime = Date.now() - handlerStartTime;
-        console.warn(`[Bot Update ${updateId}] ✅ ${handlerType} handler completed in ${handlerTime}ms`);
-        
+        console.warn(
+          `[Bot Update ${updateId}] ✅ ${handlerType} handler completed in ${handlerTime}ms`,
+        );
+
         // Сохраняем сессию после обработки (для мок режима)
         const userId = ctx.from?.id;
         if (userId) {
@@ -303,25 +323,31 @@ class PokerTrackerBot {
       }
 
       const totalTime = Date.now() - startTime;
-      console.warn(`[Bot Update ${updateId}] 🏁 Update processing completed successfully in ${totalTime}ms`);
-      
+      console.warn(
+        `[Bot Update ${updateId}] 🏁 Update processing completed successfully in ${totalTime}ms`,
+      );
     } catch (error) {
       const totalTime = Date.now() - startTime;
       console.error(`[Bot Update ${updateId}] 💥 Error processing update:`, {
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
         stack: error instanceof Error ? error.stack : undefined,
         updateData: JSON.stringify(update, null, 2),
         processingTime: totalTime,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
-      
+
       // Попытка отправить сообщение об ошибке пользователю
       if (update.message?.from?.id) {
         try {
-          console.warn(`[Bot Update ${updateId}] 📤 Attempting to send error message to user`);
+          console.warn(
+            `[Bot Update ${updateId}] 📤 Attempting to send error message to user`,
+          );
           // Здесь можно добавить отправку сообщения об ошибке
         } catch (replyError) {
-          console.error(`[Bot Update ${updateId}] ❌ Failed to send error message:`, replyError);
+          console.error(
+            `[Bot Update ${updateId}] ❌ Failed to send error message:`,
+            replyError,
+          );
         }
       }
     }
@@ -333,16 +359,16 @@ class PokerTrackerBot {
   private async createMockContext(update: any): Promise<BotContext> {
     const userId = update.message?.from?.id || update.callback_query?.from?.id;
     let session: SessionData = { userId: userId?.toString() };
-    
+
     // Пытаемся загрузить сессию из БД
     if (userId) {
       try {
         session = await BotSessionService.getSession(userId);
       } catch (error) {
-        console.error('Error loading session for mock context:', error);
+        console.error("Error loading session for mock context:", error);
       }
     }
-    
+
     return {
       from: update.message?.from || update.callback_query?.from,
       message: update.message,
@@ -413,62 +439,75 @@ class PokerTrackerBot {
     const text = ctx.message?.text;
     const session = ctx.session!;
 
-    console.log('[BOT handleTextMessage] Получен текст:', text);
-    console.log('[BOT handleTextMessage] Сессия:', {
+    console.log("[BOT handleTextMessage] Получен текст:", text);
+    console.log("[BOT handleTextMessage] Сессия:", {
       currentAction: session.currentAction,
       hasTournamentData: !!session.tournamentData,
-      tournamentData: session.tournamentData
+      tournamentData: session.tournamentData,
     });
 
     if (!text) {
-      console.log('[BOT handleTextMessage] Текст пустой, выходим');
+      console.log("[BOT handleTextMessage] Текст пустой, выходим");
       return;
     }
 
     // Если пользователь в процессе регистрации турнира
     if (session.currentAction === "register_tournament") {
-      console.log('[BOT handleTextMessage] → Обрабатываем как регистрацию турнира');
+      console.log(
+        "[BOT handleTextMessage] → Обрабатываем как регистрацию турнира",
+      );
       await this.commands.handleTournamentRegistration(ctx, text);
       return;
     }
 
     // Если пользователь добавляет результат
     if (session.currentAction === "add_result") {
-      console.log('[BOT handleTextMessage] → Обрабатываем как результат турнира');
+      console.log(
+        "[BOT handleTextMessage] → Обрабатываем как результат турнира",
+      );
       await this.commands.handleResultInput(ctx, text);
       return;
     }
 
     // Если пользователь редактирует данные турнира
     if (session.currentAction === "edit_tournament") {
-      console.log('[BOT handleTextMessage] → Обрабатываем как редактирование турнира');
+      console.log(
+        "[BOT handleTextMessage] → Обрабатываем как редактирование турнира",
+      );
       await this.commands.handleTournamentEdit(ctx, text);
       return;
     }
 
     // Обычное текстовое сообщение
-    console.log('[BOT handleTextMessage] → Обычное сообщение (неизвестная команда)');
+    console.log(
+      "[BOT handleTextMessage] → Обычное сообщение (неизвестная команда)",
+    );
     await ctx.reply?.(
       "🤖 Я не понимаю эту команду. Используйте /help для получения списка доступных команд.",
     );
   }
 
   private async handleCallbackQuery(ctx: BotContext) {
-    if (!ctx.callbackQuery?.data) {return;}
+    if (!ctx.callbackQuery?.data) {
+      return;
+    }
 
     const data = ctx.callbackQuery.data;
     const [action, ...params] = data.split(":");
 
-    console.log('[BOT handleCallbackQuery] Получен callback:', data);
-    console.log('[BOT handleCallbackQuery] Action:', action);
-    console.log('[BOT handleCallbackQuery] Params:', params);
-    console.log('[BOT handleCallbackQuery] Сессия до обработки:', ctx.session);
+    console.log("[BOT handleCallbackQuery] Получен callback:", data);
+    console.log("[BOT handleCallbackQuery] Action:", action);
+    console.log("[BOT handleCallbackQuery] Params:", params);
+    console.log("[BOT handleCallbackQuery] Сессия до обработки:", ctx.session);
 
     switch (action) {
       case "tournament_select":
-        console.log('[BOT handleCallbackQuery] → Выбор турнира:', params[0]);
+        console.log("[BOT handleCallbackQuery] → Выбор турнира:", params[0]);
         await this.commands.selectTournament(ctx, params[0]);
-        console.log('[BOT handleCallbackQuery] Сессия после selectTournament:', ctx.session);
+        console.log(
+          "[BOT handleCallbackQuery] Сессия после selectTournament:",
+          ctx.session,
+        );
         break;
       case "result_confirm":
         await this.commands.confirmResult(ctx, params[0]);
@@ -486,7 +525,7 @@ class PokerTrackerBot {
         await this.photoHandler.editTournament(ctx);
         break;
       default:
-        console.log('[BOT handleCallbackQuery] → Неизвестная команда:', action);
+        console.log("[BOT handleCallbackQuery] → Неизвестная команда:", action);
         await ctx.answerCbQuery?.("Неизвестная команда");
     }
   }
@@ -509,7 +548,9 @@ class PokerTrackerBot {
       const autoRestart = process.env.BOT_AUTO_RESTART === "true";
 
       console.warn(`🔧 Режим работы бота из .env: ${botMode}`);
-      console.warn(`🔄 Автоперезапуск: ${autoRestart ? "включен" : "выключен"}`);
+      console.warn(
+        `🔄 Автоперезапуск: ${autoRestart ? "включен" : "выключен"}`,
+      );
 
       if (webhookUrl) {
         console.warn(`🔗 Webhook URL: ${webhookUrl}`);
