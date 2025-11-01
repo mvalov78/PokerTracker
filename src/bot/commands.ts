@@ -588,13 +588,22 @@ ID турнира: \`${newTournament.id}\`
       // Проверяем, есть ли результат в обновленном турнире
       let result;
       if (Array.isArray(updatedTournament.tournament_results) && updatedTournament.tournament_results.length > 0) {
+        // Результат пришел как массив
         result = updatedTournament.tournament_results[0];
-        console.log('[BOT] Результат найден в tournament_results (array):', result);
+        console.log('[BOT] ✅ Результат найден в tournament_results (array):', result);
+      } else if (updatedTournament.tournament_results && typeof updatedTournament.tournament_results === 'object' && !Array.isArray(updatedTournament.tournament_results)) {
+        // Результат пришел как объект (НЕ массив) - ЭТО НАША ПРОБЛЕМА!
+        result = updatedTournament.tournament_results;
+        console.log('[BOT] ✅ Результат найден в tournament_results (object):', result);
       } else if (updatedTournament.result) {
+        // Fallback: результат в поле result
         result = updatedTournament.result;
-        console.log('[BOT] Результат найден в result:', result);
+        console.log('[BOT] ✅ Результат найден в result:', result);
       } else {
-        console.warn('[BOT] ⚠️ Результат НЕ НАЙДЕН в обновленном турнире! Используем локальные данные.');
+        // Результат не найден нигде - используем локальные данные
+        console.error('[BOT] ❌ Результат НЕ НАЙДЕН в обновленном турнире! Используем локальные данные.');
+        console.error('[BOT] tournament_results type:', typeof updatedTournament.tournament_results);
+        console.error('[BOT] tournament_results value:', updatedTournament.tournament_results);
         result = {
           position,
           payout,
