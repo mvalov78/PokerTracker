@@ -63,17 +63,27 @@ export async function PUT(
   try {
     const { id: tournamentId } = await params
     const body = await request.json()
+    
+    console.log('[API PUT] Получен запрос на обновление турнира:', tournamentId)
+    console.log('[API PUT] Тело запроса:', JSON.stringify(body, null, 2))
+    
     const supabase = createAdminClient()
     
     if (!supabase) {
+      console.error('[API PUT] Admin client недоступен!')
       return new NextResponse(
         JSON.stringify({ success: false, error: 'Database unavailable' }),
         { status: 503, headers: { 'content-type': 'application/json' } }
       )
     }
     
+    console.log('[API PUT] Admin client создан успешно')
+    
     // Если есть результат в теле запроса, обрабатываем его отдельно
     if (body.result) {
+      console.log('[API] Обработка результата для турнира:', tournamentId)
+      console.log('[API] Данные результата:', body.result)
+      
       const resultData = body.result
       
       // Получаем турнир для вычисления profit и ROI
@@ -83,12 +93,23 @@ export async function PUT(
         .eq('id', tournamentId)
         .single()
       
-      if (fetchError || !tournament) {
+      if (fetchError) {
+        console.error('[API] Ошибка получения турнира:', fetchError)
+        return new NextResponse(
+          JSON.stringify({ success: false, error: 'Tournament not found', details: fetchError.message }),
+          { status: 404, headers: { 'content-type': 'application/json' } }
+        )
+      }
+      
+      if (!tournament) {
+        console.error('[API] Турнир не найден:', tournamentId)
         return new NextResponse(
           JSON.stringify({ success: false, error: 'Tournament not found' }),
           { status: 404, headers: { 'content-type': 'application/json' } }
         )
       }
+      
+      console.log('[API] Турнир найден:', { id: tournament.id, buyin: tournament.buyin })
       
       const profit = resultData.payout - tournament.buyin
       const roi = tournament.buyin > 0 ? (profit / tournament.buyin) * 100 : 0
@@ -107,17 +128,30 @@ export async function PUT(
         final_table_reached: resultData.finalTableReached || false
       }
       
+      console.log('[API] Подготовлены данные для сохранения:', finalResultData)
+      
       // Добавляем или обновляем результат (UPSERT)
-      const { error: resultError } = await supabase
+      const { data: upsertedResult, error: resultError } = await supabase
         .from('tournament_results')
         .upsert(finalResultData, {
           onConflict: 'tournament_id'
         })
+        .select()
       
       if (resultError) {
-        console.error('Ошибка добавления результата:', resultError)
-        throw resultError
+        console.error('[API] Ошибка добавления результата:', resultError)
+        console.error('[API] Детали ошибки:', JSON.stringify(resultError, null, 2))
+        return new NextResponse(
+          JSON.stringify({ 
+            success: false, 
+            error: 'Failed to save result',
+            details: resultError.message 
+          }),
+          { status: 500, headers: { 'content-type': 'application/json' } }
+        )
       }
+      
+      console.log('[API] Результат успешно сохранен:', upsertedResult)
     }
     
     // Обновляем основные данные турнира (исключаем result из body)
@@ -152,6 +186,8 @@ export async function PUT(
     }
     
     // Возвращаем обновленный турнир
+    console.log('[API] Получение обновленного турнира с результатами...')
+    
     const { data: updatedTournament, error: finalError } = await supabase
       .from('tournaments')
       .select(`
@@ -163,9 +199,20 @@ export async function PUT(
       .single()
     
     if (finalError) {
-      console.error('Ошибка получения обновленного турнира:', finalError)
+      console.error('[API] Ошибка получения обновленного турнира:', finalError)
       throw finalError
     }
+    
+    console.log('[API] Обновленный турнир получен:', {
+      id: updatedTournament?.id,
+      name: updatedTournament?.name,
+      has_result: !!updatedTournament?.tournament_results,
+      result_count: Array.isArray(updatedTournament?.tournament_results) 
+        ? updatedTournament.tournament_results.length 
+        : (updatedTournament?.tournament_results ? 1 : 0)
+    })
+    
+    console.log('[API PUT] Возвращаем успешный ответ')
     
     return new NextResponse(
       JSON.stringify({
