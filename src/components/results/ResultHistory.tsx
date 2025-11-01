@@ -59,7 +59,9 @@ export default function ResultHistory({
   }
 
   const formatValue = (field: string, value: any) => {
-    if (value === null || value === undefined) return '-'
+    if (value === null || value === undefined) {
+      return '-'
+    }
     
     switch (field) {
       case 'payout':
