@@ -29,6 +29,7 @@ export interface Tournament {
   createdAt: string
   updatedAt: string
   result?: TournamentResult
+  tournament_results?: TournamentResult | TournamentResult[] // Может быть объектом или массивом
   photos?: TournamentPhoto[]
 }
 

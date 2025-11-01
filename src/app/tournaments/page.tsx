@@ -261,21 +261,34 @@ export default function TournamentsPage() {
                       >
                         ✏️ Редактировать
                       </button>
-                      {!tournament.result ? (
-                        <button 
-                          onClick={() => router.push(`/tournaments/${tournament.id}#add-result`)}
-                          className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors text-sm"
-                        >
-                          ➕ Добавить результат
-                        </button>
-                      ) : (
-                        <button 
-                          onClick={() => router.push(`/tournaments/${tournament.id}#edit-result`)}
-                          className="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600 transition-colors text-sm"
-                        >
-                          ✏️ Редактировать результат
-                        </button>
-                      )}
+                      {(() => {
+                        // Проверяем наличие результата (как в боте)
+                        const hasResult = !!(
+                          tournament.result || 
+                          (Array.isArray(tournament.tournament_results) && tournament.tournament_results.length > 0) ||
+                          (tournament.tournament_results && 
+                           typeof tournament.tournament_results === 'object' && 
+                           !Array.isArray(tournament.tournament_results) &&
+                           tournament.tournament_results !== null &&
+                           Object.keys(tournament.tournament_results).length > 0)
+                        );
+                        
+                        return hasResult ? (
+                          <button 
+                            onClick={() => router.push(`/tournaments/${tournament.id}#edit-result`)}
+                            className="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600 transition-colors text-sm"
+                          >
+                            ✏️ Редактировать результат
+                          </button>
+                        ) : (
+                          <button 
+                            onClick={() => router.push(`/tournaments/${tournament.id}#add-result`)}
+                            className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors text-sm"
+                          >
+                            ➕ Добавить результат
+                          </button>
+                        );
+                      })()}
                       <button 
                         onClick={() => handleDeleteTournament(tournament)}
                         className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors text-sm"

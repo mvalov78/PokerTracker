@@ -262,21 +262,34 @@ export default function TournamentDetailPage() {
               >
                 ✏️ Редактировать
               </button>
-              {!tournament.result ? (
-                <button
-                  onClick={() => setShowAddResult(true)}
-                  className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors"
-                >
-                  ➕ Добавить результат
-                </button>
-              ) : (
-                <button
-                  onClick={() => setShowEditResult(true)}
-                  className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors"
-                >
-                  ✏️ Редактировать результат
-                </button>
-              )}
+              {(() => {
+                // Проверяем наличие результата (как в боте)
+                const hasResult = !!(
+                  tournament.result || 
+                  (Array.isArray(tournament.tournament_results) && tournament.tournament_results.length > 0) ||
+                  (tournament.tournament_results && 
+                   typeof tournament.tournament_results === 'object' && 
+                   !Array.isArray(tournament.tournament_results) &&
+                   tournament.tournament_results !== null &&
+                   Object.keys(tournament.tournament_results).length > 0)
+                );
+                
+                return hasResult ? (
+                  <button
+                    onClick={() => setShowEditResult(true)}
+                    className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors"
+                  >
+                    ✏️ Редактировать результат
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setShowAddResult(true)}
+                    className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors"
+                  >
+                    ➕ Добавить результат
+                  </button>
+                );
+              })()}
             </div>
           </div>
         </div>
