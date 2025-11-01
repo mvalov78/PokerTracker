@@ -46,14 +46,23 @@ function initializeWebhookBot() {
       // Загружаем сессию из БД
       const sessionData = await BotSessionService.getSession(userId);
       ctx.session = sessionData;
-      console.warn(`[Telegram Webhook] Сессия загружена из БД для пользователя: ${userId}`);
+      console.warn(`[Telegram Webhook] Сессия загружена из БД:`, {
+        userId,
+        currentAction: sessionData.currentAction,
+        hasTournamentData: !!sessionData.tournamentData,
+        sessionKeys: Object.keys(sessionData)
+      });
       
       // Выполняем обработчик
       await next();
       
       // Сохраняем сессию обратно в БД
       await BotSessionService.updateSession(userId, ctx.session);
-      console.warn(`[Telegram Webhook] Сессия сохранена в БД для пользователя: ${userId}`);
+      console.warn(`[Telegram Webhook] Сессия сохранена в БД:`, {
+        userId,
+        currentAction: ctx.session.currentAction,
+        hasTournamentData: !!ctx.session.tournamentData
+      });
     } catch (error) {
       console.error('[Telegram Webhook] Session middleware error:', error);
       // Fallback на пустую сессию
@@ -137,10 +146,21 @@ function initializeWebhookBot() {
     const text = ctx.message.text;
     const session = ctx.session;
     
-    console.warn(`[Telegram Webhook] Текстовое сообщение: "${text}", currentAction: ${session?.currentAction}`);
+    console.warn(`[Telegram Webhook] Текстовое сообщение получено:`, {
+      text,
+      userId: ctx.from?.id,
+      hasSession: !!session,
+      currentAction: session?.currentAction,
+      sessionData: session ? {
+        userId: session.userId,
+        currentAction: session.currentAction,
+        hasTournamentData: !!session.tournamentData
+      } : null
+    });
     
     // Если текст является командой, пропускаем (обработается command handler)
     if (text.startsWith("/")) {
+      console.warn("[Telegram Webhook] Это команда, пропускаем text handler");
       return;
     }
     
@@ -153,7 +173,7 @@ function initializeWebhookBot() {
     
     // Если пользователь добавляет результат
     if (session?.currentAction === "add_result") {
-      console.warn("[Telegram Webhook] Обработка ввода результата");
+      console.warn("[Telegram Webhook] Обработка ввода результата, tournamentId:", session.tournamentData?.tournamentId);
       await commands!.handleResultInput(ctx, text);
       return;
     }
@@ -166,7 +186,7 @@ function initializeWebhookBot() {
     }
     
     // Обычное текстовое сообщение без контекста
-    console.warn("[Telegram Webhook] Текстовое сообщение без активного действия");
+    console.warn("[Telegram Webhook] Текстовое сообщение без активного действия, отправляем help message");
     await ctx.reply(
       "🤖 Я не понимаю эту команду. Используйте /help для получения списка доступных команд."
     );
