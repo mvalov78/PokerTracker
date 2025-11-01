@@ -513,10 +513,23 @@ ID турнира: \`${newTournament.id}\`
         notes: "Добавлено через Telegram бота",
       };
 
+      console.log('[BOT] Подготовка к отправке результата:', {
+        tournamentId,
+        position,
+        payout,
+        resultData
+      });
+
       // Получаем турнир и обновляем его с результатом через API
       const apiUrl = getApiUrl();
+      const requestUrl = `${apiUrl}/api/tournaments/${tournamentId}`;
+      
+      console.log('[BOT] API URL:', apiUrl);
+      console.log('[BOT] Request URL:', requestUrl);
+      console.log('[BOT] Request body:', JSON.stringify({ result: resultData }, null, 2));
+
       const updateResponse = await fetch(
-        `${apiUrl}/api/tournaments/${tournamentId}`,
+        requestUrl,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -526,19 +539,36 @@ ID турнира: \`${newTournament.id}\`
         },
       );
 
+      console.log('[BOT] Response status:', updateResponse.status);
+      console.log('[BOT] Response ok:', updateResponse.ok);
+
       if (!updateResponse.ok) {
-        await ctx.reply("❌ Ошибка при обновлении турнира");
+        const errorText = await updateResponse.text();
+        console.error('[BOT] Ошибка ответа API:', errorText);
+        await ctx.reply(`❌ Ошибка при обновлении турнира (status: ${updateResponse.status})`);
         return;
       }
 
       const updateResult = await updateResponse.json();
+      console.log('[BOT] Response body:', JSON.stringify(updateResult, null, 2));
+      
       if (!updateResult.success) {
+        console.error('[BOT] API вернул success: false:', updateResult.error);
         await ctx.reply("❌ Турнир не найден");
         return;
       }
 
       const updatedTournament = updateResult.tournament;
+      console.log('[BOT] Обновленный турнир получен:', {
+        id: updatedTournament?.id,
+        name: updatedTournament?.name,
+        has_result: !!updatedTournament?.result,
+        result_type: Array.isArray(updatedTournament?.tournament_results) ? 'array' : typeof updatedTournament?.tournament_results,
+        tournament_results: updatedTournament?.tournament_results
+      });
+      
       if (!updatedTournament) {
+        console.error('[BOT] Турнир не вернулся от API!');
         await ctx.reply("❌ Турнир не найден");
         return;
       }
@@ -547,15 +577,24 @@ ID турнира: \`${newTournament.id}\`
       ctx.session!.currentAction = undefined;
       ctx.session!.tournamentData = undefined;
 
-      // Используем данные из запроса, если result не загрузился
-      const result = updatedTournament.result || {
-        position,
-        payout,
-        profit: payout - updatedTournament.buyin,
-        roi:
-          ((payout - updatedTournament.buyin) / updatedTournament.buyin) * 100,
-        notes: "Добавлено через Telegram бота",
-      };
+      // Проверяем, есть ли результат в обновленном турнире
+      let result;
+      if (Array.isArray(updatedTournament.tournament_results) && updatedTournament.tournament_results.length > 0) {
+        result = updatedTournament.tournament_results[0];
+        console.log('[BOT] Результат найден в tournament_results (array):', result);
+      } else if (updatedTournament.result) {
+        result = updatedTournament.result;
+        console.log('[BOT] Результат найден в result:', result);
+      } else {
+        console.warn('[BOT] ⚠️ Результат НЕ НАЙДЕН в обновленном турнире! Используем локальные данные.');
+        result = {
+          position,
+          payout,
+          profit: payout - updatedTournament.buyin,
+          roi: ((payout - updatedTournament.buyin) / updatedTournament.buyin) * 100,
+          notes: "Добавлено через Telegram бота",
+        };
+      }
 
       const roiText =
         result.roi > 0
