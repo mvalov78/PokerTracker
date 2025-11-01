@@ -82,6 +82,31 @@ export default function TournamentDetailPage() {
     }
   }
 
+  // Обработчик открытия формы редактирования результата
+  const handleEditResult = () => {
+    if (!tournament) {return}
+    
+    // Получаем результат из правильного поля
+    const result = tournament.result || 
+      (Array.isArray(tournament.tournament_results) 
+        ? tournament.tournament_results[0] 
+        : tournament.tournament_results);
+    
+    if (result) {
+      console.warn('[WEB] Заполняем форму при клике на кнопку:', result);
+      setResultForm({
+        position: result.position.toString(),
+        payout: result.payout.toString(),
+        notes: result.notes || '',
+        knockouts: result.knockouts?.toString() || '',
+        rebuyCount: result.rebuyCount?.toString() || '',
+        addonCount: result.addonCount?.toString() || ''
+      })
+    }
+    
+    setShowEditResult(true)
+  }
+
   // Проверяем хэш для автоматического открытия формы
   useEffect(() => {
     const hash = window.location.hash
@@ -90,14 +115,21 @@ export default function TournamentDetailPage() {
     } else if (hash === '#edit-result') {
       setShowEditResult(true)
       // Заполняем форму текущими данными результата
-      if (tournament?.result) {
+      // Получаем результат из правильного поля
+      const result = tournament?.result || 
+        (Array.isArray(tournament?.tournament_results) 
+          ? tournament.tournament_results[0] 
+          : tournament?.tournament_results);
+      
+      if (result) {
+        console.warn('[WEB] Заполняем форму результатами:', result);
         setResultForm({
-          position: tournament.result.position.toString(),
-          payout: tournament.result.payout.toString(),
-          notes: tournament.result.notes || '',
-          knockouts: tournament.result.knockouts?.toString() || '',
-          rebuyCount: tournament.result.rebuyCount?.toString() || '',
-          addonCount: tournament.result.addonCount?.toString() || ''
+          position: result.position.toString(),
+          payout: result.payout.toString(),
+          notes: result.notes || '',
+          knockouts: result.knockouts?.toString() || '',
+          rebuyCount: result.rebuyCount?.toString() || '',
+          addonCount: result.addonCount?.toString() || ''
         })
       }
     }
@@ -276,7 +308,7 @@ export default function TournamentDetailPage() {
                 
                 return hasResult ? (
                   <button
-                    onClick={() => setShowEditResult(true)}
+                    onClick={handleEditResult}
                     className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors"
                   >
                     ✏️ Редактировать результат
@@ -486,7 +518,7 @@ export default function TournamentDetailPage() {
                   </button>
                 ) : (
                   <button
-                    onClick={() => setShowEditResult(true)}
+                    onClick={handleEditResult}
                     className="w-full bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors"
                   >
                     ✏️ Редактировать результат
