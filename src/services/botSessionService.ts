@@ -92,6 +92,9 @@ export class BotSessionService {
           user_id: telegramUserId,
           session_data: sessionData,
           expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+        }, {
+          onConflict: 'user_id',  // Указываем, что при конфликте по user_id делаем UPDATE
+          ignoreDuplicates: false  // Не игнорируем дубликаты, а обновляем
         })
 
       if (error) {

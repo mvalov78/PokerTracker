@@ -210,6 +210,10 @@ function initializeWebhookBot() {
         case "tournament_select":
           console.warn(`[Telegram Webhook] Обработка выбора турнира: ${params[0]}`);
           await commands!.selectTournament(ctx, params[0]);
+          console.warn(`[Telegram Webhook] После selectTournament, сессия:`, {
+            currentAction: ctx.session?.currentAction,
+            tournamentId: ctx.session?.tournamentData?.tournamentId
+          });
           break;
         case "result_confirm":
           console.warn(`[Telegram Webhook] Обработка подтверждения результата: ${params[0]}`);
