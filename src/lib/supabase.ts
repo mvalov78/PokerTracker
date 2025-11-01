@@ -32,14 +32,6 @@ export const supabase = (() => {
   }
 })();
 
-export const supabaseAdmin = (() => {
-  try {
-    return createAdminClient();
-  } catch {
-    return null;
-  }
-})();
-
 // Server-side Supabase client (for server components and API routes)
 // This should only be used in server components or API routes
 export const createServerComponentClient = (cookieStore: any) => {
@@ -69,15 +61,30 @@ export const createServerComponentClient = (cookieStore: any) => {
 
 // Admin client (for server-side operations with service role key)
 export const createAdminClient = () => {
+  // Detailed diagnostic logging
+  console.warn("🔍 [Supabase Admin] Checking credentials:", {
+    hasUrl: !!supabaseUrl,
+    urlPreview: supabaseUrl ? `${supabaseUrl.substring(0, 30)}...` : "missing",
+    hasServiceKey: !!supabaseServiceKey,
+    keyPreview: supabaseServiceKey ? `${supabaseServiceKey.substring(0, 20)}...` : "missing",
+    isPlaceholder: supabaseServiceKey === "YOUR_SERVICE_ROLE_KEY_HERE",
+    env: process.env.NODE_ENV
+  });
+
   if (
     !supabaseUrl ||
     !supabaseServiceKey ||
     supabaseServiceKey === "YOUR_SERVICE_ROLE_KEY_HERE"
   ) {
-    console.warn("Admin client not available: missing service role key");
+    console.error("❌ [Supabase Admin] Admin client not available:", {
+      reason: !supabaseUrl ? "Missing SUPABASE_URL" :
+              !supabaseServiceKey ? "Missing SUPABASE_SERVICE_ROLE_KEY" :
+              "Service key is placeholder value"
+    });
     return null;
   }
 
+  console.warn("✅ [Supabase Admin] Creating admin client successfully");
   return createClient<Database>(supabaseUrl, supabaseServiceKey, {
     auth: {
       autoRefreshToken: false,
@@ -85,6 +92,15 @@ export const createAdminClient = () => {
     },
   });
 };
+
+// Backward compatibility export for admin client
+export const supabaseAdmin = (() => {
+  try {
+    return createAdminClient();
+  } catch {
+    return null;
+  }
+})();
 
 // Database types (based on our schema)
 export interface Database {
