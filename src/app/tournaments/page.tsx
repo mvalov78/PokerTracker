@@ -19,6 +19,17 @@ export default function TournamentsPage() {
         if (response.ok) {
           const data = await response.json()
           if (data.success) {
+            console.warn('[WEB] Загружено турниров:', data.tournaments.length)
+            data.tournaments.forEach((t: any) => {
+              console.warn('[WEB] Турнир:', {
+                name: t.name,
+                id: t.id,
+                has_result: !!t.result,
+                has_tournament_results: !!t.tournament_results,
+                tournament_results_type: typeof t.tournament_results,
+                tournament_results_value: t.tournament_results
+              })
+            })
             setTournaments(data.tournaments)
             return
           }
@@ -272,6 +283,8 @@ export default function TournamentsPage() {
                            tournament.tournament_results !== null &&
                            Object.keys(tournament.tournament_results).length > 0)
                         );
+                        
+                        console.warn('[WEB] Проверка результата для', tournament.name, ':', hasResult);
                         
                         return hasResult ? (
                           <button 
