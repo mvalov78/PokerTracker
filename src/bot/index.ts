@@ -413,27 +413,41 @@ class PokerTrackerBot {
     const text = ctx.message?.text;
     const session = ctx.session!;
 
-    if (!text) {return;}
+    console.log('[BOT handleTextMessage] Получен текст:', text);
+    console.log('[BOT handleTextMessage] Сессия:', {
+      currentAction: session.currentAction,
+      hasTournamentData: !!session.tournamentData,
+      tournamentData: session.tournamentData
+    });
+
+    if (!text) {
+      console.log('[BOT handleTextMessage] Текст пустой, выходим');
+      return;
+    }
 
     // Если пользователь в процессе регистрации турнира
     if (session.currentAction === "register_tournament") {
+      console.log('[BOT handleTextMessage] → Обрабатываем как регистрацию турнира');
       await this.commands.handleTournamentRegistration(ctx, text);
       return;
     }
 
     // Если пользователь добавляет результат
     if (session.currentAction === "add_result") {
+      console.log('[BOT handleTextMessage] → Обрабатываем как результат турнира');
       await this.commands.handleResultInput(ctx, text);
       return;
     }
 
     // Если пользователь редактирует данные турнира
     if (session.currentAction === "edit_tournament") {
+      console.log('[BOT handleTextMessage] → Обрабатываем как редактирование турнира');
       await this.commands.handleTournamentEdit(ctx, text);
       return;
     }
 
     // Обычное текстовое сообщение
+    console.log('[BOT handleTextMessage] → Обычное сообщение (неизвестная команда)');
     await ctx.reply?.(
       "🤖 Я не понимаю эту команду. Используйте /help для получения списка доступных команд.",
     );
@@ -445,9 +459,16 @@ class PokerTrackerBot {
     const data = ctx.callbackQuery.data;
     const [action, ...params] = data.split(":");
 
+    console.log('[BOT handleCallbackQuery] Получен callback:', data);
+    console.log('[BOT handleCallbackQuery] Action:', action);
+    console.log('[BOT handleCallbackQuery] Params:', params);
+    console.log('[BOT handleCallbackQuery] Сессия до обработки:', ctx.session);
+
     switch (action) {
       case "tournament_select":
+        console.log('[BOT handleCallbackQuery] → Выбор турнира:', params[0]);
         await this.commands.selectTournament(ctx, params[0]);
+        console.log('[BOT handleCallbackQuery] Сессия после selectTournament:', ctx.session);
         break;
       case "result_confirm":
         await this.commands.confirmResult(ctx, params[0]);
@@ -465,6 +486,7 @@ class PokerTrackerBot {
         await this.photoHandler.editTournament(ctx);
         break;
       default:
+        console.log('[BOT handleCallbackQuery] → Неизвестная команда:', action);
         await ctx.answerCbQuery?.("Неизвестная команда");
     }
   }

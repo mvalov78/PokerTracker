@@ -411,8 +411,15 @@ ID турнира: \`${newTournament.id}\`
    * Выбор турнира для добавления результата
    */
   async selectTournament(ctx: BotContext, tournamentId: string) {
+    console.log('[BOT selectTournament] Турнир выбран:', tournamentId);
+    console.log('[BOT selectTournament] Сессия до изменения:', ctx.session);
+    
     ctx.session!.currentAction = "add_result";
     ctx.session!.tournamentData = { tournamentId };
+
+    console.log('[BOT selectTournament] Сессия после изменения:', ctx.session);
+    console.log('[BOT selectTournament] currentAction установлен:', ctx.session!.currentAction);
+    console.log('[BOT selectTournament] tournamentData установлен:', ctx.session!.tournamentData);
 
     await ctx.answerCbQuery();
 
@@ -431,6 +438,7 @@ ID турнира: \`${newTournament.id}\`
     `;
 
     await ctx.reply(message, { parse_mode: "Markdown" });
+    console.log('[BOT selectTournament] Сообщение отправлено пользователю');
   }
 
   /**
