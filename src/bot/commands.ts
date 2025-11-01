@@ -378,12 +378,12 @@ ID турнира: \`${newTournament.id}\`
 
       const tournaments = apiResult.tournaments;
       
-      console.log('[BOT addResult] Всего турниров получено:', tournaments.length);
+      console.warn('[BOT addResult] Всего турниров получено:', tournaments.length);
       
       // Фильтруем турниры без результатов
       // Проверяем и tournament_results (объект/массив), и result (fallback)
       const tournamentsWithoutResults = tournaments.filter((t: any) => {
-        console.log('[BOT addResult] Проверяем турнир:', {
+        console.warn('[BOT addResult] Проверяем турнир:', {
           name: t.name,
           id: t.id,
           has_result_field: !!t.result,
@@ -403,12 +403,12 @@ ID турнира: \`${newTournament.id}\`
            Object.keys(t.tournament_results).length > 0)  // Проверяем, что объект не пустой
         );
         
-        console.log('[BOT addResult]', hasResult ? '✅ Есть результат (пропускаем)' : '❌ Нет результата (показываем)', t.name);
+        console.warn('[BOT addResult]', hasResult ? '✅ Есть результат (пропускаем)' : '❌ Нет результата (показываем)', t.name);
         
         return !hasResult;
       });
       
-      console.log('[BOT addResult] Турниров без результатов:', tournamentsWithoutResults.length);
+      console.warn('[BOT addResult] Турниров без результатов:', tournamentsWithoutResults.length);
 
       if (tournamentsWithoutResults.length === 0) {
         await ctx.reply("📝 У вас нет турниров без результатов.");
