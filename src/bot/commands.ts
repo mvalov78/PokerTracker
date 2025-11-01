@@ -383,15 +383,27 @@ ID турнира: \`${newTournament.id}\`
       // Фильтруем турниры без результатов
       // Проверяем и tournament_results (объект/массив), и result (fallback)
       const tournamentsWithoutResults = tournaments.filter((t: any) => {
+        console.log('[BOT addResult] Проверяем турнир:', {
+          name: t.name,
+          id: t.id,
+          has_result_field: !!t.result,
+          tournament_results_type: typeof t.tournament_results,
+          tournament_results_value: t.tournament_results,
+          is_array: Array.isArray(t.tournament_results)
+        });
+        
+        // Проверяем наличие результата более строго
         const hasResult = !!(
           t.result || 
           (Array.isArray(t.tournament_results) && t.tournament_results.length > 0) ||
-          (t.tournament_results && typeof t.tournament_results === 'object' && !Array.isArray(t.tournament_results))
+          (t.tournament_results && 
+           typeof t.tournament_results === 'object' && 
+           !Array.isArray(t.tournament_results) &&
+           t.tournament_results !== null &&
+           Object.keys(t.tournament_results).length > 0)  // Проверяем, что объект не пустой
         );
         
-        if (hasResult) {
-          console.log('[BOT addResult] Турнир с результатом (пропускаем):', t.name, t.id);
-        }
+        console.log('[BOT addResult]', hasResult ? '✅ Есть результат (пропускаем)' : '❌ Нет результата (показываем)', t.name);
         
         return !hasResult;
       });
