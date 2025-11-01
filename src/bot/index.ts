@@ -18,6 +18,7 @@ import { PhotoHandler } from "./handlers/photoHandler";
 import { NotificationService } from "./services/notificationService";
 import { getBotConfig } from "./config";
 import { BotSettingsService } from "@/services/botSettingsService";
+import { BotSessionService } from "@/services/botSessionService";
 
 export interface SessionData {
   userId?: string;
@@ -39,7 +40,7 @@ class PokerTrackerBot {
   private isRunning: boolean = false;
   private pollingInterval?: NodeJS.Timeout;
   private bot?: Telegraf<BotContext>;
-  private sessions: Map<number, SessionData> = new Map();
+  // Сессии теперь хранятся в БД через BotSessionService
 
   constructor(token?: string) {
     this.config = getBotConfig();
@@ -68,22 +69,32 @@ class PokerTrackerBot {
   private setupBot() {
     if (!this.bot) {return;}
 
-    // Middleware для сессий (простое хранилище в памяти)
-    this.bot.use((ctx, next) => {
+    // Middleware для сессий (загрузка из БД)
+    this.bot.use(async (ctx, next) => {
       const userId = ctx.from?.id;
       if (!userId) {return next();}
 
-      if (!this.sessions.has(userId)) {
-        this.sessions.set(userId, {
+      try {
+        // Загружаем сессию из БД
+        const sessionData = await BotSessionService.getSession(userId);
+        ctx.session = sessionData;
+        
+        // Выполняем обработчик
+        await next();
+        
+        // Сохраняем сессию обратно в БД
+        await BotSessionService.updateSession(userId, ctx.session);
+      } catch (error) {
+        console.error('Session middleware error:', error);
+        // Создаем пустую сессию в случае ошибки
+        ctx.session = {
           userId: userId.toString(),
           currentAction: undefined,
           tournamentData: undefined,
           ocrData: undefined,
-        });
+        };
+        await next();
       }
-
-      ctx.session = this.sessions.get(userId)!;
-      return next();
     });
 
     // Логирование сообщений
@@ -250,7 +261,7 @@ class PokerTrackerBot {
       } else {
         // Fallback на мок обработку
         console.warn(`[Bot Update ${updateId}] 🔧 Using fallback mock processing`);
-        const ctx = this.createMockContext(update);
+        const ctx = await this.createMockContext(update);
 
         // Определяем тип обработки
         let handlerType = 'unknown';
@@ -283,6 +294,12 @@ class PokerTrackerBot {
         
         const handlerTime = Date.now() - handlerStartTime;
         console.warn(`[Bot Update ${updateId}] ✅ ${handlerType} handler completed in ${handlerTime}ms`);
+        
+        // Сохраняем сессию после обработки (для мок режима)
+        const userId = ctx.from?.id;
+        if (userId) {
+          await BotSessionService.updateSession(userId, ctx.session);
+        }
       }
 
       const totalTime = Date.now() - startTime;
@@ -313,12 +330,24 @@ class PokerTrackerBot {
   /**
    * Создание мок контекста для обработки
    */
-  private createMockContext(update: any): BotContext {
+  private async createMockContext(update: any): Promise<BotContext> {
+    const userId = update.message?.from?.id || update.callback_query?.from?.id;
+    let session: SessionData = { userId: userId?.toString() };
+    
+    // Пытаемся загрузить сессию из БД
+    if (userId) {
+      try {
+        session = await BotSessionService.getSession(userId);
+      } catch (error) {
+        console.error('Error loading session for mock context:', error);
+      }
+    }
+    
     return {
       from: update.message?.from || update.callback_query?.from,
       message: update.message,
       callbackQuery: update.callback_query,
-      session: {},
+      session,
       reply: async (text: string, options?: any) => {
         console.warn(`[Bot Reply] ${text}`);
         if (options) {
