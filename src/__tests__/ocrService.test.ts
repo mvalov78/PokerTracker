@@ -3,6 +3,7 @@ import {
   validateOCRData,
   preprocessImage,
   defaultOCRConfig,
+  cleanTournamentName,
 } from "@/services/ocrService";
 
 describe("OCR Service", () => {
@@ -163,8 +164,8 @@ describe("OCR Service", () => {
       const endTime = Date.now();
       const processingTime = endTime - startTime;
 
-      // Should take at least 500ms due to mock delay
-      expect(processingTime).toBeGreaterThanOrEqual(500);
+      // Should take at least ~500ms due to mock delay (allowing small tolerance for timing precision)
+      expect(processingTime).toBeGreaterThanOrEqual(490);
     });
   });
 
@@ -205,6 +206,53 @@ describe("OCR Service", () => {
         expect(result.data.tournamentType).toBe("freezeout"); // Default fallback
         expect(result.data.structure).toBe("NL Hold'em"); // Default fallback
       }
+    });
+  });
+
+  describe("cleanTournamentName", () => {
+    it("should remove event number at the beginning", () => {
+      expect(cleanTournamentName("#8 RUSSIAN POKER OPEN")).toBe("RUSSIAN POKER OPEN");
+      expect(cleanTournamentName("EVENT#8 RUSSIAN POKER OPEN")).toBe("RUSSIAN POKER OPEN");
+      expect(cleanTournamentName("Event 8 RUSSIAN POKER OPEN")).toBe("RUSSIAN POKER OPEN");
+      expect(cleanTournamentName("№8 RUSSIAN POKER OPEN")).toBe("RUSSIAN POKER OPEN");
+    });
+
+    it("should remove day number at the end", () => {
+      expect(cleanTournamentName("RUSSIAN POKER OPEN Day 1")).toBe("RUSSIAN POKER OPEN");
+      expect(cleanTournamentName("RUSSIAN POKER OPEN Day 2")).toBe("RUSSIAN POKER OPEN");
+      expect(cleanTournamentName("RUSSIAN POKER OPEN Dag 1")).toBe("RUSSIAN POKER OPEN");
+      expect(cleanTournamentName("RUSSIAN POKER OPEN День 1")).toBe("RUSSIAN POKER OPEN");
+      expect(cleanTournamentName("RUSSIAN POKER OPEN D1")).toBe("RUSSIAN POKER OPEN");
+      expect(cleanTournamentName("RUSSIAN POKER OPEN Flight A")).toBe("RUSSIAN POKER OPEN");
+    });
+
+    it("should remove day with letter suffix", () => {
+      expect(cleanTournamentName("RUSSIAN POKER OPEN Day 1A")).toBe("RUSSIAN POKER OPEN");
+      expect(cleanTournamentName("RUSSIAN POKER OPEN Day 1B")).toBe("RUSSIAN POKER OPEN");
+      expect(cleanTournamentName("RUSSIAN POKER OPEN 1A")).toBe("RUSSIAN POKER OPEN");
+      expect(cleanTournamentName("RUSSIAN POKER OPEN 1B")).toBe("RUSSIAN POKER OPEN");
+    });
+
+    it("should remove both event number and day", () => {
+      expect(cleanTournamentName("#8 RUSSIAN POKER OPEN Day 1")).toBe("RUSSIAN POKER OPEN");
+      expect(cleanTournamentName("EVENT#8 RUSSIAN POKER OPEN Day 2")).toBe("RUSSIAN POKER OPEN");
+      expect(cleanTournamentName("Event 15 MAIN EVENT Day 1A")).toBe("MAIN EVENT");
+    });
+
+    it("should handle names without event number or day", () => {
+      expect(cleanTournamentName("RUSSIAN POKER OPEN")).toBe("RUSSIAN POKER OPEN");
+      expect(cleanTournamentName("Sunday Million")).toBe("Sunday Million");
+      expect(cleanTournamentName("Main Event")).toBe("Main Event");
+    });
+
+    it("should handle empty or invalid input", () => {
+      expect(cleanTournamentName("")).toBe("");
+      expect(cleanTournamentName("   ")).toBe("");
+    });
+
+    it("should clean extra whitespace", () => {
+      expect(cleanTournamentName("  RUSSIAN   POKER   OPEN  ")).toBe("RUSSIAN POKER OPEN");
+      expect(cleanTournamentName("#8    RUSSIAN POKER OPEN   Day 1")).toBe("RUSSIAN POKER OPEN");
     });
   });
 });

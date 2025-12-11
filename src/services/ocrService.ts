@@ -7,14 +7,14 @@ export interface OCRResult {
   confidence?: number;
 }
 
-// Мок данные для различных типов билетов
+// Мок данные для различных типов билетов (названия без номера события и дня)
 const mockTicketPatterns = [
   {
     // Паттерн для RPF билетов (как в примере)
-    pattern: /RPF|RUSSIAN POKER|SOCHI|CASINO/i,
+    pattern: /RPF|RUSSIAN POKER|SOCHI/i,
     data: {
-      name: "RUSSIAN POKER OPEN Day 1",
-      venue: "Casino Sochi 2025",
+      name: "RUSSIAN POKER OPEN",
+      venue: "Casino Sochi",
       buyin: 275,
       startingStack: 25000,
       tournamentType: "freezeout",
@@ -34,8 +34,8 @@ const mockTicketPatterns = [
     },
   },
   {
-    // Паттерн для локальных казино
-    pattern: /CASINO|POKER CLUB|LIVE/i,
+    // Паттерн для локальных казино (пониженный приоритет - после конкретных паттернов)
+    pattern: /POKER CLUB|LIVE POKER/i,
     data: {
       name: "Weekly Tournament",
       venue: "Local Casino",
@@ -47,14 +47,65 @@ const mockTicketPatterns = [
   },
 ];
 
+/**
+ * Очистка названия турнира от лишних элементов:
+ * - Номер события (EVENT#8, #8, Event 8, №8 и т.д.)
+ * - День входа (Day 1, Day 2, Dag 1, День 1, D1, 1A, 1B, 1C и т.д.)
+ * - Лишние пробелы
+ */
+export function cleanTournamentName(rawName: string): string {
+  if (!rawName) return "";
+
+  let cleaned = rawName.trim();
+
+  // Убираем номер события в начале (EVENT#8, #8, Event 8, №8, Event: 8, EVENT #8)
+  cleaned = cleaned.replace(
+    /^(?:EVENT\s*[#:№]?\s*\d+\s*[-–—]?\s*|[#№]\s*\d+\s*[-–—]?\s*)/i,
+    ""
+  );
+
+  // Убираем день турнира в конце (Day 1, Day 2, Dag 1, День 1, D1, 1A, 1B, 1C, Day 1A, Flight A)
+  cleaned = cleaned.replace(
+    /\s*[-–—]?\s*(?:Day|Dag|День|Flight|D)\s*\d*[A-Za-z]?\s*$/i,
+    ""
+  );
+
+  // Убираем только номер дня в конце (если остался просто " 1", " 2" и т.д. или "1A", "1B")
+  cleaned = cleaned.replace(/\s+\d+[A-Za-z]?\s*$/, "");
+
+  // Убираем лишние пробелы
+  cleaned = cleaned.replace(/\s+/g, " ").trim();
+
+  return cleaned;
+}
+
 // Функция для извлечения данных из текста билета
 function extractTournamentData(text: string): Partial<TournamentFormData> {
   const data: Partial<TournamentFormData> = {};
 
-  // Извлечение названия турнира
-  const eventMatch = text.match(/EVENT[#:\s]*(\d+)?\s*([^\\n]+)/i);
-  if (eventMatch) {
-    data.name = eventMatch[2]?.trim();
+  // Извлечение названия турнира - несколько паттернов
+  let tournamentName: string | undefined;
+
+  // Паттерн 1: EVENT#8 RUSSIAN POKER OPEN Day 1
+  const eventMatch = text.match(/EVENT\s*[#:№]?\s*\d*\s*(.+?)(?:\n|$)/i);
+  if (eventMatch?.[1]) {
+    tournamentName = eventMatch[1].trim();
+  }
+
+  // Паттерн 2: Если не нашли через EVENT, ищем строку с названием турнира
+  if (!tournamentName) {
+    // Ищем строку содержащую POKER, OPEN, TOUR, CHAMPIONSHIP и т.д.
+    const nameMatch = text.match(
+      /(?:^|\n)\s*(?:#?\d+\s+)?([A-Z][A-Z\s]+(?:POKER|OPEN|TOUR|CHAMPIONSHIP|MAIN|EVENT|SERIES|CLASSIC)[A-Z\s]*)/im
+    );
+    if (nameMatch?.[1]) {
+      tournamentName = nameMatch[1].trim();
+    }
+  }
+
+  // Очищаем название турнира
+  if (tournamentName) {
+    data.name = cleanTournamentName(tournamentName);
   }
 
   // Извлечение даты
