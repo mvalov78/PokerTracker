@@ -5,72 +5,29 @@ export interface OCRResult {
   data?: Partial<TournamentFormData>;
   error?: string;
   confidence?: number;
+  rawText?: string;
 }
 
-// Мок данные для различных типов билетов (названия без номера события и дня)
-const mockTicketPatterns = [
-  {
-    // Паттерн для RPF билетов (как в примере)
-    pattern: /RPF|RUSSIAN POKER|SOCHI/i,
-    data: {
-      name: "RUSSIAN POKER OPEN",
-      venue: "Casino Sochi",
-      buyin: 275,
-      startingStack: 25000,
-      tournamentType: "freezeout",
-      structure: "NL Hold'em",
-    },
-  },
-  {
-    // Паттерн для PokerStars билетов
-    pattern: /POKERSTARS|STARS|EPT|WSOP/i,
-    data: {
-      name: "PokerStars Sunday Million",
-      venue: "PokerStars Online",
-      buyin: 109,
-      startingStack: 10000,
-      tournamentType: "freezeout",
-      structure: "NL Hold'em",
-    },
-  },
-  {
-    // Паттерн для локальных казино (пониженный приоритет - после конкретных паттернов)
-    pattern: /POKER CLUB|LIVE POKER/i,
-    data: {
-      name: "Weekly Tournament",
-      venue: "Local Casino",
-      buyin: 100,
-      startingStack: 20000,
-      tournamentType: "rebuy",
-      structure: "NL Hold'em",
-    },
-  },
-];
-
 /**
- * Очистка названия турнира от лишних элементов:
- * - Номер события (EVENT#8, #8, Event 8, №8 и т.д.)
- * - День входа (Day 1, Day 2, Dag 1, День 1, D1, 1A, 1B, 1C и т.д.)
- * - Лишние пробелы
+ * Очищает название турнира от лишних элементов
  */
 export function cleanTournamentName(rawName: string): string {
   if (!rawName) return "";
-
   let cleaned = rawName.trim();
 
-  // Убираем номер события в начале (EVENT#8, #8, Event 8, №8, Event: 8, EVENT #8)
+  // Убираем номер события в начале (EVENT#8, #8, Event 8, №8, EVENT:)
   cleaned = cleaned.replace(
-    /^(?:EVENT\s*[#:№]?\s*\d+\s*[-–—]?\s*|[#№]\s*\d+\s*[-–—]?\s*)/i,
+    /^(?:EVENT\s*[#:№]?\s*\d*\s*[-–—]?\s*|[#№]\s*\d+\s*[-–—]?\s*)/i,
     ""
   );
 
-  // Убираем день турнира в конце (Day 1, Day 2, Dag 1, День 1, D1, 1A, 1B, 1C, Day 1A, Flight A)
+  // Убираем день турнира в конце (Day 1, Day 2, Dag 1, День 1, D1, Flight A)
   cleaned = cleaned.replace(
     /\s*[-–—]?\s*(?:Day|Dag|День|Flight|D)\s*\d*[A-Za-z]?\s*$/i,
     ""
   );
 
-  // Убираем только номер дня в конце (если остался просто " 1", " 2" и т.д. или "1A", "1B")
+  // Убираем только номер дня в конце
   cleaned = cleaned.replace(/\s+\d+[A-Za-z]?\s*$/, "");
 
   // Убираем лишние пробелы
@@ -79,195 +36,307 @@ export function cleanTournamentName(rawName: string): string {
   return cleaned;
 }
 
-// Функция для извлечения данных из текста билета
-function extractTournamentData(text: string): Partial<TournamentFormData> {
-  const data: Partial<TournamentFormData> = {};
-
-  // Извлечение названия турнира - несколько паттернов
-  let tournamentName: string | undefined;
-
-  // Паттерн 1: EVENT#8 RUSSIAN POKER OPEN Day 1
-  const eventMatch = text.match(/EVENT\s*[#:№]?\s*\d*\s*(.+?)(?:\n|$)/i);
-  if (eventMatch?.[1]) {
-    tournamentName = eventMatch[1].trim();
+/**
+ * Парсит дату в различных форматах
+ */
+function parseDate(dateStr: string): string | null {
+  // Формат DD.MM.YYYY или DD/MM/YYYY или DD-MM-YYYY
+  const ddmmyyyy = dateStr.match(/(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{4})/);
+  if (ddmmyyyy) {
+    const [, day, month, year] = ddmmyyyy;
+    return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}T18:00`;
   }
 
-  // Паттерн 2: Если не нашли через EVENT, ищем строку с названием турнира
-  if (!tournamentName) {
-    // Ищем строку содержащую POKER, OPEN, TOUR, CHAMPIONSHIP и т.д.
-    const nameMatch = text.match(
-      /(?:^|\n)\s*(?:#?\d+\s+)?([A-Z][A-Z\s]+(?:POKER|OPEN|TOUR|CHAMPIONSHIP|MAIN|EVENT|SERIES|CLASSIC)[A-Z\s]*)/im
-    );
-    if (nameMatch?.[1]) {
-      tournamentName = nameMatch[1].trim();
+  // Формат YYYY.MM.DD или YYYY/MM/DD или YYYY-MM-DD
+  const yyyymmdd = dateStr.match(/(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})/);
+  if (yyyymmdd) {
+    const [, year, month, day] = yyyymmdd;
+    return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}T18:00`;
+  }
+
+  return null;
+}
+
+/**
+ * Извлекает данные турнира из распознанного текста билета
+ */
+function extractTournamentData(text: string): Partial<TournamentFormData> {
+  const data: Partial<TournamentFormData> = {};
+  console.warn("🔍 Парсинг текста:\n", text);
+
+  // Нормализуем текст: заменяем переносы строк на пробелы для поиска,
+  // но сохраняем оригинал для построчного поиска
+  const normalizedText = text.replace(/\r\n/g, "\n");
+  const lines = normalizedText.split("\n").map((line) => line.trim());
+
+  // === ИЗВЛЕЧЕНИЕ НАЗВАНИЯ ТУРНИРА ===
+  // Паттерн 1: EVENT:#2 OPENER Day 1 или EVENT#8 RUSSIAN POKER OPEN
+  const eventPatterns = [
+    /EVENT\s*[:#]?\s*#?\d*\s*(.+?)(?:\n|$)/i,
+    /EVENT\s*[:#]?\s*(.+?)(?:\n|$)/i,
+  ];
+
+  for (const pattern of eventPatterns) {
+    const eventMatch = normalizedText.match(pattern);
+    if (eventMatch?.[1]) {
+      const rawName = eventMatch[1].trim();
+      data.name = cleanTournamentName(rawName);
+      console.warn("🔍 Найдено название через EVENT:", data.name);
+      break;
     }
   }
 
-  // Очищаем название турнира
-  if (tournamentName) {
-    data.name = cleanTournamentName(tournamentName);
-  }
-
-  // Извлечение даты
-  const dateMatches = [
-    text.match(/(\d{1,2}[.\-/]\d{1,2}[.\-/]\d{4})/),
-    text.match(/(\d{4}[.\-/]\d{1,2}[.\-/]\d{1,2})/),
-    text.match(/DATE[:\s]*(\d{1,2}[.\-/]\d{1,2}[.\-/]\d{4})/i),
-  ];
-
-  for (const match of dateMatches) {
-    if (match) {
-      const dateStr = match[1].replace(/\./g, "-").replace(/\//g, "-");
-      const [day, month, year] = dateStr.split("-");
-      if (year && month && day) {
-        data.date = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}T18:00`;
+  // Паттерн 2: Ищем строку с названием серии (RPC, RPT, EPT, WSOP и т.д.)
+  if (!data.name) {
+    for (const line of lines) {
+      const seriesMatch = line.match(
+        /^(RPC|RPT|RPF|EPT|WSOP|WPT|APT|POKER|MAIN\s*EVENT)[^a-z]*(.+)?/i
+      );
+      if (seriesMatch) {
+        const rawName = (seriesMatch[1] + (seriesMatch[2] || "")).trim();
+        data.name = cleanTournamentName(rawName);
+        console.warn("🔍 Найдено название через серию:", data.name);
         break;
       }
     }
   }
 
-  // Извлечение места проведения
-  const venueMatches = [
-    text.match(/CASINO\s+([^\\n]+)/i),
-    text.match(/([A-Z\s]+CASINO[A-Z\s]*)/i),
-    text.match(/VENUE[:\s]*([^\\n]+)/i),
+  // === ИЗВЛЕЧЕНИЕ ДАТЫ ===
+  // Приоритет: DATE: > Sales time: > любая дата в тексте
+  const datePatterns = [
+    /DATE\s*[:\s]\s*(\d{1,2}[.\-/]\d{1,2}[.\-/]\d{4})/i,
+    /Sales\s*time\s*[:\s]\s*(\d{1,2}[.\-/]\d{1,2}[.\-/]\d{4})/i,
+    /(\d{1,2}[.\-/]\d{1,2}[.\-/]\d{4})/,
   ];
 
-  for (const match of venueMatches) {
-    if (match) {
-      data.venue = match[1]?.trim();
+  for (const pattern of datePatterns) {
+    const dateMatch = normalizedText.match(pattern);
+    if (dateMatch?.[1]) {
+      const parsedDate = parseDate(dateMatch[1]);
+      if (parsedDate) {
+        data.date = parsedDate;
+        console.warn("🔍 Найдена дата:", data.date);
+        break;
+      }
+    }
+  }
+
+  // === ИЗВЛЕЧЕНИЕ МЕСТА ПРОВЕДЕНИЯ ===
+  const venuePatterns = [
+    /CASINO\s+([A-Z0-9\s]+?)(?:\d{4})?(?:\n|$)/i,
+    /VENUE\s*[:\s]\s*(.+?)(?:\n|$)/i,
+  ];
+
+  for (const pattern of venuePatterns) {
+    const venueMatch = normalizedText.match(pattern);
+    if (venueMatch?.[1]) {
+      data.venue = venueMatch[1].trim();
+      console.warn("🔍 Найдена площадка:", data.venue);
       break;
     }
   }
 
-  // Извлечение бай-ина
-  const buyinMatches = [
-    text.match(/BUYIN[:\s]*(\d+)/i),
-    text.match(/AMOUNT[:\s]*(\d+)/i),
-    text.match(/BUY[-\s]*IN[:\s]*(\d+)/i),
-  ];
-
-  for (const match of buyinMatches) {
-    if (match) {
-      data.buyin = parseInt(match[1]);
-      break;
+  // Также ищем название площадки в заголовке (RPC FINAL ... CASINO SOCHI)
+  if (!data.venue) {
+    const headerVenue = normalizedText.match(
+      /CASINO\s+([A-Z]+)/i
+    );
+    if (headerVenue?.[1]) {
+      data.venue = `Casino ${headerVenue[1]}`;
+      console.warn("🔍 Найдена площадка в заголовке:", data.venue);
     }
   }
 
-  // Извлечение fee и добавление к бай-ину
-  const feeMatch = text.match(/FEE[:\s]*(\d+)/i);
-  if (feeMatch && data.buyin) {
-    data.buyin += parseInt(feeMatch[1]);
+  // === ИЗВЛЕЧЕНИЕ БАЙ-ИНА ===
+  // Приоритет: BUYIN > AMOUNT
+  // BUYIN обычно = основной взнос, FEE = рейк
+  let buyin = 0;
+  let fee = 0;
+
+  const buyinMatch = normalizedText.match(/BUYIN\s*[:\s]\s*(\d+)/i);
+  if (buyinMatch) {
+    buyin = parseInt(buyinMatch[1]);
+    console.warn("🔍 Найден BUYIN:", buyin);
   }
 
-  // Извлечение стартового стека
-  const chipsMatch = text.match(/CHIPS[:\s]*(\d+)/i);
+  const feeMatch = normalizedText.match(/FEE\s*[:\s]\s*(\d+)/i);
+  if (feeMatch) {
+    fee = parseInt(feeMatch[1]);
+    console.warn("🔍 Найден FEE:", fee);
+  }
+
+  // Если нет BUYIN, используем AMOUNT
+  if (!buyin) {
+    const amountMatch = normalizedText.match(/AMOUNT\s*[:\s]\s*(\d+)/i);
+    if (amountMatch) {
+      buyin = parseInt(amountMatch[1]);
+      fee = 0; // AMOUNT обычно уже включает fee
+      console.warn("🔍 Найден AMOUNT:", buyin);
+    }
+  }
+
+  // Общая сумма = buyin + fee
+  data.buyin = buyin + fee;
+  console.warn("🔍 Итоговый бай-ин:", data.buyin);
+
+  // === ИЗВЛЕЧЕНИЕ СТАРТОВОГО СТЕКА ===
+  const chipsMatch = normalizedText.match(/CHIPS\s*[:\s]\s*(\d+)/i);
   if (chipsMatch) {
     data.startingStack = parseInt(chipsMatch[1]);
+    console.warn("🔍 Найден стартовый стек:", data.startingStack);
   }
 
-  // Определение типа турнира по названию
-  const nameText = data.name?.toLowerCase() || "";
-  if (nameText.includes("rebuy")) {
+  // === ОПРЕДЕЛЕНИЕ ТИПА ТУРНИРА ===
+  const nameText = (data.name || normalizedText).toLowerCase();
+  if (nameText.includes("rebuy") || nameText.includes("ребай")) {
     data.tournamentType = "rebuy";
-  } else if (nameText.includes("bounty")) {
+  } else if (nameText.includes("bounty") || nameText.includes("баунти") || nameText.includes("knockout") || nameText.includes("ko ")) {
     data.tournamentType = "bounty";
-  } else if (nameText.includes("satellite")) {
+  } else if (nameText.includes("satellite") || nameText.includes("сателлит")) {
     data.tournamentType = "satellite";
+  } else if (nameText.includes("addon") || nameText.includes("add-on")) {
+    data.tournamentType = "addon";
   } else {
     data.tournamentType = "freezeout";
   }
 
-  // Установка структуры по умолчанию
+  // === УСТАНОВКА СТРУКТУРЫ ПО УМОЛЧАНИЮ ===
   if (!data.structure) {
-    data.structure = "NL Hold'em";
+    if (nameText.includes("plo") || nameText.includes("omaha")) {
+      data.structure = "PLO";
+    } else {
+      data.structure = "NL Hold'em";
+    }
   }
 
   return data;
 }
 
-// Мок функция OCR с симуляцией обработки
+/**
+ * Извлекает текст из изображения через OCR.space API
+ */
+async function extractTextFromImage(imageUrl: string): Promise<{
+  success: boolean;
+  text?: string;
+  error?: string;
+}> {
+  const apiKey = process.env.OCR_API_KEY || "helloworld"; // helloworld - демо ключ с ограничениями
+
+  try {
+    console.warn("🔍 OCR: Отправляем изображение на распознавание:", imageUrl);
+
+    const formData = new FormData();
+    formData.append("url", imageUrl);
+    formData.append("language", "rus,eng");
+    formData.append("isOverlayRequired", "false");
+    formData.append("scale", "true");
+    formData.append("OCREngine", "2"); // Engine 2 лучше для русского текста
+
+    const response = await fetch("https://api.ocr.space/parse/image", {
+      method: "POST",
+      headers: {
+        apikey: apiKey,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error(`OCR API error: ${response.status}`);
+    }
+
+    const result = await response.json();
+    console.warn("🔍 OCR API ответ:", JSON.stringify(result, null, 2));
+
+    if (result.IsErroredOnProcessing) {
+      throw new Error(result.ErrorMessage?.[0] || "OCR processing failed");
+    }
+
+    const parsedResults = result.ParsedResults;
+    if (!parsedResults || parsedResults.length === 0) {
+      throw new Error("Не удалось распознать текст на изображении");
+    }
+
+    const extractedText = parsedResults
+      .map((r: { ParsedText: string }) => r.ParsedText)
+      .join("\n");
+
+    console.warn("🔍 OCR: Распознанный текст:\n", extractedText);
+
+    return {
+      success: true,
+      text: extractedText,
+    };
+  } catch (error) {
+    console.error("❌ OCR ошибка:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "OCR failed",
+    };
+  }
+}
+
+/**
+ * Обрабатывает изображение билета и извлекает данные турнира
+ */
 export async function processTicketImage(
   file: File | string,
 ): Promise<OCRResult> {
-  return new Promise((resolve) => {
-    // Симуляция времени обработки
-    setTimeout(
-      () => {
-        try {
-          // Логируем информацию о файле
-          console.warn(
-            "🔍 OCR: Обработка изображения:",
-            typeof file === "string" ? file : file.name,
-          );
+  try {
+    const imageUrl = typeof file === "string" ? file : "";
 
-          // Мок извлечения текста из изображения
-          // В реальном приложении здесь был бы вызов Tesseract.js или Google Cloud Vision API
-          const mockExtractedText = `
-          RPF SUMMER18-31 AUGUST 2025
-          CASINO SOCHI 2025
-          
-          EVENT#8 RUSSIAN POKER OPEN Day 1
-          AMOUNT: 275    CHIPS: 25000
-          BUYIN: 250    FEE: 25    KO: 0
-          
-          Sales time: 21.08.2025 17:41:06
-          
-          FIRSTNAME: VALOV
-          LASTNAME: MAKSIM
-          COUNTRY: Russia
-          ID: 149074
-          
-          TICKET NO.    TABLE/SEAT
-          187    18  10
-          
-          DATE: 21.08.2025
-          Sochi Casino Poker
-        `;
+    if (!imageUrl) {
+      return {
+        success: false,
+        error: "Не удалось получить URL изображения",
+      };
+    }
 
-          // Извлекаем данные из текста
-          const extractedData = extractTournamentData(mockExtractedText);
+    console.warn("🔍 OCR: Начинаем обработку изображения:", imageUrl);
 
-          // Проверяем паттерны для более точного определения
-          let bestMatch = null;
-          let highestConfidence = 0;
+    // Извлекаем текст из изображения через OCR API
+    const ocrResult = await extractTextFromImage(imageUrl);
 
-          for (const pattern of mockTicketPatterns) {
-            if (pattern.pattern.test(mockExtractedText)) {
-              const confidence = 0.85 + Math.random() * 0.1; // 85-95%
-              if (confidence > highestConfidence) {
-                highestConfidence = confidence;
-                bestMatch = pattern;
-              }
-            }
-          }
+    if (!ocrResult.success || !ocrResult.text) {
+      return {
+        success: false,
+        error: ocrResult.error || "Не удалось распознать текст на изображении",
+      };
+    }
 
-          // Объединяем извлеченные данные с паттерном
-          const finalData = bestMatch
-            ? { ...bestMatch.data, ...extractedData }
-            : extractedData;
+    // Парсим извлеченные данные
+    const extractedData = extractTournamentData(ocrResult.text);
+    console.warn("🔍 OCR: Извлеченные данные:", JSON.stringify(extractedData, null, 2));
 
-          // Добавляем текущую дату если не извлечена
-          if (!finalData.date) {
-            const now = new Date();
-            finalData.date = now.toISOString().slice(0, 16); // YYYY-MM-DDTHH:MM
-          }
+    // Добавляем текущую дату если не извлечена
+    if (!extractedData.date) {
+      const now = new Date();
+      extractedData.date = now.toISOString().slice(0, 16);
+    }
 
-          resolve({
-            success: true,
-            data: finalData,
-            confidence: highestConfidence || 0.8,
-          });
-        } catch (error) {
-          resolve({
-            success: false,
-            error: "Ошибка при обработке изображения",
-          });
-        }
-      },
-      2000 + Math.random() * 1000,
-    ); // 2-3 секунды
-  });
+    // Устанавливаем тип турнира по умолчанию
+    if (!extractedData.tournamentType) {
+      extractedData.tournamentType = "freezeout";
+    }
+
+    // Устанавливаем структуру по умолчанию
+    if (!extractedData.structure) {
+      extractedData.structure = "NL Hold'em";
+    }
+
+    return {
+      success: true,
+      data: extractedData,
+      confidence: 0.85,
+      rawText: ocrResult.text,
+    };
+  } catch (error) {
+    console.error("❌ OCR: Ошибка при обработке изображения:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : "Ошибка при обработке изображения",
+    };
+  }
 }
 
 // Функция для валидации извлеченных данных
