@@ -213,6 +213,28 @@ function extractTournamentData(text: string): Partial<TournamentFormData> {
 }
 
 /**
+ * Скачивает изображение по URL и конвертирует в base64
+ */
+async function downloadImageAsBase64(imageUrl: string): Promise<string> {
+  console.warn("🔍 OCR: Скачиваем изображение:", imageUrl);
+  
+  const response = await fetch(imageUrl);
+  if (!response.ok) {
+    throw new Error(`Failed to download image: ${response.status}`);
+  }
+  
+  const arrayBuffer = await response.arrayBuffer();
+  const base64 = Buffer.from(arrayBuffer).toString("base64");
+  
+  // Определяем MIME тип
+  const contentType = response.headers.get("content-type") || "image/jpeg";
+  
+  console.warn("🔍 OCR: Изображение скачано, размер:", Math.round(base64.length / 1024), "KB");
+  
+  return `data:${contentType};base64,${base64}`;
+}
+
+/**
  * Извлекает текст из изображения через OCR.space API
  */
 async function extractTextFromImage(imageUrl: string): Promise<{
@@ -223,24 +245,33 @@ async function extractTextFromImage(imageUrl: string): Promise<{
   const apiKey = process.env.OCR_API_KEY || "helloworld"; // helloworld - демо ключ с ограничениями
 
   try {
-    console.warn("🔍 OCR: Отправляем изображение на распознавание:", imageUrl);
+    console.warn("🔍 OCR: Начинаем обработку изображения:", imageUrl);
 
-    const formData = new FormData();
-    formData.append("url", imageUrl);
+    // Скачиваем изображение и конвертируем в base64
+    const base64Image = await downloadImageAsBase64(imageUrl);
+
+    // Отправляем base64 вместо URL
+    const formData = new URLSearchParams();
+    formData.append("base64Image", base64Image);
     formData.append("language", "rus,eng");
     formData.append("isOverlayRequired", "false");
     formData.append("scale", "true");
     formData.append("OCREngine", "2"); // Engine 2 лучше для русского текста
 
+    console.warn("🔍 OCR: Отправляем на OCR.space API...");
+
     const response = await fetch("https://api.ocr.space/parse/image", {
       method: "POST",
       headers: {
         apikey: apiKey,
+        "Content-Type": "application/x-www-form-urlencoded",
       },
-      body: formData,
+      body: formData.toString(),
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error("❌ OCR API HTTP error:", response.status, errorText);
       throw new Error(`OCR API error: ${response.status}`);
     }
 
@@ -248,11 +279,14 @@ async function extractTextFromImage(imageUrl: string): Promise<{
     console.warn("🔍 OCR API ответ:", JSON.stringify(result, null, 2));
 
     if (result.IsErroredOnProcessing) {
-      throw new Error(result.ErrorMessage?.[0] || "OCR processing failed");
+      const errorMsg = result.ErrorMessage?.[0] || result.ErrorDetails || "OCR processing failed";
+      console.error("❌ OCR API processing error:", errorMsg);
+      throw new Error(errorMsg);
     }
 
     const parsedResults = result.ParsedResults;
     if (!parsedResults || parsedResults.length === 0) {
+      console.error("❌ OCR: Нет результатов распознавания");
       throw new Error("Не удалось распознать текст на изображении");
     }
 
@@ -261,6 +295,10 @@ async function extractTextFromImage(imageUrl: string): Promise<{
       .join("\n");
 
     console.warn("🔍 OCR: Распознанный текст:\n", extractedText);
+
+    if (!extractedText || extractedText.trim().length === 0) {
+      throw new Error("OCR вернул пустой результат");
+    }
 
     return {
       success: true,

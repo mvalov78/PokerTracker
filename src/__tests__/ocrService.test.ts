@@ -31,13 +31,29 @@ DATE: 16.12.2025`
   IsErroredOnProcessing: false,
 }
 
-// Mock global fetch
-global.fetch = jest.fn(() =>
-  Promise.resolve({
+// Mock image download response
+const mockImageResponse = {
+  ok: true,
+  arrayBuffer: () => Promise.resolve(new ArrayBuffer(100)),
+  headers: new Map([['content-type', 'image/jpeg']]),
+}
+
+// Mock global fetch - handles both image download and OCR API calls
+global.fetch = jest.fn((url: string) => {
+  if (url.includes('ocr.space')) {
+    return Promise.resolve({
+      ok: true,
+      json: () => Promise.resolve(mockOCRResponse),
+      text: () => Promise.resolve(JSON.stringify(mockOCRResponse)),
+    } as Response)
+  }
+  // Image download
+  return Promise.resolve({
     ok: true,
-    json: () => Promise.resolve(mockOCRResponse),
-  } as Response)
-)
+    arrayBuffer: () => Promise.resolve(new ArrayBuffer(100)),
+    headers: { get: () => 'image/jpeg' },
+  } as unknown as Response)
+})
 
 describe('OCR Service', () => {
   beforeEach(() => {
@@ -104,11 +120,18 @@ describe('OCR Service', () => {
     it('should handle OCR API errors', async () => {
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
       
-      // Mock failed API response
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: false,
-        status: 500,
-      } as Response)
+      // Mock: first call (image download) succeeds, second call (OCR API) fails
+      ;(global.fetch as jest.Mock)
+        .mockResolvedValueOnce({
+          ok: true,
+          arrayBuffer: () => Promise.resolve(new ArrayBuffer(100)),
+          headers: { get: () => 'image/jpeg' },
+        } as unknown as Response)
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 500,
+          text: () => Promise.resolve('Internal Server Error'),
+        } as Response)
 
       const result = await processTicketImage('https://example.com/ticket.jpg')
       
