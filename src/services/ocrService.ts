@@ -224,12 +224,30 @@ async function downloadImageAsBase64(imageUrl: string): Promise<string> {
   }
   
   const arrayBuffer = await response.arrayBuffer();
-  const base64 = Buffer.from(arrayBuffer).toString("base64");
+  const uint8Array = new Uint8Array(arrayBuffer);
   
-  // Определяем MIME тип
-  const contentType = response.headers.get("content-type") || "image/jpeg";
+  // Конвертируем в base64
+  let binary = "";
+  for (let i = 0; i < uint8Array.length; i++) {
+    binary += String.fromCharCode(uint8Array[i]);
+  }
+  const base64 = btoa(binary);
   
-  console.warn("🔍 OCR: Изображение скачано, размер:", Math.round(base64.length / 1024), "KB");
+  // Определяем MIME тип из URL или заголовков
+  let contentType = response.headers.get("content-type") || "";
+  
+  // Если content-type не определен или некорректный, определяем по URL
+  if (!contentType || !contentType.startsWith("image/")) {
+    if (imageUrl.includes(".jpg") || imageUrl.includes(".jpeg")) {
+      contentType = "image/jpeg";
+    } else if (imageUrl.includes(".png")) {
+      contentType = "image/png";
+    } else {
+      contentType = "image/jpeg"; // По умолчанию JPEG
+    }
+  }
+  
+  console.warn("🔍 OCR: Изображение скачано, размер:", Math.round(base64.length / 1024), "KB, тип:", contentType);
   
   return `data:${contentType};base64,${base64}`;
 }
@@ -253,10 +271,11 @@ async function extractTextFromImage(imageUrl: string): Promise<{
     // Отправляем base64 вместо URL
     const formData = new URLSearchParams();
     formData.append("base64Image", base64Image);
-    formData.append("language", "rus,eng");
+    formData.append("language", "eng"); // Используем английский, на билетах в основном латиница
     formData.append("isOverlayRequired", "false");
     formData.append("scale", "true");
-    formData.append("OCREngine", "2"); // Engine 2 лучше для русского текста
+    formData.append("detectOrientation", "true");
+    formData.append("OCREngine", "2"); // Engine 2 более точный
 
     console.warn("🔍 OCR: Отправляем на OCR.space API...");
 
