@@ -104,6 +104,16 @@ function ResultsContent() {
     return filtered;
   }, [tournamentsWithResults, searchQuery, dateRange, sortBy, sortOrder]);
 
+  // Хелпер для получения результата из правильного поля (result или tournament_results)
+  const getResult = (tournament: any) => {
+    return (
+      tournament.result ||
+      (Array.isArray(tournament.tournament_results)
+        ? tournament.tournament_results[0]
+        : tournament.tournament_results)
+    );
+  };
+
   // Статистика по результатам
   const resultStats = useMemo(() => {
     const results = filteredResults; // Только турниры с результатами для отображения
@@ -115,18 +125,19 @@ function ResultsContent() {
       (sum, t) => sum + t.buyin,
       0,
     );
-    const totalWinnings = allUserTournaments.reduce(
-      (sum, t) => sum + (t.result?.payout || 0),
-      0,
-    );
+    const totalWinnings = allUserTournaments.reduce((sum, t) => {
+      const result = getResult(t);
+      return sum + (result?.payout || 0);
+    }, 0);
     const totalProfit = totalWinnings - totalInvestment;
     const avgROI =
       totalInvestment > 0 ? (totalProfit / totalInvestment) * 100 : 0;
 
     // ПРАВИЛЬНЫЙ расчет ITM: от ВСЕХ турниров пользователя
-    const tournamentsWithResults = allUserTournaments.filter((t) => t.result);
+    const tournamentsWithResults = allUserTournaments.filter((t) => getResult(t));
     const cashCount = tournamentsWithResults.filter((t) => {
-      const position = t.result?.position || 999;
+      const result = getResult(t);
+      const position = result?.position || 999;
       const participants = t.participants;
 
       if (participants && participants > 0) {
@@ -134,18 +145,19 @@ function ResultsContent() {
         return position <= participants * 0.15;
       } else {
         // Если не знаем участников, считаем ITM по прибыли (payout > buyin)
-        const payout = t.result?.payout || 0;
+        const payout = result?.payout || 0;
         return payout > t.buyin;
       }
     }).length;
-    const finalTableCount = results.filter(
-      (t) => t.result?.finalTableReached,
-    ).length;
-    const winsCount = results.filter((t) => t.result?.position === 1).length;
+    const finalTableCount = results.filter((t) => {
+      const result = getResult(t);
+      return result?.finalTableReached;
+    }).length;
+    const winsCount = results.filter((t) => getResult(t)?.position === 1).length;
 
     const avgPosition =
       results.length > 0
-        ? results.reduce((sum, t) => sum + (t.result?.position || 0), 0) /
+        ? results.reduce((sum, t) => sum + (getResult(t)?.position || 0), 0) /
           results.length
         : 0;
 

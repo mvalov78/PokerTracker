@@ -39,9 +39,19 @@ function AnalyticsContent() {
     );
   }, [tournaments, timeRange]);
 
+  // Хелпер для получения результата из правильного поля (result или tournament_results)
+  const getResult = (tournament: any) => {
+    return (
+      tournament.result ||
+      (Array.isArray(tournament.tournament_results)
+        ? tournament.tournament_results[0]
+        : tournament.tournament_results)
+    );
+  };
+
   // Турниры с результатами
   const tournamentsWithResults = useMemo(() => {
-    return filteredTournaments.filter((tournament) => tournament.result);
+    return filteredTournaments.filter((tournament) => getResult(tournament));
   }, [filteredTournaments]);
 
   // Основная статистика
@@ -51,10 +61,10 @@ function AnalyticsContent() {
       (sum, t) => sum + t.buyin,
       0,
     );
-    const totalWinnings = tournamentsWithResults.reduce(
-      (sum, t) => sum + (t.result?.payout || 0),
-      0,
-    );
+    const totalWinnings = tournamentsWithResults.reduce((sum, t) => {
+      const result = getResult(t);
+      return sum + (result?.payout || 0);
+    }, 0);
 
     // ПРАВИЛЬНЫЙ расчет: учитываем ВСЕ турниры для ROI
     // Турниры без результатов = потерянные бай-ины (0 выигрыша)
@@ -64,7 +74,8 @@ function AnalyticsContent() {
     // ПРАВИЛЬНЫЙ расчет ITM: от ВСЕХ турниров
     // Турниры без результатов = не попали в деньги (ITM = 0)
     const cashCount = tournamentsWithResults.filter((t) => {
-      const position = t.result?.position || 999;
+      const result = getResult(t);
+      const position = result?.position || 999;
       const participants = t.participants;
 
       if (participants && participants > 0) {
@@ -72,7 +83,7 @@ function AnalyticsContent() {
         return position <= participants * 0.15;
       } else {
         // Если не знаем участников, считаем ITM по прибыли (payout > buyin)
-        const payout = t.result?.payout || 0;
+        const payout = result?.payout || 0;
         return payout > t.buyin;
       }
     }).length;
@@ -82,23 +93,23 @@ function AnalyticsContent() {
 
     const avgPosition =
       tournamentsWithResults.length > 0
-        ? tournamentsWithResults.reduce(
-            (sum, t) => sum + (t.result?.position || 0),
-            0,
-          ) / tournamentsWithResults.length
+        ? tournamentsWithResults.reduce((sum, t) => {
+            const result = getResult(t);
+            return sum + (result?.position || 0);
+          }, 0) / tournamentsWithResults.length
         : 0;
 
     const bestFinish =
       tournamentsWithResults.length > 0
         ? Math.min(
-            ...tournamentsWithResults.map((t) => t.result?.position || 999),
+            ...tournamentsWithResults.map((t) => getResult(t)?.position || 999),
           )
         : 0;
 
     const worstFinish =
       tournamentsWithResults.length > 0
         ? Math.max(
-            ...tournamentsWithResults.map((t) => t.result?.position || 0),
+            ...tournamentsWithResults.map((t) => getResult(t)?.position || 0),
           )
         : 0;
 

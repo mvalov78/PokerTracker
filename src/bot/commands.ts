@@ -1249,25 +1249,29 @@ ${stats.bestPayout ? `💎 **Лучший выигрыш:** $${stats.bestPayout}
     let totalBuyin = 0;
     let totalWinnings = 0;
     let itmCount = 0;
-    let bestPosition = null;
+    let bestPosition: number | null = null;
     let bestPayout = 0;
 
     tournaments.forEach((tournament) => {
       totalBuyin += tournament.buyin || 0;
 
-      if (tournament.result) {
-        totalWinnings += tournament.result.payout || 0;
+      // Получаем результат из правильного поля (result или tournament_results)
+      const result =
+        tournament.result ||
+        (Array.isArray(tournament.tournament_results)
+          ? tournament.tournament_results[0]
+          : tournament.tournament_results);
+
+      if (result) {
+        totalWinnings += result.payout || 0;
         itmCount += 1;
 
-        if (
-          bestPosition === null ||
-          tournament.result.position < bestPosition
-        ) {
-          bestPosition = tournament.result.position;
+        if (bestPosition === null || result.position < bestPosition) {
+          bestPosition = result.position;
         }
 
-        if (tournament.result.payout > bestPayout) {
-          bestPayout = tournament.result.payout;
+        if (result.payout > bestPayout) {
+          bestPayout = result.payout;
         }
       }
     });

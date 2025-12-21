@@ -158,10 +158,15 @@ export default function TournamentsPage() {
           <div className="bg-white rounded-lg shadow p-6 text-center">
             <div className="text-3xl font-bold text-purple-600 mb-2">
               $
-              {filteredTournaments.reduce(
-                (sum, t) => sum + (t.result?.payout || 0),
-                0,
-              )}
+              {filteredTournaments.reduce((sum, t) => {
+                // Получаем результат из правильного поля (как в отображении турниров)
+                const result =
+                  t.result ||
+                  (Array.isArray(t.tournament_results)
+                    ? t.tournament_results[0]
+                    : t.tournament_results);
+                return sum + (result?.payout || 0);
+              }, 0)}
             </div>
             <div className="text-gray-600">Общий выигрыш</div>
           </div>
