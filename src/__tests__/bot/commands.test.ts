@@ -277,8 +277,10 @@ describe("BotCommands", () => {
   });
 
   describe("getStats command", () => {
-    it("should show user statistics", async () => {
+    it("should show user statistics without venue filter", async () => {
       const ctx = createMockBotContext();
+
+      mockGetCurrentVenue.mockResolvedValue(null);
 
       mockFetch({
         success: true,
@@ -287,7 +289,15 @@ describe("BotCommands", () => {
             id: "1",
             name: "Tournament 1",
             buyin: 100,
+            venue: "Venue A",
             result: { position: 1, payout: 500 },
+          },
+          {
+            id: "2",
+            name: "Tournament 2",
+            buyin: 200,
+            venue: "Venue B",
+            result: { position: 2, payout: 300 },
           },
         ],
       });
@@ -295,6 +305,81 @@ describe("BotCommands", () => {
       await commands.getStats(ctx as any);
 
       expect(ctx.reply).toHaveBeenCalled();
+      expect(mockGetCurrentVenue).toHaveBeenCalled();
+      const replyMessage = (ctx.reply as jest.Mock).mock.calls[0][0];
+      expect(replyMessage).toContain("Ваша статистика");
+      expect(replyMessage).not.toContain("Площадка:");
+    });
+
+    it("should filter statistics by current venue", async () => {
+      const ctx = createMockBotContext();
+
+      mockGetCurrentVenue.mockResolvedValue("Venue A");
+
+      mockFetch({
+        success: true,
+        tournaments: [
+          {
+            id: "1",
+            name: "Tournament 1",
+            buyin: 100,
+            venue: "Venue A",
+            result: { position: 1, payout: 500 },
+          },
+          {
+            id: "2",
+            name: "Tournament 2",
+            buyin: 200,
+            venue: "Venue B",
+            result: { position: 2, payout: 300 },
+          },
+        ],
+      });
+
+      await commands.getStats(ctx as any);
+
+      expect(ctx.reply).toHaveBeenCalled();
+      expect(mockGetCurrentVenue).toHaveBeenCalled();
+      const replyMessage = (ctx.reply as jest.Mock).mock.calls[0][0];
+      expect(replyMessage).toContain("Ваша статистика");
+      expect(replyMessage).toContain("Площадка:");
+      expect(replyMessage).toContain("Venue A");
+      // Статистика должна быть только по одному турниру (Venue A)
+      expect(replyMessage).toContain("Турниры:");
+      expect(replyMessage).toMatch(/Турниры[:\*]*\s*1/);
+    });
+
+    it("should show message when no tournaments for current venue", async () => {
+      const ctx = createMockBotContext();
+
+      mockGetCurrentVenue.mockResolvedValue("Venue C");
+
+      mockFetch({
+        success: true,
+        tournaments: [
+          {
+            id: "1",
+            name: "Tournament 1",
+            buyin: 100,
+            venue: "Venue A",
+            result: { position: 1, payout: 500 },
+          },
+          {
+            id: "2",
+            name: "Tournament 2",
+            buyin: 200,
+            venue: "Venue B",
+            result: { position: 2, payout: 300 },
+          },
+        ],
+      });
+
+      await commands.getStats(ctx as any);
+
+      expect(ctx.reply).toHaveBeenCalled();
+      const replyMessage = (ctx.reply as jest.Mock).mock.calls[0][0];
+      expect(replyMessage).toContain("нет турниров на площадке");
+      expect(replyMessage).toContain("Venue C");
     });
   });
 

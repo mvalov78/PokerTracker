@@ -757,6 +757,9 @@ ID турнира: \`${newTournament.id}\`
     try {
       const userId = ctx.from?.id.toString();
 
+      // Получаем текущую площадку пользователя
+      const currentVenue = await UserSettingsService.getCurrentVenue(userId!);
+
       // Получаем турниры через API
       const apiUrl = getApiUrl();
       const apiResponse = await fetch(
@@ -769,11 +772,26 @@ ID турнира: \`${newTournament.id}\`
       }
 
       const apiResult = await apiResponse.json();
-      const tournaments = apiResult.tournaments;
+      let tournaments = apiResult.tournaments;
 
       if (!tournaments || tournaments.length === 0) {
         await ctx.reply("📊 У вас пока нет турниров для статистики.");
         return;
+      }
+
+      // Фильтруем турниры по текущей площадке, если она установлена
+      if (currentVenue) {
+        tournaments = tournaments.filter(
+          (tournament: any) => tournament.venue === currentVenue,
+        );
+
+        if (tournaments.length === 0) {
+          await ctx.reply(
+            `📊 У вас нет турниров на площадке "${currentVenue}" для статистики.\n\nИспользуйте \`/setvenue\` для установки другой площадки.`,
+            { parse_mode: "Markdown" },
+          );
+          return;
+        }
       }
 
       // Рассчитываем статистику локально
@@ -787,9 +805,12 @@ ID турнира: \`${newTournament.id}\`
         stats.profit > 0 ? `+$${stats.profit}` : `-$${Math.abs(stats.profit)}`;
       const itmRateText = `${stats.itmRate.toFixed(1)}%`;
 
-      const statsMessage = `
-📊 **Ваша статистика**
+      const venueHeader = currentVenue
+        ? `\n🏨 **Площадка:** ${currentVenue}\n`
+        : "";
 
+      const statsMessage = `
+📊 **Ваша статистика**${venueHeader}
 🎰 **Турниры:** ${stats.totalTournaments}
 💵 **Общий бай-ин:** $${stats.totalBuyin}
 💰 **Общий выигрыш:** $${stats.totalWinnings}
