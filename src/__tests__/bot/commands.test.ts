@@ -387,6 +387,48 @@ describe("BotCommands", () => {
       );
     });
 
+    it("should accept only payout (single number) and save with position 999", async () => {
+      const ctx = createMockBotContext({
+        session: {
+          currentAction: "add_result",
+          tournamentData: { tournamentId: "test-id" },
+        },
+        message: {
+          ...createMockBotContext().message!,
+          text: "2500",
+        },
+      });
+
+      mockFetch({
+        success: true,
+        tournament: {
+          id: "test-id",
+          name: "Test Tournament",
+          buyin: 100,
+          tournament_results: {
+            position: 999,
+            payout: 2500,
+            profit: 2400,
+            roi: 2400,
+          },
+        },
+      });
+
+      await commands.handleResultInput(ctx as any, "2500");
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining("/api/tournaments/test-id"),
+        expect.objectContaining({
+          method: "PUT",
+          body: expect.stringContaining('"position":999'),
+        }),
+      );
+      expect(ctx.reply).toHaveBeenCalledWith(
+        expect.stringContaining("Результат добавлен"),
+        expect.any(Object),
+      );
+    });
+
     it("should show error for invalid format", async () => {
       const ctx = createMockBotContext({
         session: {

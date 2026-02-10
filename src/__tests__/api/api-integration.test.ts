@@ -13,19 +13,29 @@ import {
 } from "@/data/mockData";
 import { mockUser } from "@/data/mockData";
 import { addResultHistoryEntry } from "@/data/mockData";
+import { createMockAdminClient } from "../mocks/supabase";
 
 // Set up environment variables for tests
 process.env.NEXT_PUBLIC_SUPABASE_URL = "http://localhost:54321";
 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "test-anon-key";
+process.env.SUPABASE_SERVICE_ROLE_KEY = "test-service-key";
+
+// Create mock before jest.mock
+let mockSupabaseClient: any;
 
 // Mock Supabase для API тестов
 jest.mock("@/lib/supabase", () => ({
   supabase: null, // Будет использовать fallback к mockData
   supabaseAdmin: null,
+  createAdminClient: () => mockSupabaseClient,
   getUserOrCreate: jest
     .fn()
     .mockResolvedValue({ id: "test-user", username: "test" }),
 }));
+
+// Initialize mock after jest.mock
+const mockSupabase = createMockAdminClient();
+mockSupabaseClient = mockSupabase.client;
 
 // Mock TournamentService для API тестов
 jest.mock("@/services/tournamentService", () => ({
@@ -98,6 +108,9 @@ describe("API Integration Tests", () => {
     // Reset mock data before each test to ensure isolation
     mockTournaments.splice(0, mockTournaments.length);
     mockResultHistory.splice(0, mockResultHistory.length);
+    
+    // Reset Supabase mock
+    mockSupabase.resetMocks();
 
     // Add sample test data
     const tournament1 = {
@@ -137,13 +150,16 @@ describe("API Integration Tests", () => {
 
   describe("/api/tournaments", () => {
     it("should handle GET request for tournaments", async () => {
-      const { TournamentService } = require("@/services/tournamentService");
       const { GET } = require("@/app/api/tournaments/route");
 
-      // Setup mock to return tournaments from mockData
-      TournamentService.getTournamentsByUserId.mockResolvedValue(
-        mockTournaments,
-      );
+      // Setup Supabase mock to return tournaments array
+      const tournaments = mockTournaments.map(t => ({
+        ...t,
+        user_id: t.userId,
+        tournament_results: [],
+        tournament_photos: [],
+      }));
+      mockSupabase.setMockData(tournaments);
 
       const request = createMockRequest({
         method: "GET",
@@ -157,7 +173,7 @@ describe("API Integration Tests", () => {
       expect(data.success).toBe(true);
       expect(Array.isArray(data.tournaments)).toBe(true);
       expect(data.tournaments.length).toBeGreaterThan(0);
-      expect(data.tournaments[0].userId).toBe("test-user");
+      expect(data.tournaments[0].user_id || data.tournaments[0].userId).toBe("test-user");
     });
 
     it("should handle POST request for creating tournament", async () => {
@@ -221,20 +237,21 @@ describe("API Integration Tests", () => {
 
   describe("/api/tournaments/[id]", () => {
     it("should handle GET request for specific tournament", async () => {
-      const { TournamentService } = require("@/services/tournamentService");
       const { GET } = require("@/app/api/tournaments/[id]/route");
 
       const tournament = {
         id: "test-tournament-1",
-        userId: "test-user",
+        user_id: "test-user",
         name: "Initial Test Tournament",
         date: "2024-01-01T00:00:00Z",
         venue: "Test Venue",
         buyin: 100,
+        tournament_results: [],
+        tournament_photos: [],
       };
 
-      // Setup mock to return tournament
-      TournamentService.getTournamentById.mockResolvedValue(tournament);
+      // Setup Supabase mock to return tournament
+      mockSupabase.setMockData(tournament);
 
       const request = createMockRequest({
         method: "GET",
@@ -253,7 +270,6 @@ describe("API Integration Tests", () => {
     });
 
     it("should handle PUT request for updating tournament", async () => {
-      const { TournamentService } = require("@/services/tournamentService");
       const { PUT } = require("@/app/api/tournaments/[id]/route");
 
       const updateData = {
@@ -266,29 +282,50 @@ describe("API Integration Tests", () => {
 
       const tournament = {
         id: "test-tournament-1",
-        userId: "test-user",
+        user_id: "test-user",
         name: "Initial Test Tournament",
         date: "2024-01-01T00:00:00Z",
         venue: "Test Venue",
         buyin: 100,
+        tournament_results: [],
+        tournament_photos: [],
       };
 
       const updatedTournament = {
         ...tournament,
-        result: {
-          position: 1,
-          payout: 500,
-          profit: 400,
-          roi: 400,
-          notes: "Great game!",
-        },
+        tournament_results: [
+          {
+            id: "result-1",
+            tournament_id: "test-tournament-1",
+            position: 1,
+            payout: 500,
+            profit: 400,
+            roi: 400,
+            notes: "Great game!",
+            created_at: new Date().toISOString(),
+          },
+        ],
       };
 
-      // Setup mocks
-      TournamentService.getTournamentById
-        .mockResolvedValueOnce(tournament)
-        .mockResolvedValueOnce(updatedTournament);
-      TournamentService.addTournamentResult.mockResolvedValue(undefined);
+      // Setup Supabase mocks
+      const upsertResult = {
+        id: "result-1",
+        tournament_id: "test-tournament-1",
+        position: 1,
+        payout: 500,
+        profit: 400,
+        roi: 400,
+        notes: "Great game!",
+        created_at: new Date().toISOString(),
+      };
+      
+      // Set data sequence: 
+      // 1. First call: get tournament (before upsert)
+      // 2. Upsert result (handled separately)
+      // 3. Update tournament (no data returned, just success)
+      // 4. Second call: get updated tournament (after update)
+      mockSupabase.setDataSequence([tournament, updatedTournament]);
+      mockSupabase.setUpsertResult(upsertResult);
 
       const request = createMockRequest({
         method: "PUT",
@@ -303,9 +340,14 @@ describe("API Integration Tests", () => {
 
       const data = await response.json();
       expect(data.success).toBe(true);
-      expect(data.tournament.result).toBeDefined();
-      expect(data.tournament.result.position).toBe(1);
-      expect(data.tournament.result.payout).toBe(500);
+      expect(data.tournament.tournament_results).toBeDefined();
+      if (Array.isArray(data.tournament.tournament_results)) {
+        expect(data.tournament.tournament_results[0].position).toBe(1);
+        expect(data.tournament.tournament_results[0].payout).toBe(500);
+      } else if (data.tournament.tournament_results) {
+        expect(data.tournament.tournament_results.position).toBe(1);
+        expect(data.tournament.tournament_results.payout).toBe(500);
+      }
     });
   });
 });
@@ -369,6 +411,7 @@ describe("Data Consistency Tests", () => {
   beforeEach(() => {
     // Reset mock data for consistency tests
     mockTournaments.splice(0, mockTournaments.length);
+    mockSupabase.resetMocks();
   });
 
   it("should maintain data consistency between bot and frontend", async () => {
@@ -389,7 +432,10 @@ describe("Data Consistency Tests", () => {
 
     const createdTournament = {
       id: "consistency-test-id",
+      user_id: "consistency-test",
       ...tournamentData,
+      tournament_results: [],
+      tournament_photos: [],
     };
 
     // Setup mocks
@@ -399,6 +445,9 @@ describe("Data Consistency Tests", () => {
     TournamentService.getTournamentsByUserId.mockResolvedValue([
       createdTournament,
     ]);
+    
+    // Setup Supabase mock for GET request
+    mockSupabase.setMockData([createdTournament]);
 
     const createReq = createMockRequest({
       method: "POST",

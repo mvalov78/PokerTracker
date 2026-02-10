@@ -10,26 +10,76 @@ export interface MockSupabaseResponse<T = any> {
 export function createMockSupabaseClient() {
   let mockData: any = null;
   let mockError: any = null;
+  let upsertResult: any = null;
+  let callCount = 0;
+  const dataSequence: any[] = [];
+  let lastFromTable: string | null = null;
 
-  const createChain = () => ({
-    from: jest.fn(() => createChain()),
-    select: jest.fn(() => createChain()),
-    insert: jest.fn(() => createChain()),
-    update: jest.fn(() => createChain()),
-    upsert: jest.fn(() => createChain()),
-    delete: jest.fn(() => createChain()),
-    eq: jest.fn(() => createChain()),
-    single: jest.fn(() =>
-      Promise.resolve({ data: mockData, error: mockError }),
-    ),
-    order: jest.fn(() => createChain()),
-    limit: jest.fn(() => createChain()),
-    not: jest.fn(() => createChain()),
-    in: jest.fn(() => createChain()),
-    rpc: jest.fn(() => Promise.resolve({ data: mockData, error: mockError })),
-    then: jest.fn((callback) => callback({ data: mockData, error: mockError })),
-    catch: jest.fn(),
-  });
+  // Create a single shared chain object that will be reused
+  const createChain = () => {
+    const chain: any = {};
+    
+    // Track table name so select() after upsert (tournament_results) returns upsertResult; select() after from(tournaments) returns chain
+    chain.from = jest.fn(function(table: string) {
+      lastFromTable = table;
+      return chain;
+    });
+    chain.select = jest.fn(function(query?: string) {
+      // Only return upsert result when select() is called after upsert on tournament_results
+      if (lastFromTable === "tournament_results" && upsertResult !== null) {
+        const result = Promise.resolve({ data: upsertResult, error: mockError });
+        upsertResult = null;
+        lastFromTable = null;
+        return result;
+      }
+      lastFromTable = null;
+      return chain;
+    });
+    chain.insert = jest.fn(function() { return chain; });
+    chain.update = jest.fn(function(data: any) {
+      // Update returns chain for chaining, but also supports then/catch
+      chain.then = jest.fn((callback) => {
+        return Promise.resolve(callback({ data: null, error: mockError }));
+      });
+      chain.catch = jest.fn();
+      return chain;
+    });
+    chain.upsert = jest.fn(function(data: any, options?: any) {
+      // Store the upsert result for select() to return
+      upsertResult = Array.isArray(data) ? data : [data];
+      return chain; // Return chain so select() can be called
+    });
+    chain.delete = jest.fn(function() { return chain; });
+    chain.eq = jest.fn(function() { return chain; });
+    chain.single = jest.fn(() => {
+      // Use data sequence if available, otherwise use mockData
+      const data = dataSequence.length > 0 
+        ? (dataSequence[callCount] ?? dataSequence[dataSequence.length - 1])
+        : mockData;
+      callCount++;
+      return Promise.resolve({ data, error: mockError });
+    });
+    chain.order = jest.fn(function(column?: string, options?: { ascending?: boolean }) {
+      // Return chain, but also support direct promise resolution
+      chain.then = jest.fn((callback) => {
+        const data = Array.isArray(mockData) ? mockData : (mockData ? [mockData] : []);
+        return Promise.resolve(callback({ data, error: mockError }));
+      });
+      chain.catch = jest.fn();
+      return chain;
+    });
+    chain.limit = jest.fn(function() { return chain; });
+    chain.not = jest.fn(function() { return chain; });
+    chain.in = jest.fn(function() { return chain; });
+    chain.rpc = jest.fn(() => Promise.resolve({ data: mockData, error: mockError }));
+    chain.then = jest.fn((callback) => {
+      const data = Array.isArray(mockData) ? mockData : (mockData ? [mockData] : []);
+      return Promise.resolve(callback({ data, error: mockError }));
+    });
+    chain.catch = jest.fn();
+    
+    return chain;
+  };
 
   return {
     client: createChain(),
@@ -39,9 +89,20 @@ export function createMockSupabaseClient() {
     setMockError: (error: any) => {
       mockError = error;
     },
+    setUpsertResult: (result: any) => {
+      upsertResult = Array.isArray(result) ? result : [result];
+    },
+    setDataSequence: (sequence: any[]) => {
+      dataSequence.length = 0;
+      dataSequence.push(...sequence);
+      callCount = 0;
+    },
     resetMocks: () => {
       mockData = null;
       mockError = null;
+      upsertResult = null;
+      callCount = 0;
+      dataSequence.length = 0;
     },
   };
 }

@@ -25,6 +25,9 @@ function getApiUrl(): string {
   return `https://${appUrl}`;
 }
 
+/** Значение position в БД, когда введён только выигрыш (место не указывали). В схеме position > 0. */
+const POSITION_UNKNOWN = 999;
+
 export class BotCommands {
   /**
    * Команда /start - приветствие и инструкции
@@ -476,13 +479,15 @@ ID турнира: \`${newTournament.id}\`
     const message = `
 🏆 **Добавление результата турнира**
 
-Введите результат в формате:
-\`Место | Выигрыш\` или \`Место - Выигрыш\`
+Введите результат одним из способов:
 
-**Примеры:**
-\`1 | 2500\` - 1 место, выигрыш $2500
+**Только выигрыш** (место не важно):
+\`2500\` или \`0\`
+
+**Место и выигрыш:** \`Место | Выигрыш\` или \`Место - Выигрыш\`
+\`1 | 2500\` - 1 место, $2500
 \`15 - 0\` - 15 место, без призовых
-\`3 | 850\` - 3 место, выигрыш $850
+\`3 | 850\` - 3 место, $850
 
 Для отмены введите /cancel
     `;
@@ -526,38 +531,56 @@ ID турнира: \`${newTournament.id}\`
       else if (text.includes(" — ")) {
         parts = text.split(" — ");
       }
-      // В крайнем случае пробуем просто по пробелу (формат "15 0")
+      // По пробелу (формат "15 0")
       else if (text.includes(" ")) {
         parts = text.split(/\s+/).filter((p) => p.length > 0);
+      }
+      // Нет разделителя — вся строка как одна часть (только выигрыш)
+      else if (text.trim().length > 0) {
+        parts = [text.trim()];
       }
 
       // Убираем лишние пробелы
       parts = parts.map((p) => p.trim()).filter((p) => p.length > 0);
 
-      if (parts.length !== 2) {
+      let position: number;
+      let payout: number;
+
+      if (parts.length === 1) {
+        // Только выигрыш — место не указываем (только цифры и точка)
+        const payoutStr = parts[0];
+        if (/[,]/.test(payoutStr)) {
+          await ctx.reply(
+            "❌ Неверный формат. Введите только выигрыш (например `2500`) или `Место | Выигрыш` / `Место - Выигрыш`",
+            { parse_mode: "Markdown" },
+          );
+          return;
+        }
+        payout = parseFloat(payoutStr);
+        if (isNaN(payout) || payout < 0) {
+          await ctx.reply("❌ Выигрыш должен быть числом (0 или больше)");
+          return;
+        }
+        position = POSITION_UNKNOWN;
+      } else if (parts.length === 2) {
+        const [positionStr, payoutStr] = parts;
+        position = parseInt(positionStr);
+        payout = parseFloat(payoutStr);
+
+        if (isNaN(position) || position < 1) {
+          await ctx.reply("❌ Место должно быть положительным числом");
+          return;
+        }
+
+        if (isNaN(payout) || payout < 0) {
+          await ctx.reply("❌ Выигрыш должен быть числом (0 или больше)");
+          return;
+        }
+      } else {
         await ctx.reply(
-          "❌ Неверный формат. Используйте:\n" +
-            "`Место | Выигрыш` или `Место - Выигрыш`\n\n" +
-            "Примеры:\n" +
-            "• `15 | 0`\n" +
-            "• `15 - 0`\n" +
-            "• `1 2500` (просто через пробел)",
+          "❌ Неверный формат. Введите только выигрыш (например `2500`) или `Место | Выигрыш` / `Место - Выигрыш`",
           { parse_mode: "Markdown" },
         );
-        return;
-      }
-
-      const [positionStr, payoutStr] = parts;
-      const position = parseInt(positionStr);
-      const payout = parseFloat(payoutStr);
-
-      if (isNaN(position) || position < 1) {
-        await ctx.reply("❌ Место должно быть положительным числом");
-        return;
-      }
-
-      if (isNaN(payout) || payout < 0) {
-        await ctx.reply("❌ Выигрыш должен быть числом (0 или больше)");
         return;
       }
 
@@ -702,11 +725,15 @@ ID турнира: \`${newTournament.id}\`
           ? `+$${result.profit}`
           : `-$${Math.abs(result.profit)}`;
 
+      const pos = result.position ?? position;
+      const placeText =
+        pos === POSITION_UNKNOWN ? "не указано" : `${pos}`;
+
       const successMessage = `
 ✅ **Результат добавлен!**
 
 🎰 **${updatedTournament.name}**
-🏆 Место: ${result.position}
+🏆 Место: ${placeText}
 💰 Выигрыш: $${result.payout}
 📈 ROI: ${roiText}
 💵 Прибыль: ${profitText}
@@ -813,8 +840,11 @@ ${stats.bestPayout ? `💎 **Лучший выигрыш:** $${stats.bestPayout}
 
       tournaments.slice(0, 10).forEach((tournament: any, index: number) => {
         const date = new Date(tournament.date).toLocaleDateString("ru-RU");
-        const status = tournament.result
-          ? `🏆 ${tournament.result.position} место, $${tournament.result.payout}`
+        const result = tournament.result || tournament.tournament_results?.[0] || tournament.tournament_results;
+        const placeLabel =
+          result?.position === POSITION_UNKNOWN ? "—" : `${result?.position} место`;
+        const status = result
+          ? `🏆 ${placeLabel}, $${result.payout}`
           : "⏳ Ожидает результата";
 
         message += `${index + 1}. **${tournament.name}**\n`;
@@ -1266,8 +1296,10 @@ ${stats.bestPayout ? `💎 **Лучший выигрыш:** $${stats.bestPayout}
         totalWinnings += result.payout || 0;
         itmCount += 1;
 
-        if (bestPosition === null || result.position < bestPosition) {
-          bestPosition = result.position;
+        // Место не указано (только выигрыш) — не учитываем в лучшем месте
+        const pos = result.position;
+        if (pos != null && pos !== POSITION_UNKNOWN && (bestPosition === null || pos < bestPosition)) {
+          bestPosition = pos;
         }
 
         if (result.payout > bestPayout) {
