@@ -31,6 +31,40 @@ DATE: 16.12.2025`
   IsErroredOnProcessing: false,
 }
 
+const mockBarcelonaOCRResponse = {
+  ParsedResults: [{
+    ParsedText: `CASINO BARCELONA
+10-04-2026
+EFECTIVO
+#POKER_IN_2.0
+10/4/2026
+Totales
+Compra (BuyIn): 150,00 €
+Incripción: 15,00 €
+Total: 165,00 €
+Jugador
+VALOV, MAKSIM`,
+  }],
+  IsErroredOnProcessing: false,
+}
+
+const mockBarcelonaNoisyOCRResponse = {
+  ParsedResults: [{
+    ParsedText: `CASINO BARCELONA
+10-04-2026
+EFECTIVO
+#POKER_IN_2,O
+10/4/2026
+Totales
+Compra (BuyIn): I50,0O €
+Incripción: I5,0O €
+Total: I65,0O €
+Jugador
+VALOV, MAKSIM`,
+  }],
+  IsErroredOnProcessing: false,
+}
+
 // Mock image download response
 const mockImageResponse = {
   ok: true,
@@ -278,6 +312,52 @@ describe('OCR Service', () => {
       }
     })
 
+    it('should parse Barcelona ticket format with hashtag name and total buyin', async () => {
+      ;(global.fetch as jest.Mock)
+        .mockResolvedValueOnce({
+          ok: true,
+          arrayBuffer: () => Promise.resolve(new ArrayBuffer(100)),
+          headers: { get: () => 'image/jpeg' },
+        } as unknown as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve(mockBarcelonaOCRResponse),
+          text: () => Promise.resolve(JSON.stringify(mockBarcelonaOCRResponse)),
+        } as Response)
+
+      const result = await processTicketImage('https://example.com/barcelona-ticket.jpg')
+
+      expect(result.success).toBe(true)
+      if (result.data) {
+        expect(result.data.name).toBe('POKER_IN_2.0')
+        expect(result.data.buyin).toBe(165)
+        expect(result.data.date).toContain('2026-04-10')
+      }
+    })
+
+    it('should tolerate common OCR noise in Barcelona ticket fields', async () => {
+      ;(global.fetch as jest.Mock)
+        .mockResolvedValueOnce({
+          ok: true,
+          arrayBuffer: () => Promise.resolve(new ArrayBuffer(100)),
+          headers: { get: () => 'image/jpeg' },
+        } as unknown as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve(mockBarcelonaNoisyOCRResponse),
+          text: () => Promise.resolve(JSON.stringify(mockBarcelonaNoisyOCRResponse)),
+        } as Response)
+
+      const result = await processTicketImage('https://example.com/barcelona-ticket-noisy.jpg')
+
+      expect(result.success).toBe(true)
+      if (result.data) {
+        expect(result.data.name).toBe('POKER_IN_2.0')
+        expect(result.data.buyin).toBe(165)
+        expect(result.data.date).toContain('2026-04-10')
+      }
+    })
+
     it('should set default tournament type', async () => {
       const mockUrl = 'https://example.com/ticket.jpg'
       
@@ -316,6 +396,10 @@ describe('OCR Service', () => {
 
     it('should normalize whitespace', () => {
       expect(cleanTournamentName('  RUSSIAN   POKER   OPEN  ')).toBe('RUSSIAN POKER OPEN')
+    })
+
+    it('should normalize comma in numeric suffix', () => {
+      expect(cleanTournamentName('#POKER_IN_2,0')).toBe('POKER_IN_2.0')
     })
   })
 })

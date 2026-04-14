@@ -12,8 +12,14 @@ export interface OCRResult {
  * Очищает название турнира от лишних элементов
  */
 export function cleanTournamentName(rawName: string): string {
-  if (!rawName) return "";
+  if (!rawName) {
+    return "";
+  }
   let cleaned = rawName.trim();
+  cleaned = cleaned.replace(/^#(?=[A-Za-z])\s*/, "");
+  cleaned = cleaned.replace(/(\d),(\d)/g, "$1.$2");
+  cleaned = cleaned.replace(/(\d),[oO]\b/g, "$1.0");
+  cleaned = cleaned.replace(/(\d)\.[oO]\b/g, "$1.0");
 
   // Убираем номер события в начале (EVENT#8, #8, Event 8, №8, EVENT:)
   cleaned = cleaned.replace(
@@ -57,6 +63,18 @@ function parseDate(dateStr: string): string | null {
   return null;
 }
 
+function parseAmount(amountStr: string): number {
+  const normalized = amountStr
+    .replace(/\s/g, "")
+    // Частые OCR-ошибки в числах: O->0, I/l->1
+    .replace(/[Oo]/g, "0")
+    .replace(/[Il]/g, "1")
+    .replace(/\.(?=\d{3}(?:\D|$))/g, "")
+    .replace(",", ".");
+  const parsed = Number.parseFloat(normalized);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
 /**
  * Извлекает данные турнира из распознанного текста билета
  */
@@ -86,7 +104,19 @@ function extractTournamentData(text: string): Partial<TournamentFormData> {
     }
   }
 
-  // Паттерн 2: Ищем строку с названием серии (RPC, RPT, EPT, WSOP и т.д.)
+  // Паттерн 2: строки вида #POKER_IN_2.0
+  if (!data.name) {
+    for (const line of lines) {
+      const hashNameMatch = line.match(/^#\s*([A-Z0-9_,.\- ]*POKER[A-Z0-9_,.\- ]*)$/i);
+      if (hashNameMatch?.[1]) {
+        data.name = cleanTournamentName(hashNameMatch[1]);
+        console.warn("🔍 Найдено название через #PATTERN:", data.name);
+        break;
+      }
+    }
+  }
+
+  // Паттерн 3: Ищем строку с названием серии (RPC, RPT, EPT, WSOP и т.д.)
   if (!data.name) {
     for (const line of lines) {
       const seriesMatch = line.match(
@@ -152,31 +182,43 @@ function extractTournamentData(text: string): Partial<TournamentFormData> {
   // BUYIN обычно = основной взнос, FEE = рейк
   let buyin = 0;
   let fee = 0;
+  let total = 0;
 
-  const buyinMatch = normalizedText.match(/BUYIN\s*[:\s]\s*(\d+)/i);
+  const buyinMatch = normalizedText.match(
+    /(?:BUYIN|COMPRA\s*\(BUYIN\))\)?\s*[:\s]\s*([\dOoIl.,\s]+)/i
+  );
   if (buyinMatch) {
-    buyin = parseInt(buyinMatch[1]);
+    buyin = parseAmount(buyinMatch[1]);
     console.warn("🔍 Найден BUYIN:", buyin);
   }
 
-  const feeMatch = normalizedText.match(/FEE\s*[:\s]\s*(\d+)/i);
+  const feeMatch = normalizedText.match(
+    /(?:FEE|INSCRIPCI[ÓO]N|INCRIPCI[ÓO]N|REGISTRATION|RAKE)\s*[:\s]\s*([\dOoIl.,\s]+)/i
+  );
   if (feeMatch) {
-    fee = parseInt(feeMatch[1]);
+    fee = parseAmount(feeMatch[1]);
     console.warn("🔍 Найден FEE:", fee);
   }
 
   // Если нет BUYIN, используем AMOUNT
   if (!buyin) {
-    const amountMatch = normalizedText.match(/AMOUNT\s*[:\s]\s*(\d+)/i);
+    const amountMatch = normalizedText.match(/AMOUNT\s*[:\s]\s*([\dOoIl.,\s]+)/i);
     if (amountMatch) {
-      buyin = parseInt(amountMatch[1]);
+      buyin = parseAmount(amountMatch[1]);
       fee = 0; // AMOUNT обычно уже включает fee
       console.warn("🔍 Найден AMOUNT:", buyin);
     }
   }
 
+  const totalMatch = normalizedText.match(/TOTAL\s*[:\s]\s*([\dOoIl.,\s]+)\s*(?:€|EUR)?/i);
+  if (totalMatch) {
+    total = parseAmount(totalMatch[1]);
+    console.warn("🔍 Найден TOTAL:", total);
+  }
+
   // Общая сумма = buyin + fee
-  data.buyin = buyin + fee;
+  const buyinWithFee = buyin + fee;
+  data.buyin = buyinWithFee || total;
   console.warn("🔍 Итоговый бай-ин:", data.buyin);
 
   // === ИЗВЛЕЧЕНИЕ СТАРТОВОГО СТЕКА ===

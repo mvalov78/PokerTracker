@@ -6,9 +6,6 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   mockTournaments,
   addTournament,
-  deleteTournament,
-  getTournamentById,
-  updateTournament,
   mockResultHistory,
 } from "@/data/mockData";
 import { mockUser } from "@/data/mockData";
@@ -21,7 +18,8 @@ process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "test-anon-key";
 process.env.SUPABASE_SERVICE_ROLE_KEY = "test-service-key";
 
 // Create mock before jest.mock
-let mockSupabaseClient: any;
+const mockSupabase = createMockAdminClient();
+const mockSupabaseClient = mockSupabase.client;
 
 // Mock Supabase для API тестов
 jest.mock("@/lib/supabase", () => ({
@@ -32,10 +30,6 @@ jest.mock("@/lib/supabase", () => ({
     .fn()
     .mockResolvedValue({ id: "test-user", username: "test" }),
 }));
-
-// Initialize mock after jest.mock
-const mockSupabase = createMockAdminClient();
-mockSupabaseClient = mockSupabase.client;
 
 // Mock TournamentService для API тестов
 jest.mock("@/services/tournamentService", () => ({

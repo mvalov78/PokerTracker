@@ -1319,7 +1319,12 @@ ${stats.bestPayout ? `💎 **Лучший выигрыш:** $${stats.bestPayout}
 
         // Место не указано (только выигрыш) — не учитываем в лучшем месте
         const pos = result.position;
-        if (pos != null && pos !== POSITION_UNKNOWN && (bestPosition === null || pos < bestPosition)) {
+        if (
+          pos !== null &&
+          pos !== undefined &&
+          pos !== POSITION_UNKNOWN &&
+          (bestPosition === null || pos < bestPosition)
+        ) {
           bestPosition = pos;
         }
 

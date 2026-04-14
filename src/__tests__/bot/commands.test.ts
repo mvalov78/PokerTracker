@@ -346,7 +346,7 @@ describe("BotCommands", () => {
       expect(replyMessage).toContain("Venue A");
       // Статистика должна быть только по одному турниру (Venue A)
       expect(replyMessage).toContain("Турниры:");
-      expect(replyMessage).toMatch(/Турниры[:\*]*\s*1/);
+      expect(replyMessage).toMatch(/Турниры[:*]*\s*1/);
     });
 
     it("should show message when no tournaments for current venue", async () => {
