@@ -699,7 +699,7 @@ npm test         # Запуск тестов
 
 ### Версионирование
 - Semantic versioning (MAJOR.MINOR.PATCH)
-- Текущая версия: **1.5.4**
+- Текущая версия: **1.5.5**
 - Changelog в `/docs/RELEASE_*.md`
 
 ### Issue Tracking
@@ -714,4 +714,4 @@ npm test         # Запуск тестов
 ---
 
 **Статус проекта**: 🟢 Active Development  
-**Версия**: 1.5.4
+**Версия**: 1.5.5

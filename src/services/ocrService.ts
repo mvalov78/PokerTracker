@@ -212,7 +212,7 @@ function extractTournamentData(text: string): Partial<TournamentFormData> {
   let total = 0;
 
   const buyinMatch = normalizedText.match(
-    /(?:BUYIN|COMPRA\s*\(BUYIN\))\)?\s*[:\s]\s*([\dOoIlSs.,\s]+)/i
+    /(?:BUYIN|COMPRA\s*\(BUYIN\))\)?[ \t]*:[ \t]*([\dOoIlSsGg§]+(?:[.,][\dOoIlSsGg§]{1,2})?)/i
   );
   if (buyinMatch) {
     buyin = parseAmount(buyinMatch[1]);
@@ -220,7 +220,7 @@ function extractTournamentData(text: string): Partial<TournamentFormData> {
   }
 
   const feeMatch = normalizedText.match(
-    /(?:FEE|INSCRIPCI[ÓO]N|INCRIPCI[ÓO]N|REGISTRATION|RAKE)\s*[:\s]\s*([\dOoIlSs.,\s]+)/i
+    /(?:FEE|INSCRIPCI[ÓO]N|INCRIPCI[ÓO]N|REGISTRATION|RAKE)[ \t]*:[ \t]*([\dOoIlSsGg§]+(?:[.,][\dOoIlSsGg§]{1,2})?)/i
   );
   if (feeMatch) {
     fee = parseAmount(feeMatch[1]);
@@ -229,7 +229,9 @@ function extractTournamentData(text: string): Partial<TournamentFormData> {
 
   // Если нет BUYIN, используем AMOUNT
   if (!buyin) {
-    const amountMatch = normalizedText.match(/AMOUNT\s*[:\s]\s*([\dOoIlSs.,\s]+)/i);
+    const amountMatch = normalizedText.match(
+      /AMOUNT[ \t]*:[ \t]*([\dOoIlSsGg§]+(?:[.,][\dOoIlSsGg§]{1,2})?)/i
+    );
     if (amountMatch) {
       buyin = parseAmount(amountMatch[1]);
       fee = 0; // AMOUNT обычно уже включает fee
@@ -237,7 +239,9 @@ function extractTournamentData(text: string): Partial<TournamentFormData> {
     }
   }
 
-  const totalMatch = normalizedText.match(/TOTAL\s*[:\s]\s*([\dOoIlSs.,\s]+)\s*(?:€|EUR)?/i);
+  const totalMatch = normalizedText.match(
+    /TOTAL[ \t]*:[ \t]*([\dOoIlSsGg§]+(?:[.,][\dOoIlSsGg§]{1,2})?)/i
+  );
   if (totalMatch) {
     total = parseAmount(totalMatch[1]);
     console.warn("🔍 Найден TOTAL:", total);
@@ -279,10 +283,12 @@ function extractTournamentData(text: string): Partial<TournamentFormData> {
   const hasBuyinWithFee = buyinWithFee > 0;
 
   if (hasTotal) {
+    const absoluteDiff = Math.abs(buyinWithFee - total);
     const mismatchWithTotal =
       !hasBuyinWithFee ||
       buyinWithFee < total * 0.5 ||
-      buyinWithFee > total * 1.5;
+      buyinWithFee > total * 1.5 ||
+      absoluteDiff > 1;
     data.buyin = mismatchWithTotal ? total : buyinWithFee;
   } else {
     data.buyin = buyinWithFee;
