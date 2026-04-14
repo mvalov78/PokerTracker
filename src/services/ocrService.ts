@@ -218,9 +218,22 @@ function extractTournamentData(text: string): Partial<TournamentFormData> {
     console.warn("🔍 Найден TOTAL:", total);
   }
 
-  // Общая сумма = buyin + fee
+  // Общая сумма = buyin + fee.
+  // Если OCR исказил цифры (например 165 -> 1), но TOTAL распознан корректно,
+  // используем TOTAL как более надежный источник.
   const buyinWithFee = buyin + fee;
-  data.buyin = buyinWithFee || total;
+  const hasTotal = total > 0;
+  const hasBuyinWithFee = buyinWithFee > 0;
+
+  if (hasTotal) {
+    const mismatchWithTotal =
+      !hasBuyinWithFee ||
+      buyinWithFee < total * 0.5 ||
+      buyinWithFee > total * 1.5;
+    data.buyin = mismatchWithTotal ? total : buyinWithFee;
+  } else {
+    data.buyin = buyinWithFee;
+  }
   console.warn("🔍 Итоговый бай-ин:", data.buyin);
 
   // === ИЗВЛЕЧЕНИЕ СТАРТОВОГО СТЕКА ===

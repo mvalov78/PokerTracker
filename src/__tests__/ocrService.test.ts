@@ -75,7 +75,24 @@ POKER/IN2.0
 Totales
 Compra (BuyIn): 1S0,0O €
 Incripción: 1S,0O €
-Total: 1G5,0O €
+Total: 165,00 €
+Jugador
+VALOV, MAKSIM`,
+  }],
+  IsErroredOnProcessing: false,
+}
+
+const mockBarcelonaTotalFallbackOCRResponse = {
+  ParsedResults: [{
+    ParsedText: `CASINO BARCELONA
+10-04-2026
+EFECTIVO
+#POKER_IN_2.0
+10/4/2026
+Totales
+Compra (BuyIn): 1§0,00 €
+Incripción: §,00 €
+Total: 165,00 €
 Jugador
 VALOV, MAKSIM`,
   }],
@@ -393,6 +410,27 @@ describe('OCR Service', () => {
       expect(result.success).toBe(true)
       if (result.data) {
         expect(result.data.name).toContain('POKER')
+        expect(result.data.buyin).toBe(165)
+      }
+    })
+
+    it('should fallback to total when buyin extraction is clearly corrupted', async () => {
+      ;(global.fetch as jest.Mock)
+        .mockResolvedValueOnce({
+          ok: true,
+          arrayBuffer: () => Promise.resolve(new ArrayBuffer(100)),
+          headers: { get: () => 'image/jpeg' },
+        } as unknown as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve(mockBarcelonaTotalFallbackOCRResponse),
+          text: () => Promise.resolve(JSON.stringify(mockBarcelonaTotalFallbackOCRResponse)),
+        } as Response)
+
+      const result = await processTicketImage('https://example.com/barcelona-ticket-total-fallback.jpg')
+
+      expect(result.success).toBe(true)
+      if (result.data) {
         expect(result.data.buyin).toBe(165)
       }
     })
