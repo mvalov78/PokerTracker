@@ -99,6 +99,34 @@ VALOV, MAKSIM`,
   IsErroredOnProcessing: false,
 }
 
+const mockBarcelonaSplitAmountsOCRResponse = {
+  ParsedResults: [{
+    ParsedText: `CASINO BARCELONA
+10-04-2026
+EFECTIVO
+#POKER_IN_2.0
+10/4/2026
+Totales
+Compra (Buyin):
+Incripción:
+Bounty:
+Total:
+- Jugador.
+VALOV, MAKSIM
+768611095
+MESA / TABLE
+24
+CBPC155.10/04/2026 16:21:49
+150,00 €
+15,00 €
+0,00 €
+165,00 €
+POSICION / POSITION
+5`,
+  }],
+  IsErroredOnProcessing: false,
+}
+
 // Mock image download response
 const mockImageResponse = {
   ok: true,
@@ -428,6 +456,27 @@ describe('OCR Service', () => {
         } as Response)
 
       const result = await processTicketImage('https://example.com/barcelona-ticket-total-fallback.jpg')
+
+      expect(result.success).toBe(true)
+      if (result.data) {
+        expect(result.data.buyin).toBe(165)
+      }
+    })
+
+    it('should parse split amount lines in Totales block', async () => {
+      ;(global.fetch as jest.Mock)
+        .mockResolvedValueOnce({
+          ok: true,
+          arrayBuffer: () => Promise.resolve(new ArrayBuffer(100)),
+          headers: { get: () => 'image/jpeg' },
+        } as unknown as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve(mockBarcelonaSplitAmountsOCRResponse),
+          text: () => Promise.resolve(JSON.stringify(mockBarcelonaSplitAmountsOCRResponse)),
+        } as Response)
+
+      const result = await processTicketImage('https://example.com/barcelona-ticket-split-amounts.jpg')
 
       expect(result.success).toBe(true)
       if (result.data) {

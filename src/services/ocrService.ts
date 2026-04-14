@@ -71,10 +71,35 @@ function parseAmount(amountStr: string): number {
     .replace(/[Oo]/g, "0")
     .replace(/[Il]/g, "1")
     .replace(/[Ss]/g, "5")
+    .replace(/[Gg]/g, "6")
+    .replace(/[§]/g, "5")
     .replace(/\.(?=\d{3}(?:\D|$))/g, "")
     .replace(",", ".");
   const parsed = Number.parseFloat(normalized);
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function extractMoneyValues(text: string): number[] {
+  const values: number[] = [];
+  const lines = text.replace(/\r\n/g, "\n").split("\n");
+  const lineMoneyPattern = /([0-9OIlSsGg§]+(?:[.\s][0-9OIlSsGg§]{3})*[.,][0-9OIlSsGg§]{2})/g;
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) {
+      continue;
+    }
+    let match: RegExpExecArray | null = null;
+    while ((match = lineMoneyPattern.exec(line)) !== null) {
+      const value = parseAmount(match[1]);
+      // Защита от мусорных совпадений вроде timestamp/идентификаторов
+      if (value >= 0 && value <= 100000) {
+        values.push(value);
+      }
+    }
+  }
+
+  return values;
 }
 
 /**
@@ -216,6 +241,34 @@ function extractTournamentData(text: string): Partial<TournamentFormData> {
   if (totalMatch) {
     total = parseAmount(totalMatch[1]);
     console.warn("🔍 Найден TOTAL:", total);
+  }
+
+  // Fallback для чеков, где суммы распознаны отдельными строками (часто в конце блока Totales)
+  const moneyValues = extractMoneyValues(normalizedText);
+  if (moneyValues.length > 0 && /TOTALES|TOTAL/i.test(normalizedText)) {
+    const strongestTotal = Math.max(...moneyValues);
+    const currentBuyinWithFee = buyin + fee;
+    const hasCorruptedTotal = !total || total < strongestTotal * 0.5;
+    const hasCorruptedBuyin = !currentBuyinWithFee || currentBuyinWithFee < strongestTotal * 0.5;
+
+    if (hasCorruptedTotal) {
+      total = strongestTotal;
+    }
+
+    if (hasCorruptedBuyin) {
+      if (moneyValues.length >= 4) {
+        buyin = moneyValues[0];
+        fee = moneyValues[1];
+      } else {
+        buyin = strongestTotal;
+        fee = 0;
+      }
+    }
+
+    if (hasCorruptedTotal || hasCorruptedBuyin) {
+      console.warn("🔍 Fallback money values:", moneyValues);
+      console.warn("🔍 Fallback BUYIN/FEE/TOTAL:", { buyin, fee, total });
+    }
   }
 
   // Общая сумма = buyin + fee.
