@@ -17,6 +17,7 @@ export function cleanTournamentName(rawName: string): string {
   }
   let cleaned = rawName.trim();
   cleaned = cleaned.replace(/^#(?=[A-Za-z])\s*/, "");
+  cleaned = cleaned.replace(/([A-Za-z0-9])\/(?=[A-Za-z0-9])/g, "$1_");
   cleaned = cleaned.replace(/(\d),(\d)/g, "$1.$2");
   cleaned = cleaned.replace(/(\d),[oO]\b/g, "$1.0");
   cleaned = cleaned.replace(/(\d)\.[oO]\b/g, "$1.0");
@@ -69,6 +70,7 @@ function parseAmount(amountStr: string): number {
     // Частые OCR-ошибки в числах: O->0, I/l->1
     .replace(/[Oo]/g, "0")
     .replace(/[Il]/g, "1")
+    .replace(/[Ss]/g, "5")
     .replace(/\.(?=\d{3}(?:\D|$))/g, "")
     .replace(",", ".");
   const parsed = Number.parseFloat(normalized);
@@ -185,7 +187,7 @@ function extractTournamentData(text: string): Partial<TournamentFormData> {
   let total = 0;
 
   const buyinMatch = normalizedText.match(
-    /(?:BUYIN|COMPRA\s*\(BUYIN\))\)?\s*[:\s]\s*([\dOoIl.,\s]+)/i
+    /(?:BUYIN|COMPRA\s*\(BUYIN\))\)?\s*[:\s]\s*([\dOoIlSs.,\s]+)/i
   );
   if (buyinMatch) {
     buyin = parseAmount(buyinMatch[1]);
@@ -193,7 +195,7 @@ function extractTournamentData(text: string): Partial<TournamentFormData> {
   }
 
   const feeMatch = normalizedText.match(
-    /(?:FEE|INSCRIPCI[ÓO]N|INCRIPCI[ÓO]N|REGISTRATION|RAKE)\s*[:\s]\s*([\dOoIl.,\s]+)/i
+    /(?:FEE|INSCRIPCI[ÓO]N|INCRIPCI[ÓO]N|REGISTRATION|RAKE)\s*[:\s]\s*([\dOoIlSs.,\s]+)/i
   );
   if (feeMatch) {
     fee = parseAmount(feeMatch[1]);
@@ -202,7 +204,7 @@ function extractTournamentData(text: string): Partial<TournamentFormData> {
 
   // Если нет BUYIN, используем AMOUNT
   if (!buyin) {
-    const amountMatch = normalizedText.match(/AMOUNT\s*[:\s]\s*([\dOoIl.,\s]+)/i);
+    const amountMatch = normalizedText.match(/AMOUNT\s*[:\s]\s*([\dOoIlSs.,\s]+)/i);
     if (amountMatch) {
       buyin = parseAmount(amountMatch[1]);
       fee = 0; // AMOUNT обычно уже включает fee
@@ -210,7 +212,7 @@ function extractTournamentData(text: string): Partial<TournamentFormData> {
     }
   }
 
-  const totalMatch = normalizedText.match(/TOTAL\s*[:\s]\s*([\dOoIl.,\s]+)\s*(?:€|EUR)?/i);
+  const totalMatch = normalizedText.match(/TOTAL\s*[:\s]\s*([\dOoIlSs.,\s]+)\s*(?:€|EUR)?/i);
   if (totalMatch) {
     total = parseAmount(totalMatch[1]);
     console.warn("🔍 Найден TOTAL:", total);
