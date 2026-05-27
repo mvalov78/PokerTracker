@@ -7,6 +7,7 @@ import type { BotContext } from "../index";
 import { processTicketImage } from "../../services/ocrService";
 import { UserSettingsService } from "@/services/userSettingsService";
 import { UserService } from "@/services/userService";
+import { escapeMarkdown } from "../utils";
 
 export class PhotoHandler {
   /**
@@ -95,18 +96,18 @@ export class PhotoHandler {
       );
 
       // Показываем распознанные данные пользователю
-      let venueTextDoc = finalVenueDoc;
+      let venueTextDoc = escapeMarkdown(finalVenueDoc);
       if (currentVenueDoc && currentVenueDoc !== data.venue) {
         venueTextDoc += ` *(установлена как текущая)*`;
       }
       const confirmMessage = `
 📸 **Данные распознаны с билета:**
 
-🎰 **Турнир:** ${data.name || "Не определено"}
+🎰 **Турнир:** ${escapeMarkdown(data.name || "Не определено")}
 📅 **Дата:** ${data.date ? new Date(data.date).toLocaleDateString("ru-RU") : "Не определена"}
 💵 **Бай-ин:** $${data.buyin || 0}
 🏨 **Площадка:** ${venueTextDoc}
-🎯 **Тип:** ${data.tournamentType || "Freezeout"}
+🎯 **Тип:** ${escapeMarkdown(data.tournamentType || "Freezeout")}
 
 Все верно? Нажмите ✅ для подтверждения или ❌ для отмены.
       `;
@@ -137,7 +138,7 @@ export class PhotoHandler {
         ) {
           errorMessage += "Ошибка распознавания текста на изображении.\n";
         } else {
-          errorMessage += `Техническая ошибка: ${error.message}\n`;
+          errorMessage += `Техническая ошибка: ${escapeMarkdown(error.message)}\n`;
         }
       }
 
@@ -225,7 +226,7 @@ export class PhotoHandler {
       );
 
       // Показываем распознанные данные пользователю
-      let venueText = finalVenue;
+      let venueText = escapeMarkdown(finalVenue);
       console.warn("🔍 [handlePhoto] Проверяем условие для пометки:");
       console.warn("🔍 [handlePhoto] currentVenue:", currentVenue);
       console.warn("🔍 [handlePhoto] data.venue:", data.venue);
@@ -247,11 +248,11 @@ export class PhotoHandler {
       const confirmMessage = `
 📸 **Данные распознаны с билета:**
 
-🎰 **Турнир:** ${data.name || "Не определено"}
+🎰 **Турнир:** ${escapeMarkdown(data.name || "Не определено")}
 📅 **Дата:** ${data.date ? new Date(data.date).toLocaleDateString("ru-RU") : "Не определена"}
 💵 **Бай-ин:** $${data.buyin || 0}
 🏨 **Площадка:** ${venueText}
-🎯 **Тип:** ${data.tournamentType || "Freezeout"}
+🎯 **Тип:** ${escapeMarkdown(data.tournamentType || "Freezeout")}
 
 Все верно? Нажмите ✅ для подтверждения или ❌ для отмены.
       `;
@@ -283,7 +284,7 @@ export class PhotoHandler {
         ) {
           errorMessage += "Ошибка распознавания текста на изображении.\n";
         } else {
-          errorMessage += `Техническая ошибка: ${error.message}\n`;
+          errorMessage += `Техническая ошибка: ${escapeMarkdown(error.message)}\n`;
         }
       }
 
@@ -418,10 +419,10 @@ export class PhotoHandler {
       const successMessage = `
 ✅ **Турнир успешно создан!**
 
-🎰 **${newTournament.name}**
+🎰 **${escapeMarkdown(newTournament.name)}**
 📅 ${new Date(newTournament.date).toLocaleDateString("ru-RU")}
 💵 Бай-ин: $${newTournament.buyin}
-🏨 ${newTournament.venue}
+🏨 ${escapeMarkdown(newTournament.venue)}
 
 ID турнира: \`${newTournament.id}\`
 
@@ -458,7 +459,7 @@ ID турнира: \`${newTournament.id}\`
           errorMessage +=
             "🌐 Проблема с подключением к серверу. Проверьте интернет.";
         } else {
-          errorMessage += `🐛 Техническая ошибка: ${error.message}`;
+          errorMessage += `🐛 Техническая ошибка: ${escapeMarkdown(error.message)}`;
         }
       }
 
@@ -511,10 +512,10 @@ ID турнира: \`${newTournament.id}\`
 ✏️ **Редактирование данных турнира**
 
 Текущие данные:
-🎰 Турнир: ${data.name || "Не определено"}
+🎰 Турнир: ${escapeMarkdown(data.name || "Не определено")}
 📅 Дата: ${data.date ? new Date(data.date).toLocaleDateString("ru-RU") : "Не определена"}
 💵 Бай-ин: $${data.buyin || 0}
-🏨 Площадка: ${data.venue || "Не указана"}
+🏨 Площадка: ${escapeMarkdown(data.venue || "Не указана")}
 
 Введите исправления в формате:
 \`поле:значение\`

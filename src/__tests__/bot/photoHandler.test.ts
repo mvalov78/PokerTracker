@@ -154,6 +154,49 @@ describe("PhotoHandler", () => {
         expect.any(Object),
       );
     });
+
+    it("should escape markdown special chars in OCR name (regression for 'Day 1_A')", async () => {
+      // Регресс на прод-баг:
+      // Telegram возвращал 400: Bad Request: can't parse entities
+      // потому что cleanTournamentName превращает 'Day 1/A' в 'Day 1_A',
+      // а '_' в parse_mode: "Markdown" открывает курсив без закрытия.
+      const ctx = createMockBotContext({
+        message: createPhotoMessage(),
+      });
+
+      mockProcessTicketImage.mockResolvedValue(
+        createMockOCRResult({
+          data: {
+            ...createMockOCRResult().data!,
+            name: "MAIN EVENT Day 1_A",
+            venue: "Casino *unsafe*",
+            tournamentType: "freeze_out",
+          },
+        }),
+      );
+      mockGetCurrentVenue.mockResolvedValue(null as unknown as string);
+
+      await handler.handlePhoto(ctx as any);
+
+      const confirmCall = (ctx.reply as jest.Mock).mock.calls.find(
+        ([text]) =>
+          typeof text === "string" && text.includes("Данные распознаны"),
+      );
+      expect(confirmCall).toBeDefined();
+      const confirmText: string = confirmCall![0];
+
+      // Имя/площадка/тип в подставляемой области должны быть экранированы
+      expect(confirmText).toContain("MAIN EVENT Day 1\\_A");
+      expect(confirmText).toContain("Casino \\*unsafe\\*");
+      expect(confirmText).toContain("freeze\\_out");
+
+      // Достаточное (а главное — чётное) количество '_' и '*'
+      // вне шаблонных пар: только из статической вёрстки **bold**.
+      // Здесь проверяем, что после экранирования в подставляемых данных
+      // не осталось «голых» спец-символов из имени.
+      expect(confirmText).not.toMatch(/Day 1(?<!\\)_A/);
+      expect(confirmText).not.toMatch(/Casino (?<!\\)\*unsafe/);
+    });
   });
 
   describe("handleDocumentAsPhoto", () => {

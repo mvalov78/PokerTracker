@@ -190,18 +190,43 @@ describe("Bot Utilities", () => {
   });
 
   describe("escapeMarkdown", () => {
-    it("should escape special characters", () => {
+    it("should escape legacy Markdown entity-starting characters", () => {
       expect(escapeMarkdown("Test_text")).toBe("Test\\_text");
       expect(escapeMarkdown("Test*text")).toBe("Test\\*text");
-      expect(escapeMarkdown("Test[text]")).toBe("Test\\[text\\]");
+      expect(escapeMarkdown("Test`text")).toBe("Test\\`text");
+      expect(escapeMarkdown("Test[text")).toBe("Test\\[text");
     });
 
-    it("should escape multiple special characters", () => {
-      const text = "_*[]()~`>#+=|{}.!-";
-      const escaped = escapeMarkdown(text);
+    it("should escape multiple occurrences of the same character", () => {
+      expect(escapeMarkdown("Day 1_A_B")).toBe("Day 1\\_A\\_B");
+    });
 
-      expect(escaped).toContain("\\");
-      expect(escaped.length).toBeGreaterThan(text.length);
+    it("should leave non-special characters untouched (legacy Markdown is lenient on others)", () => {
+      // `]`, `(`, `)`, `.`, `-`, `!` и т.п. не открывают сущности в legacy Markdown
+      expect(escapeMarkdown("End of name]")).toBe("End of name]");
+      expect(escapeMarkdown("v1.0-final!")).toBe("v1.0-final!");
+    });
+
+    it("should regress: tournament name 'MAIN EVENT Day 1_A' is escaped", () => {
+      // Регресс на 400: Bad Request: can't parse entities (byte offset 101)
+      const cleaned = "MAIN EVENT Day 1_A";
+      const escaped = escapeMarkdown(cleaned);
+      expect(escaped).toBe("MAIN EVENT Day 1\\_A");
+      // После экранирования количество неэкранированных `_` должно быть нулевым
+      const unescapedUnderscores = (
+        escaped.match(/(?<!\\)_/g) || []
+      ).length;
+      expect(unescapedUnderscores).toBe(0);
+    });
+
+    it("should handle empty/null/undefined values", () => {
+      expect(escapeMarkdown("")).toBe("");
+      expect(escapeMarkdown(undefined)).toBe("");
+      expect(escapeMarkdown(null)).toBe("");
+    });
+
+    it("should coerce non-string inputs to string", () => {
+      expect(escapeMarkdown(123)).toBe("123");
     });
   });
 

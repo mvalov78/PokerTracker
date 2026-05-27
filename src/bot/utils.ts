@@ -61,10 +61,23 @@ export function createSelectionKeyboard<T>(
 }
 
 /**
- * Escape special characters for Markdown
+ * Escape special characters for Telegram legacy Markdown parse_mode.
+ *
+ * Telegram legacy `Markdown` понимает только 4 спец-символа,
+ * открывающих форматирующие сущности: `_` (italic), `*` (bold),
+ * `` ` `` (code), `[` (link). Если такой символ встретился в
+ * пользовательском тексте и не имеет пары — Telegram отвечает 400
+ * "Can't find end of the entity". Экранирование `\` перед спец-символом
+ * предотвращает интерпретацию как форматирующего.
+ *
+ * Используется в `photoHandler.ts` и других местах, где OCR/БД/ошибочные
+ * строки подставляются в шаблон с `parse_mode: "Markdown"`.
  */
-export function escapeMarkdown(text: string): string {
-  return text.replace(/[_*[\]()~`>#+=|{}.!-]/g, "\\$&");
+export function escapeMarkdown(text: string | number | undefined | null): string {
+  if (text === null || text === undefined) {
+    return "";
+  }
+  return String(text).replace(/([_*`[])/g, "\\$1");
 }
 
 /**
