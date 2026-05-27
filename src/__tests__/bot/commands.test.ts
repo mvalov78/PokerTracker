@@ -545,6 +545,61 @@ describe("BotCommands", () => {
         expect.stringContaining("отменено"),
       );
     });
+
+    it("should escape markdown special chars in tournament name (regression for 'Day 1_A')", async () => {
+      // Регресс на прод-баг:
+      // /result сохранял результат, но Telegram возвращал 400 на success-сообщении,
+      // потому что в имени турнира 'MAIN EVENT Day 1_A' символ '_'
+      // в parse_mode: "Markdown" открывает курсив без пары → ctx.reply бросал
+      // исключение → пользователь видел "Ошибка при добавлении результата",
+      // хотя в БД результат уже был записан.
+      const ctx = createMockBotContext({
+        session: {
+          currentAction: "add_result",
+          tournamentData: { tournamentId: "test-id" },
+        },
+        message: {
+          ...createMockBotContext().message!,
+          text: "0",
+        },
+      });
+
+      mockFetch({
+        success: true,
+        tournament: {
+          id: "test-id",
+          name: "MAIN EVENT Day 1_A",
+          buyin: 700,
+          tournament_results: {
+            position: 999,
+            payout: 0,
+            profit: -700,
+            roi: -100,
+          },
+        },
+      });
+
+      await commands.handleResultInput(ctx as any, "0");
+
+      const successCall = (ctx.reply as jest.Mock).mock.calls.find(
+        ([text]) =>
+          typeof text === "string" && text.includes("Результат добавлен"),
+      );
+      const errorCall = (ctx.reply as jest.Mock).mock.calls.find(
+        ([text]) =>
+          typeof text === "string" &&
+          text.includes("Ошибка при добавлении результата"),
+      );
+
+      // Главное: пользователь видит success, а не catch-fallback
+      expect(successCall).toBeDefined();
+      expect(errorCall).toBeUndefined();
+
+      // Имя турнира экранировано в подставляемой области
+      const successText: string = successCall![0];
+      expect(successText).toContain("MAIN EVENT Day 1\\_A");
+      expect(successText).not.toMatch(/Day 1(?<!\\)_A/);
+    });
   });
 
   describe("handleTournamentRegistration", () => {

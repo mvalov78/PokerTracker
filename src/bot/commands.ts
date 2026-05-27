@@ -5,6 +5,7 @@
 import { UserSettingsService } from "@/services/userSettingsService";
 import { type Tournament } from "../types";
 import type { BotContext } from "./index";
+import { escapeMarkdown } from "./utils";
 
 /**
  * Получить API URL для текущего окружения
@@ -117,7 +118,7 @@ export class BotCommands {
         const successMessage = `
 ✅ **Аккаунты успешно связаны!**
 
-🎭 **Пользователь:** ${result.user.username}
+🎭 **Пользователь:** ${escapeMarkdown(result.user.username)}
 🆔 **Telegram ID:** ${telegramId}
 
 Теперь все турниры, созданные через бот, будут автоматически привязаны к вашему веб-аккаунту.
@@ -152,7 +153,7 @@ export class BotCommands {
               "👥 **Аккаунт уже привязан**\n\nЭтот Telegram уже связан с другим пользователем.";
             break;
           default:
-            errorMessage += `💥 **Техническая ошибка:** ${result.error}`;
+            errorMessage += `💥 **Техническая ошибка:** ${escapeMarkdown(result.error)}`;
             break;
         }
 
@@ -341,10 +342,10 @@ export class BotCommands {
       const successMessage = `
 ✅ **Турнир успешно зарегистрирован!**
 
-🎰 **${newTournament.name}**
+🎰 **${escapeMarkdown(newTournament.name)}**
 📅 ${new Date(newTournament.date).toLocaleDateString("ru-RU")}
 💵 Бай-ин: $${newTournament.buyin}
-🏨 ${newTournament.venue}
+🏨 ${escapeMarkdown(newTournament.venue)}
 
 ID турнира: \`${newTournament.id}\`
 
@@ -732,7 +733,7 @@ ID турнира: \`${newTournament.id}\`
       const successMessage = `
 ✅ **Результат добавлен!**
 
-🎰 **${updatedTournament.name}**
+🎰 **${escapeMarkdown(updatedTournament.name)}**
 🏆 Место: ${placeText}
 💰 Выигрыш: $${result.payout}
 📈 ROI: ${roiText}
@@ -787,7 +788,7 @@ ID турнира: \`${newTournament.id}\`
 
         if (tournaments.length === 0) {
           await ctx.reply(
-            `📊 У вас нет турниров на площадке "${currentVenue}" для статистики.\n\nИспользуйте \`/setvenue\` для установки другой площадки.`,
+            `📊 У вас нет турниров на площадке "${escapeMarkdown(currentVenue)}" для статистики.\n\nИспользуйте \`/setvenue\` для установки другой площадки.`,
             { parse_mode: "Markdown" },
           );
           return;
@@ -806,7 +807,7 @@ ID турнира: \`${newTournament.id}\`
       const itmRateText = `${stats.itmRate.toFixed(1)}%`;
 
       const venueHeader = currentVenue
-        ? `\n🏨 **Площадка:** ${currentVenue}\n`
+        ? `\n🏨 **Площадка:** ${escapeMarkdown(currentVenue)}\n`
         : "";
 
       const statsMessage = `
@@ -868,9 +869,9 @@ ${stats.bestPayout ? `💎 **Лучший выигрыш:** $${stats.bestPayout}
           ? `🏆 ${placeLabel}, $${result.payout}`
           : "⏳ Ожидает результата";
 
-        message += `${index + 1}. **${tournament.name}**\n`;
+        message += `${index + 1}. **${escapeMarkdown(tournament.name)}**\n`;
         message += `   📅 ${date} | 💵 $${tournament.buyin}\n`;
-        message += `   🏨 ${tournament.venue}\n`;
+        message += `   🏨 ${escapeMarkdown(tournament.venue)}\n`;
         message += `   ${status}\n\n`;
       });
 
@@ -1108,10 +1109,10 @@ ${stats.bestPayout ? `💎 **Лучший выигрыш:** $${stats.bestPayout}
         const successMessage = `
 ✅ **Турнир успешно создан!**
 
-🎰 **${tournament.name}**
+🎰 **${escapeMarkdown(tournament.name)}**
 📅 Дата: ${new Date(tournament.date).toLocaleDateString("ru-RU")}
 💵 Бай-ин: $${tournament.buyin}
-🏨 Площадка: ${tournament.venue}
+🏨 Площадка: ${escapeMarkdown(tournament.venue)}
 
 Турнир добавлен в вашу базу данных.
         `;
@@ -1199,7 +1200,7 @@ ${stats.bestPayout ? `💎 **Лучший выигрыш:** $${stats.bestPayout}
       } else {
         await ctx.reply(
           `
-🏨 **Текущая площадка:** ${currentVenue}
+🏨 **Текущая площадка:** ${escapeMarkdown(currentVenue)}
 
 Все новые турниры будут создаваться на этой площадке.
 
@@ -1273,7 +1274,7 @@ ${stats.bestPayout ? `💎 **Лучший выигрыш:** $${stats.bestPayout}
       if (updatedSettings) {
         await ctx.reply(
           `
-✅ **Площадка установлена:** ${venueName}
+✅ **Площадка установлена:** ${escapeMarkdown(venueName)}
 
 Все новые турниры теперь будут создаваться на этой площадке.
 
