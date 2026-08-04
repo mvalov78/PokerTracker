@@ -7,7 +7,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { Telegraf } from "telegraf";
 import { BotCommands } from "../../../../bot/commands";
 import { PhotoHandler } from "../../../../bot/handlers/photoHandler";
-import { BotSessionService } from "../../../../services/botSessionService";
+import { createSessionMiddleware } from "../../../../bot/middleware/sessionMiddleware";
 
 // Создаем экземпляр бота для webhook режима (глобальный для serverless)
 let webhookBot: Telegraf | null = null;
@@ -34,47 +34,16 @@ function initializeWebhookBot() {
   commands = new BotCommands();
   photoHandler = new PhotoHandler();
 
-  // Middleware для сессий (загрузка из БД через BotSessionService)
-  webhookBot.use(async (ctx, next) => {
-    const userId = ctx.from?.id;
-    if (!userId) {
-      console.warn(
-        "[Telegram Webhook] Нет userId, пропускаем middleware сессии",
-      );
-      return next();
-    }
+  webhookBot.use(createSessionMiddleware("[Telegram Webhook]"));
 
+  webhookBot.catch(async (err, ctx) => {
+    console.error("[Telegram Webhook] Unhandled bot error:", err);
     try {
-      // Загружаем сессию из БД
-      const sessionData = await BotSessionService.getSession(userId);
-      ctx.session = sessionData;
-      console.warn(`[Telegram Webhook] Сессия загружена из БД:`, {
-        userId,
-        currentAction: sessionData.currentAction,
-        hasTournamentData: !!sessionData.tournamentData,
-        sessionKeys: Object.keys(sessionData),
-      });
-
-      // Выполняем обработчик
-      await next();
-
-      // Сохраняем сессию обратно в БД
-      await BotSessionService.updateSession(userId, ctx.session);
-      console.warn(`[Telegram Webhook] Сессия сохранена в БД:`, {
-        userId,
-        currentAction: ctx.session.currentAction,
-        hasTournamentData: !!ctx.session.tournamentData,
-      });
-    } catch (error) {
-      console.error("[Telegram Webhook] Session middleware error:", error);
-      // Fallback на пустую сессию
-      ctx.session = {
-        userId: userId.toString(),
-        currentAction: undefined,
-        tournamentData: undefined,
-        ocrData: undefined,
-      };
-      await next();
+      await ctx.reply(
+        "❌ Произошла ошибка при обработке сообщения. Попробуйте ещё раз или /help.",
+      );
+    } catch (replyError) {
+      console.error("[Telegram Webhook] Failed to send error reply:", replyError);
     }
   });
 

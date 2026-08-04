@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
           }
         : null,
     });
-  } catch {
+  } catch (error) {
     console.error("Error in status API:", error);
     return NextResponse.json(
       {

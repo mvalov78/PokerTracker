@@ -19,6 +19,7 @@ import { NotificationService } from "./services/notificationService";
 import { getBotConfig } from "./config";
 import { BotSettingsService } from "@/services/botSettingsService";
 import { BotSessionService } from "@/services/botSessionService";
+import { createSessionMiddleware } from "./middleware/sessionMiddleware";
 
 export interface SessionData {
   userId?: string;
@@ -72,32 +73,16 @@ class PokerTrackerBot {
     }
 
     // Middleware для сессий (загрузка из БД)
-    this.bot.use(async (ctx, next) => {
-      const userId = ctx.from?.id;
-      if (!userId) {
-        return next();
-      }
+    this.bot.use(createSessionMiddleware("[Bot]"));
 
+    this.bot.catch(async (err, ctx) => {
+      console.error("[Bot] Unhandled error:", err);
       try {
-        // Загружаем сессию из БД
-        const sessionData = await BotSessionService.getSession(userId);
-        ctx.session = sessionData;
-
-        // Выполняем обработчик
-        await next();
-
-        // Сохраняем сессию обратно в БД
-        await BotSessionService.updateSession(userId, ctx.session);
-      } catch (error) {
-        console.error("Session middleware error:", error);
-        // Создаем пустую сессию в случае ошибки
-        ctx.session = {
-          userId: userId.toString(),
-          currentAction: undefined,
-          tournamentData: undefined,
-          ocrData: undefined,
-        };
-        await next();
+        await ctx.reply(
+          "❌ Произошла ошибка при обработке сообщения. Попробуйте ещё раз или /help.",
+        );
+      } catch (replyError) {
+        console.error("[Bot] Failed to send error reply:", replyError);
       }
     });
 
@@ -799,7 +784,7 @@ class PokerTrackerBot {
   public getStatus(): { status: string; mode: string; isRunning: boolean } {
     return {
       status: this.isRunning ? "active" : "inactive",
-      mode: "polling",
+      mode: process.env.BOT_MODE || "polling",
       isRunning: this.isRunning,
     };
   }

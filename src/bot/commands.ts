@@ -64,7 +64,14 @@ export class BotCommands {
 Удачи за столами! 🍀
     `;
 
-    await ctx.reply(welcomeMessage, { parse_mode: "Markdown" });
+    try {
+      await ctx.reply(welcomeMessage, { parse_mode: "Markdown" });
+    } catch (error) {
+      console.error("Ошибка при отправке /start:", error);
+      await ctx.reply(
+        "🎰 Добро пожаловать в PokerTracker Pro Bot!\n\n/help - список команд\n/setvenue <название> - установить площадку\nОтправьте фото билета для регистрации турнира.",
+      );
+    }
   }
 
   /**

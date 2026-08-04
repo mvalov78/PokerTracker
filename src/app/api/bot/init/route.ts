@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
           webhookUrl: webhookUrl,
           webhookInfo: webhookInfo.result,
         });
-      } catch {
+      } catch (error) {
         console.error("❌ Ошибка установки webhook:", error);
 
         // Обновляем статус ошибки
@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
-  } catch {
+  } catch (error) {
     console.error("❌ Ошибка инициализации бота:", error);
     return NextResponse.json(
       {
@@ -207,7 +207,7 @@ export async function GET(request: NextRequest) {
             ? "⚠️ Webhook URL в Telegram не совпадает с BOT_WEBHOOK_URL. Вызовите POST /api/bot/init для синхронизации"
             : "✅ Конфигурация корректна",
     });
-  } catch {
+  } catch (error) {
     console.error("❌ Ошибка получения конфигурации:", error);
     return NextResponse.json(
       {

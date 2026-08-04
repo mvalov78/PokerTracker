@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
       default:
         return NextResponse.json({ error: "Unknown action" }, { status: 400 });
     }
-  } catch {
+  } catch (error) {
     console.error("Ошибка обработки запроса к боту:", error);
     return NextResponse.json(
       { error: "Internal server error" },
@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
       message: `Bot is ${status.status} in ${status.mode} mode`,
       timestamp: new Date().toISOString(),
     });
-  } catch {
+  } catch (error) {
     console.error("Ошибка проверки статуса бота:", error);
     return NextResponse.json(
       { error: "Internal server error" },
