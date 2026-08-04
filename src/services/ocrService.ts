@@ -115,10 +115,13 @@ function extractTournamentData(text: string): Partial<TournamentFormData> {
   const lines = normalizedText.split("\n").map((line) => line.trim());
 
   // === ИЗВЛЕЧЕНИЕ НАЗВАНИЯ ТУРНИРА ===
-  // Паттерн 1: EVENT:#2 OPENER Day 1 или EVENT#8 RUSSIAN POKER OPEN
+  // Паттерн 1: EVENT:#2 OPENER Day 1 или EVENT#8 RUSSIAN POKER OPEN.
+  // ВАЖНО: используем \bEVENT\b, чтобы не срабатывать на подстроку "EVENT"
+  // внутри других слов, например испанского "evento" в подвале билета
+  // Casino Barcelona: "Con su inscripción al evento autoriza a Gran Casino…".
   const eventPatterns = [
-    /EVENT\s*[:#]?\s*#?\d*\s*(.+?)(?:\n|$)/i,
-    /EVENT\s*[:#]?\s*(.+?)(?:\n|$)/i,
+    /\bEVENT\b\s*[:#]?\s*#?\d*\s*(.+?)(?:\n|$)/i,
+    /\bEVENT\b\s*[:#]?\s*(.+?)(?:\n|$)/i,
   ];
 
   for (const pattern of eventPatterns) {
@@ -131,10 +134,13 @@ function extractTournamentData(text: string): Partial<TournamentFormData> {
     }
   }
 
-  // Паттерн 2: строки вида #POKER_IN_2.0
+  // Паттерн 2: строки вида #POKER_IN_2.0 или #WEEKEND_WARRIOR.
+  // Требуется хотя бы одна буква в начале, чтобы не ловить чистые #12345.
   if (!data.name) {
     for (const line of lines) {
-      const hashNameMatch = line.match(/^#\s*([A-Z0-9_,.\- ]*POKER[A-Z0-9_,.\- ]*)$/i);
+      const hashNameMatch = line.match(
+        /^#\s*([A-Z][A-Z0-9_,.\- ]*[A-Z0-9])\s*$/i,
+      );
       if (hashNameMatch?.[1]) {
         data.name = cleanTournamentName(hashNameMatch[1]);
         console.warn("🔍 Найдено название через #PATTERN:", data.name);

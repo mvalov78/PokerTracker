@@ -127,6 +127,37 @@ POSICION / POSITION
   IsErroredOnProcessing: false,
 }
 
+// Реальный билет Casino Barcelona с #WEEKEND_WARRIOR и подвалом с "evento".
+// Регресс на прод-баг v1.5.8:
+//   1) Регулярка EVENT матчила "EVENT" внутри слова "evento" → в имя утекало
+//      "o autoriza a Gran Casino" из подвала билета.
+//   2) Старый #PATTERN требовал подстроку POKER — #WEEKEND_WARRIOR не ловился.
+const mockBarcelonaWeekendWarriorOCRResponse = {
+  ParsedResults: [{
+    ParsedText: `CASINO BARCELONA
+GRAN CASINO DE BARCELONA, S.L.U.
+NIF: B08511834
+GP-ZXFFFALYVGUH    01-08-2026
+EFECTIVO
+#WEEKEND_WARRIOR
+1/8/2026
+Totales
+Compra (BuyIn):    75,00 €
+Incripción:    15,00 €
+Bounty:    75,00 €
+Total:    165,00 €
+Jugador
+VALOV , MAKSIM
+768611095
+MESA / TABLE    POSICION / POSITION
+25    5
+GP-ZXFFFALYVGUH.01/08/2026 16:49:16
+Con su inscripción al evento autoriza a Gran Casino
+Barcelona, S.L.U. ("GCB") y a las entidades colaboradoras`,
+  }],
+  IsErroredOnProcessing: false,
+}
+
 // Mock image download response
 const mockImageResponse = {
   ok: true,
@@ -463,6 +494,36 @@ describe('OCR Service', () => {
       }
     })
 
+    it('should extract #WEEKEND_WARRIOR name and ignore "evento" in Barcelona footer', async () => {
+      ;(global.fetch as jest.Mock)
+        .mockResolvedValueOnce({
+          ok: true,
+          arrayBuffer: () => Promise.resolve(new ArrayBuffer(100)),
+          headers: { get: () => 'image/jpeg' },
+        } as unknown as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve(mockBarcelonaWeekendWarriorOCRResponse),
+          text: () => Promise.resolve(JSON.stringify(mockBarcelonaWeekendWarriorOCRResponse)),
+        } as Response)
+
+      const result = await processTicketImage('https://example.com/barcelona-weekend-warrior.jpg')
+
+      expect(result.success).toBe(true)
+      if (result.data) {
+        // Регресс: без \bEVENT\b тут прилетало 'o autoriza a Gran Casino'
+        // из подвала "Con su inscripción al evento autoriza a Gran Casino…"
+        expect(result.data.name).toBe('WEEKEND_WARRIOR')
+        expect(result.data.name).not.toMatch(/autoriza|evento|Gran Casino/i)
+
+        // buyin (75) + fee (15) + bounty (75) = 165. Total считается достовернее
+        // суммы Compra+Incripción из-за наличия Bounty.
+        expect(result.data.buyin).toBe(165)
+
+        expect(result.data.date).toContain('2026-08-01')
+      }
+    })
+
     it('should parse split amount lines in Totales block', async () => {
       ;(global.fetch as jest.Mock)
         .mockResolvedValueOnce({
@@ -530,6 +591,13 @@ describe('OCR Service', () => {
 
     it('should normalize slash inside tournament name', () => {
       expect(cleanTournamentName('POKER/IN2.0')).toBe('POKER_IN2.0')
+    })
+
+    it('should leave WEEKEND_WARRIOR-style names intact', () => {
+      // Регресс: имя без POKER, без Day, без EVENT-префикса —
+      // должно оставаться без изменений (после trim/нормализации пробелов).
+      expect(cleanTournamentName('WEEKEND_WARRIOR')).toBe('WEEKEND_WARRIOR')
+      expect(cleanTournamentName('  WEEKEND_WARRIOR  ')).toBe('WEEKEND_WARRIOR')
     })
   })
 })
