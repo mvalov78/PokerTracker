@@ -51,6 +51,42 @@ Venue
 Barcelona
 Open tournament`
 
+// Real OCR Engine 2 output: labels block, then values block (two-column layout)
+const POKERSTARS_LIVE_TWO_COLUMN = `21:141
+::. 5G 65-
+POKERSTARS
+NE LIVE
+X
+Player ID:
+33
+Registration Receipt
+Player ID
+Country
+Status
+Chips
+Subscription
+Issue date
+Buy-in
+→
+Entry
+Entry type
+28
+Issued by
+Tournament
+Festival
+Venue
+80 Open tournament
+33
+- Russia
+10,000
+17 August 2026 21:10
+600 €
+1st
+Cash
+Strazda Jakub
+EPT Barcelona 2026
+Barcelona`
+
 const RPC_TICKET = `RPC FINAL 16-21 DECEMBER 2025
 CASINO SOCHI 2025
 EVENT:#2 OPENER Day 1
@@ -124,6 +160,17 @@ Buy-in 600 €`,
     it('reads labels and values on separate lines', () => {
       const data = extractPokerStarsLiveFields(POKERSTARS_LIVE_SPLIT_LINES)
 
+      expect(data?.name).toBe('EPT Barcelona 2026')
+      expect(data?.date).toBe('2026-08-17T21:10')
+      expect(data?.buyin).toBe(600)
+      expect(data?.venue).toBe('Barcelona')
+      expect(data?.startingStack).toBe(10000)
+    })
+
+    it('handles real OCR Engine 2 two-column output', () => {
+      const data = extractPokerStarsLiveFields(POKERSTARS_LIVE_TWO_COLUMN)
+
+      expect(data).not.toBeNull()
       expect(data?.name).toBe('EPT Barcelona 2026')
       expect(data?.date).toBe('2026-08-17T21:10')
       expect(data?.buyin).toBe(600)
@@ -282,6 +329,21 @@ describe('PokerStars Live OCR integration', () => {
     expect(result.data?.startingStack).toBe(10000)
     expect(result.data?.date).toContain('2026-08-17')
     expect(result.data?.tournamentType).toBe('freezeout')
+  })
+
+  it('handles real OCR Engine 2 two-column output end-to-end', async () => {
+    mockOcrText(POKERSTARS_LIVE_TWO_COLUMN)
+
+    const result = await processTicketImage(
+      'https://example.com/pokerstars-live-ept-real.jpg',
+    )
+
+    expect(result.success).toBe(true)
+    expect(result.data?.name).toBe('EPT Barcelona 2026')
+    expect(result.data?.buyin).toBe(600)
+    expect(result.data?.venue).toBe('Barcelona')
+    expect(result.data?.startingStack).toBe(10000)
+    expect(result.data?.date).toContain('2026-08-17')
   })
 
   it('still parses Casino Barcelona tickets after PokerStars Live support', async () => {
