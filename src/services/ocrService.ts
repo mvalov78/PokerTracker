@@ -1,4 +1,6 @@
 import type { TournamentFormData } from "@/types";
+import { parseFlexibleTicketDate } from "@/services/ocr/parseTicketDate";
+import { extractPokerStarsLiveFields } from "@/services/ocr/pokerStarsLiveParser";
 
 export interface OCRResult {
   success: boolean;
@@ -34,8 +36,8 @@ export function cleanTournamentName(rawName: string): string {
     ""
   );
 
-  // Убираем только номер дня в конце
-  cleaned = cleaned.replace(/\s+\d+[A-Za-z]?\s*$/, "");
+  // Убираем только номер дня в конце (1–2 цифры), не год фестиваля (2026)
+  cleaned = cleaned.replace(/\s+\d{1,2}[A-Za-z]?\s*$/, "");
 
   // Убираем лишние пробелы
   cleaned = cleaned.replace(/\s+/g, " ").trim();
@@ -47,21 +49,7 @@ export function cleanTournamentName(rawName: string): string {
  * Парсит дату в различных форматах
  */
 function parseDate(dateStr: string): string | null {
-  // Формат DD.MM.YYYY или DD/MM/YYYY или DD-MM-YYYY
-  const ddmmyyyy = dateStr.match(/(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{4})/);
-  if (ddmmyyyy) {
-    const [, day, month, year] = ddmmyyyy;
-    return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}T18:00`;
-  }
-
-  // Формат YYYY.MM.DD или YYYY/MM/DD или YYYY-MM-DD
-  const yyyymmdd = dateStr.match(/(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})/);
-  if (yyyymmdd) {
-    const [, year, month, day] = yyyymmdd;
-    return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}T18:00`;
-  }
-
-  return null;
+  return parseFlexibleTicketDate(dateStr);
 }
 
 function parseAmount(amountStr: string): number {
@@ -108,6 +96,7 @@ function extractMoneyValues(text: string): number[] {
 function extractTournamentData(text: string): Partial<TournamentFormData> {
   const data: Partial<TournamentFormData> = {};
   console.warn("🔍 Парсинг текста:\n", text);
+  const pokerStarsLive = extractPokerStarsLiveFields(text);
 
   // Нормализуем текст: заменяем переносы строк на пробелы для поиска,
   // но сохраняем оригинал для построчного поиска
@@ -150,8 +139,12 @@ function extractTournamentData(text: string): Partial<TournamentFormData> {
   }
 
   // Паттерн 3: Ищем строку с названием серии (RPC, RPT, EPT, WSOP и т.д.)
+  // POKERSTARS LIVE — бренд квитка, не название турнира.
   if (!data.name) {
     for (const line of lines) {
+      if (/poker\s*stars/i.test(line)) {
+        continue;
+      }
       const seriesMatch = line.match(
         /^(RPC|RPT|RPF|EPT|WSOP|WPT|APT|POKER|MAIN\s*EVENT)[^a-z]*(.+)?/i
       );
@@ -218,7 +211,7 @@ function extractTournamentData(text: string): Partial<TournamentFormData> {
   let total = 0;
 
   const buyinMatch = normalizedText.match(
-    /(?:BUYIN|COMPRA\s*\(BUYIN\))\)?[ \t]*:[ \t]*([\dOoIlSsGg§]+(?:[.,][\dOoIlSsGg§]{1,2})?)/i
+    /(?:BUY\s*-?\s*IN|COMPRA\s*\(BUYIN\))\)?[ \t]*:[ \t]*([\dOoIlSsGg§]+(?:[.,][\dOoIlSsGg§]{1,2})?)/i
   );
   if (buyinMatch) {
     buyin = parseAmount(buyinMatch[1]);
@@ -302,10 +295,33 @@ function extractTournamentData(text: string): Partial<TournamentFormData> {
   console.warn("🔍 Итоговый бай-ин:", data.buyin);
 
   // === ИЗВЛЕЧЕНИЕ СТАРТОВОГО СТЕКА ===
-  const chipsMatch = normalizedText.match(/CHIPS\s*[:\s]\s*(\d+)/i);
+  const chipsMatch = normalizedText.match(/CHIPS[ \t]*[:\-]?[ \t]*([\d., \t]+)/i);
   if (chipsMatch) {
-    data.startingStack = parseInt(chipsMatch[1]);
-    console.warn("🔍 Найден стартовый стек:", data.startingStack);
+    const chipDigits = chipsMatch[1].replace(/[^\d]/g, "");
+    const chips = Number.parseInt(chipDigits, 10);
+    if (Number.isFinite(chips) && chips > 0) {
+      data.startingStack = chips;
+      console.warn("🔍 Найден стартовый стек:", data.startingStack);
+    }
+  }
+
+  if (pokerStarsLive) {
+    if (pokerStarsLive.name) {
+      data.name = pokerStarsLive.name;
+    }
+    if (pokerStarsLive.date) {
+      data.date = pokerStarsLive.date;
+    }
+    if (pokerStarsLive.venue) {
+      data.venue = pokerStarsLive.venue;
+    }
+    if (pokerStarsLive.buyin && pokerStarsLive.buyin > 0) {
+      data.buyin = pokerStarsLive.buyin;
+    }
+    if (pokerStarsLive.startingStack && pokerStarsLive.startingStack > 0) {
+      data.startingStack = pokerStarsLive.startingStack;
+    }
+    console.warn("🔍 PokerStars Live поля:", pokerStarsLive);
   }
 
   // === ОПРЕДЕЛЕНИЕ ТИПА ТУРНИРА ===

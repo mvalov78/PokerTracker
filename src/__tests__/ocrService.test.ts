@@ -599,5 +599,9 @@ describe('OCR Service', () => {
       expect(cleanTournamentName('WEEKEND_WARRIOR')).toBe('WEEKEND_WARRIOR')
       expect(cleanTournamentName('  WEEKEND_WARRIOR  ')).toBe('WEEKEND_WARRIOR')
     })
+
+    it('should keep festival year in the tournament name', () => {
+      expect(cleanTournamentName('EPT Barcelona 2026')).toBe('EPT Barcelona 2026')
+    })
   })
 })
