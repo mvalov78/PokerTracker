@@ -87,6 +87,55 @@ Strazda Jakub
 EPT Barcelona 2026
 Barcelona`
 
+// Real PokerStars Live Deep Stack ticket (no Festival field, event title in header).
+// Regression: buy-in was read as 76 (event #), venue as player name, name empty.
+const POKERSTARS_LIVE_DEEP_STACK = `POKERSTARS LIVE
+#76 €330 Deep Stack - Unlimited Re-Entry
+29/08/2026 12:00
+Purple 9-4
+Maksim Valov
+216
+Registration Receipt
+Player ID
+216
+Country
+Russia
+Status
+Chips
+50,000
+Subscription
+Issue date
+29 August 2026 13:10
+Buy-in
+330 €
+Entry
+2nd
+Entry type
+Cash`
+
+const POKERSTARS_LIVE_DEEP_STACK_TWO_COLUMN = `POKERSTARS LIVE
+#76 €330 Deep Stack - Unlimited Re-Entry
+29/08/2026 12:00
+Maksim Valov
+216
+Registration Receipt
+Player ID
+Country
+Status
+Chips
+Subscription
+Issue date
+Buy-in
+Entry
+Entry type
+216
+Russia
+50,000
+29 August 2026 13:10
+330 €
+2nd
+Cash`
+
 const RPC_TICKET = `RPC FINAL 16-21 DECEMBER 2025
 CASINO SOCHI 2025
 EVENT:#2 OPENER Day 1
@@ -176,6 +225,47 @@ Buy-in 600 €`,
       expect(data?.buyin).toBe(600)
       expect(data?.venue).toBe('Barcelona')
       expect(data?.startingStack).toBe(10000)
+    })
+
+    it('extracts Deep Stack header title, buy-in 330 and ignores player name as venue', () => {
+      // Регресс: бот выдавал name=пусто, buyin=$76 (номер события), venue=Maksim Valov
+      const data = extractPokerStarsLiveFields(POKERSTARS_LIVE_DEEP_STACK)
+
+      expect(data).not.toBeNull()
+      expect(data?.name).toBe('Deep Stack - Unlimited Re-Entry')
+      expect(data?.buyin).toBe(330)
+      expect(data?.buyin).not.toBe(76)
+      expect(data?.venue).toBe('PokerStars Live')
+      expect(data?.venue).not.toBe('Maksim Valov')
+      expect(data?.startingStack).toBe(50000)
+      expect(data?.date).toContain('2026-08-29')
+    })
+
+    it('handles Deep Stack two-column OCR without Festival field', () => {
+      const data = extractPokerStarsLiveFields(POKERSTARS_LIVE_DEEP_STACK_TWO_COLUMN)
+
+      expect(data).not.toBeNull()
+      expect(data?.name).toBe('Deep Stack - Unlimited Re-Entry')
+      expect(data?.buyin).toBe(330)
+      expect(data?.buyin).not.toBe(76)
+      expect(data?.venue).not.toBe('Maksim Valov')
+      expect(data?.venue).toBe('PokerStars Live')
+      expect(data?.startingStack).toBe(50000)
+    })
+
+    it('prefers currency-adjacent amount when title contains event number and buy-in', () => {
+      const data = extractPokerStarsLiveFields(
+        `POKERSTARS LIVE
+Registration Receipt
+Issue date 29 August 2026 13:10
+#76 €330 Deep Stack - Unlimited Re-Entry
+Buy-in
+`,
+      )
+
+      // Даже если labeled Buy-in пустой, сумма рядом с € в заголовке = 330, не 76
+      expect(data?.buyin).toBe(330)
+      expect(data?.name).toBe('Deep Stack - Unlimited Re-Entry')
     })
 
     it('does not use POKERSTARS LIVE or Player ID as the tournament name', () => {
@@ -344,6 +434,21 @@ describe('PokerStars Live OCR integration', () => {
     expect(result.data?.venue).toBe('Barcelona')
     expect(result.data?.startingStack).toBe(10000)
     expect(result.data?.date).toContain('2026-08-17')
+  })
+
+  it('extracts Deep Stack Unlimited Re-Entry ticket end-to-end', async () => {
+    mockOcrText(POKERSTARS_LIVE_DEEP_STACK)
+
+    const result = await processTicketImage(
+      'https://example.com/pokerstars-live-deep-stack.jpg',
+    )
+
+    expect(result.success).toBe(true)
+    expect(result.data?.name).toBe('Deep Stack - Unlimited Re-Entry')
+    expect(result.data?.buyin).toBe(330)
+    expect(result.data?.venue).toBe('PokerStars Live')
+    expect(result.data?.startingStack).toBe(50000)
+    expect(result.data?.date).toContain('2026-08-29')
   })
 
   it('still parses Casino Barcelona tickets after PokerStars Live support', async () => {

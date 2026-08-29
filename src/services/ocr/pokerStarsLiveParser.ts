@@ -59,6 +59,53 @@ function findValueByPattern(lines: string[], pattern: RegExp): string | null {
 }
 
 /**
+ * Строка похожа на «только сумму» (330 € / €330 / 1,100 EUR),
+ * а не на длинный заголовок турнира с вшитым бай-ином.
+ */
+function isDedicatedMoneyLine(line: string): boolean {
+  const normalized = line.replace(/\s+/g, " ").trim();
+  return /^(?:[€$£]\s*)?\d{1,3}(?:[.,\s]\d{3})*(?:[.,]\d{1,2})?\s*(?:[€$£]|EUR|USD|GBP)?$/i.test(
+    normalized,
+  );
+}
+
+/**
+ * Имя вида First Last — типичный player name, не venue/город.
+ * Однословные города (Barcelona) и бренды с 3+ словами не режем.
+ */
+function looksLikePersonName(line: string): boolean {
+  return /^[A-Z][a-z]{1,24}\s+[A-Z][a-z]{1,24}$/.test(line.trim());
+}
+
+/**
+ * Заголовок вида "#76 €330 Deep Stack - Unlimited Re-Entry"
+ * → "Deep Stack - Unlimited Re-Entry"
+ */
+function extractEventHeaderName(lines: string[]): string | null {
+  for (const rawLine of lines) {
+    const line = rawLine.trim().replace(/^[-–—•]\s*/, "");
+    if (!line || isBareFieldLabel(line)) {
+      continue;
+    }
+
+    const match = line.match(
+      /^#\s*\d+\s+(?:[€$£]\s*\d+(?:[.,]\d{1,2})?\s+|EUR\s*\d+(?:[.,]\d{1,2})?\s+)?(.+)$/i,
+    );
+    if (!match?.[1]) {
+      continue;
+    }
+
+    const name = match[1].replace(/\s+/g, " ").trim();
+    // Нужны буквы — отсекаем мусор вроде "#76 330"
+    if (/[A-Za-z]{3,}/.test(name) && !isBareFieldLabel(name)) {
+      return name;
+    }
+  }
+
+  return null;
+}
+
+/**
  * Извлекает значения из двухколоночного OCR-текста по характерным паттернам
  * (дата с месяцем, сумма с €/$, фестиваль EPT/WPT и т.д.)
  */
@@ -68,8 +115,10 @@ function extractValuesFromFlatText(lines: string[]): {
   issueDate?: string;
   buyin?: string;
   chips?: string;
+  eventTitle?: string;
 } {
   const result: ReturnType<typeof extractValuesFromFlatText> = {};
+  let buyinCandidate: string | undefined;
 
   for (const rawLine of lines) {
     const line = rawLine.trim().replace(/^[-–—•]\s*/, "");
@@ -93,8 +142,18 @@ function extractValuesFromFlatText(lines: string[]): {
       continue;
     }
 
-    if (!result.buyin && /\d+\s*[€$£]|[€$£]\s*\d+/i.test(line)) {
-      result.buyin = line;
+    // Предпочитаем короткие money-only строки ("330 €").
+    // Заголовки "#76 €330 Deep Stack…" тоже содержат € — их берём только как fallback.
+    if (/\d+\s*[€$£]|[€$£]\s*\d+|\d+\s*(?:EUR|USD|GBP)/i.test(line)) {
+      if (isDedicatedMoneyLine(line)) {
+        if (!result.buyin) {
+          result.buyin = line;
+        }
+      } else if (!buyinCandidate && !/^#\s*\d+/.test(line)) {
+        buyinCandidate = line;
+      } else if (!buyinCandidate) {
+        buyinCandidate = line;
+      }
       continue;
     }
 
@@ -106,10 +165,20 @@ function extractValuesFromFlatText(lines: string[]): {
     if (
       !result.venue &&
       /^[A-Z][a-z]+(?:\s[A-Z][a-z]+)*$/.test(line) &&
+      !looksLikePersonName(line) &&
       !/Russia|Cash|Strazda/i.test(line)
     ) {
       result.venue = line;
     }
+  }
+
+  if (!result.buyin && buyinCandidate) {
+    result.buyin = buyinCandidate;
+  }
+
+  const eventTitle = extractEventHeaderName(lines);
+  if (eventTitle) {
+    result.eventTitle = eventTitle;
   }
 
   return result;
@@ -152,14 +221,25 @@ function parseChipCount(value: string): number {
 }
 
 function parseMoneyAmount(value: string): number {
-  const match = value.match(
+  // 1) Валюта перед суммой: "€330" / "$1,100" — приоритетнее event # вроде "#76 €330…"
+  const currencyBefore = value.match(
+    /[€$£]\s*([0-9]{1,3}(?:[.,\s][0-9]{3})*(?:[.,][0-9]{1,2})?|[0-9]+(?:[.,][0-9]{1,2})?)/,
+  );
+  // 2) Сумма перед валютой: "330 €" / "600 EUR", но не "#76 €…"
+  const currencyAfter = value.match(
+    /(?<!#)\b([0-9]{1,3}(?:[.,\s][0-9]{3})*(?:[.,][0-9]{1,2})?|[0-9]+(?:[.,][0-9]{1,2})?)\s*(?:[€$£]|EUR|USD|GBP)/i,
+  );
+  // 3) Fallback: первое число в строке
+  const fallback = value.match(
     /([0-9]{1,3}(?:[.,\s][0-9]{3})*|[0-9]+)(?:[.,][0-9]{2})?/,
   );
+
+  const match = currencyBefore || currencyAfter || fallback;
   if (!match) {
     return 0;
   }
 
-  let amount = match[0].replace(/\s/g, "");
+  let amount = match[1].replace(/\s/g, "");
   if (/\d+\.\d{3},\d{1,2}$/.test(amount)) {
     amount = amount.replace(/\./g, "").replace(",", ".");
   } else if (/\d+,\d{3}\.\d{1,2}$/.test(amount)) {
@@ -225,11 +305,17 @@ export function extractPokerStarsLiveFields(
   const openTournament = getLabeledValue(lines, /open\s*tournament/i);
   if (openTournament && !isBareFieldLabel(openTournament)) {
     data.name = openTournament;
+  } else if (flat.eventTitle) {
+    // Заголовок квитка "#76 €330 Deep Stack - Unlimited Re-Entry"
+    data.name = flat.eventTitle;
   } else if (festival) {
     data.name = festival;
   }
 
-  const venue = getValue(/venue/i, flat.venue);
+  let venue = getValue(/venue/i, flat.venue);
+  if (venue && looksLikePersonName(venue)) {
+    venue = null;
+  }
   if (venue) {
     data.venue = venue;
   } else if (festival) {
