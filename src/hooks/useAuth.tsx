@@ -4,6 +4,7 @@ import React, {
   createContext,
   useContext,
   useEffect,
+  useMemo,
   useState,
   type ReactNode,
 } from "react";
@@ -50,7 +51,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const supabase = createClientComponentClient();
+  const supabase = useMemo(() => createClientComponentClient(), []);
   const router = useRouter();
 
   // Get user profile with timeout protection
@@ -154,48 +155,43 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     initializeAuth();
 
-    // Listen for auth changes
+    // Supabase awaits this callback while it holds the auth lock.
+    // Calling getUser() from here waits for the same lock and signOut never finishes.
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    } = supabase.auth.onAuthStateChange((event) => {
       console.warn("🔐 Auth state change:", event);
 
-      if (event === "SIGNED_IN") {
-        // Always use getUser() for security, don't trust session data
-        const {
-          data: { user },
-          error,
-        } = await supabase.auth.getUser();
-
-        if (user && !error) {
-          console.warn("🔐 User signed in, fetching profile...");
-          const userProfile = await fetchProfile(user.id);
-          setUser({ ...user, profile: userProfile });
-          setProfile(userProfile);
-        } else {
-          console.error("🔐 Error getting user after sign in:", error);
-          setUser(null);
-          setProfile(null);
-        }
-      } else if (event === "SIGNED_OUT") {
+      if (event === "SIGNED_OUT") {
         console.warn("🔐 User signed out");
         setUser(null);
         setProfile(null);
-      } else if (event === "TOKEN_REFRESHED") {
-        console.warn("🔐 Token refreshed, re-fetching user...");
-        // Re-fetch user data after token refresh
-        const {
-          data: { user },
-          error,
-        } = await supabase.auth.getUser();
-
-        if (user && !error) {
-          const userProfile = await fetchProfile(user.id);
-          setUser({ ...user, profile: userProfile });
-          setProfile(userProfile);
-        }
+        setIsLoading(false);
+        return;
       }
-      setIsLoading(false);
+
+      setTimeout(() => {
+        void (async () => {
+          if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+            const {
+              data: { user },
+              error,
+            } = await supabase.auth.getUser();
+
+            if (user && !error) {
+              console.warn("🔐 User signed in, fetching profile...");
+              const userProfile = await fetchProfile(user.id);
+              setUser({ ...user, profile: userProfile });
+              setProfile(userProfile);
+            } else if (event === "SIGNED_IN") {
+              console.error("🔐 Error getting user after sign in:", error);
+              setUser(null);
+              setProfile(null);
+            }
+          }
+          setIsLoading(false);
+        })();
+      }, 0);
     });
 
     return () => subscription.unsubscribe();

@@ -42,3 +42,6 @@ next-env.d.ts
 
 # Debug screenshots
 screenshorts_debug/
+
+# QA logins for the browser test plan. The repo is public.
+docs/qa-accounts.local.md
