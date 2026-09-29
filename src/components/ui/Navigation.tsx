@@ -61,16 +61,27 @@ export default function Navigation({ className }: NavigationProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const pathname = usePathname();
-  const { user, logout } = useAuth();
+  const { user, profile, signOut } = useAuth();
   const { addToast } = useToast();
+  const displayName =
+    profile?.username || user?.email?.split("@")[0] || "Пользователь";
 
-  const handleLogout = () => {
-    logout();
-    addToast({
-      type: "success",
-      message: "Вы успешно вышли из системы",
-    });
-    setUserMenuOpen(false);
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      addToast({
+        type: "success",
+        message: "Вы успешно вышли из системы",
+      });
+      setUserMenuOpen(false);
+      setIsMobileMenuOpen(false);
+    } catch (error) {
+      console.error("Ошибка выхода:", error);
+      addToast({
+        type: "error",
+        message: "Не удалось выйти из системы",
+      });
+    }
   };
 
   const getInitials = (name: string | null | undefined) => {
@@ -131,10 +142,10 @@ export default function Navigation({ className }: NavigationProps) {
                 className="flex items-center space-x-2 text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-poker-green-500"
               >
                 <div className="w-8 h-8 bg-poker-green-500 rounded-full flex items-center justify-center text-white font-semibold">
-                  {user ? getInitials(user.username || user.email) : "U"}
+                  {user ? getInitials(displayName) : "U"}
                 </div>
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  {user?.username || "Пользователь"}
+                  {displayName}
                 </span>
                 <span className="text-gray-400">▼</span>
               </button>
@@ -220,11 +231,11 @@ export default function Navigation({ className }: NavigationProps) {
           <div className="pt-4 pb-3 border-t border-gray-200 dark:border-gray-600">
             <div className="flex items-center px-5">
               <div className="w-10 h-10 bg-poker-green-500 rounded-full flex items-center justify-center text-white font-semibold">
-                {user ? getInitials(user.username || user.email) : "U"}
+                {user ? getInitials(displayName) : "U"}
               </div>
               <div className="ml-3">
                 <div className="text-base font-medium text-gray-800 dark:text-gray-200">
-                  {user?.username || "Пользователь"}
+                  {displayName}
                 </div>
                 <div className="text-sm font-medium text-gray-500 dark:text-gray-400">
                   {user?.email || "user@example.com"}

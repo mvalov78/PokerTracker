@@ -21,6 +21,20 @@ process.env.SUPABASE_SERVICE_ROLE_KEY = "test-service-key";
 const mockSupabase = createMockAdminClient();
 const mockSupabaseClient = mockSupabase.client;
 
+const mockGetAuthUser = jest.fn().mockResolvedValue({
+  data: { user: null },
+  error: null,
+});
+
+jest.mock("@supabase/ssr", () => ({
+  createServerClient: () => ({
+    auth: {
+      getUser: () => mockGetAuthUser(),
+    },
+  }),
+  createBrowserClient: jest.fn(),
+}));
+
 // Mock Supabase для API тестов
 jest.mock("@/lib/supabase", () => ({
   supabase: null, // Будет использовать fallback к mockData
@@ -138,8 +152,10 @@ describe("API Integration Tests", () => {
       timestamp: "2024-01-01T01:00:00Z",
     });
 
-    // Reset all mocks
     jest.clearAllMocks();
+    const { getUserOrCreate } = require("@/lib/supabase");
+    getUserOrCreate.mockResolvedValue({ id: "test-user", username: "test" });
+    mockGetAuthUser.mockResolvedValue({ data: { user: null }, error: null });
   });
 
   describe("/api/tournaments", () => {
@@ -157,7 +173,7 @@ describe("API Integration Tests", () => {
 
       const request = createMockRequest({
         method: "GET",
-        url: "http://localhost:3000/api/tournaments?userId=test-user",
+        url: "http://localhost:3000/api/tournaments?userId=111",
       });
 
       const response = await GET(request);
@@ -175,7 +191,7 @@ describe("API Integration Tests", () => {
       const { POST } = require("@/app/api/tournaments/route");
 
       const tournamentData = {
-        userId: "test-user",
+        userId: "111",
         name: "New Test Tournament",
         buyin: 150,
         venue: "New Test Casino",
@@ -213,12 +229,15 @@ describe("API Integration Tests", () => {
 
       const tournamentId = "test-tournament-to-delete";
 
-      // Setup mock to return success
       TournamentService.deleteTournament.mockResolvedValue(true);
+      mockSupabase.setMockData({
+        id: tournamentId,
+        user_id: "test-user",
+      });
 
       const request = createMockRequest({
         method: "DELETE",
-        url: `http://localhost:3000/api/tournaments?id=${tournamentId}`,
+        url: `http://localhost:3000/api/tournaments?id=${tournamentId}&userId=111`,
       });
 
       const response = await DELETE(request);
@@ -249,7 +268,7 @@ describe("API Integration Tests", () => {
 
       const request = createMockRequest({
         method: "GET",
-        url: "http://localhost:3000/api/tournaments/test-tournament-1",
+        url: "http://localhost:3000/api/tournaments/test-tournament-1?userId=111",
       });
 
       // Mock params
@@ -267,6 +286,7 @@ describe("API Integration Tests", () => {
       const { PUT } = require("@/app/api/tournaments/[id]/route");
 
       const updateData = {
+        userId: "111",
         result: {
           position: 1,
           payout: 500,
@@ -416,8 +436,14 @@ describe("Data Consistency Tests", () => {
     const { GET: getTournamentsApi } = require("@/app/api/tournaments/route");
 
     // Create tournament via API
+    const { getUserOrCreate } = require("@/lib/supabase");
+    getUserOrCreate.mockResolvedValue({
+      id: "consistency-test",
+      username: "test",
+    });
+
     const tournamentData = {
-      userId: "consistency-test",
+      userId: "222",
       name: "Consistency Test Tournament",
       buyin: 200,
       venue: "Test Venue",
@@ -458,7 +484,7 @@ describe("Data Consistency Tests", () => {
     // Fetch tournaments via API
     const getReq = createMockRequest({
       method: "GET",
-      url: "http://localhost:3000/api/tournaments?userId=consistency-test",
+      url: "http://localhost:3000/api/tournaments?userId=222",
     });
 
     const getResponse = await getTournamentsApi(getReq);
@@ -483,7 +509,7 @@ describe("Data Consistency Tests", () => {
 
     // Test tournament creation with venue
     const tournamentData = {
-      userId: "venue-test",
+      userId: "333",
       name: "Venue Priority Test",
       buyin: 150,
       venue: "Priority Casino", // This should be used
@@ -512,5 +538,146 @@ describe("Data Consistency Tests", () => {
     const data = await response.json();
     expect(data.success).toBe(true);
     expect(data.tournament.venue).toBe("Priority Casino");
+  });
+});
+
+describe("Tournament owner isolation", () => {
+  beforeEach(() => {
+    mockSupabase.resetMocks();
+    const { getUserOrCreate } = require("@/lib/supabase");
+    getUserOrCreate.mockReset();
+    mockGetAuthUser.mockResolvedValue({ data: { user: null }, error: null });
+  });
+
+  it("does not fall back to the production user when the caller is anonymous", async () => {
+    const { GET } = require("@/app/api/tournaments/route");
+    const { getUserOrCreate } = require("@/lib/supabase");
+
+    mockSupabase.setMockData([
+      { id: "owned", user_id: "owner-profile", name: "Private" },
+    ]);
+
+    const request = createMockRequest({
+      method: "GET",
+      url: "http://localhost:3000/api/tournaments",
+    });
+
+    const response = await GET(request);
+    expect(response.status).toBe(401);
+    expect(getUserOrCreate).not.toHaveBeenCalled();
+  });
+
+  it("rejects a spoofed profile id when there is no session", async () => {
+    const { GET } = require("@/app/api/tournaments/route");
+    const { getUserOrCreate } = require("@/lib/supabase");
+
+    const request = createMockRequest({
+      method: "GET",
+      url: "http://localhost:3000/api/tournaments?userId=11111111-1111-1111-1111-111111111111",
+    });
+
+    const response = await GET(request);
+    expect(response.status).toBe(401);
+    expect(getUserOrCreate).not.toHaveBeenCalled();
+  });
+
+  it("returns only the tournaments of the resolved user", async () => {
+    const { GET } = require("@/app/api/tournaments/route");
+    const { getUserOrCreate } = require("@/lib/supabase");
+    getUserOrCreate.mockResolvedValue({ id: "user-a" });
+
+    mockSupabase.setMockData([
+      { id: "a1", user_id: "user-a", name: "Mine" },
+      { id: "b1", user_id: "user-b", name: "Theirs" },
+    ]);
+
+    const request = createMockRequest({
+      method: "GET",
+      url: "http://localhost:3000/api/tournaments?userId=1001",
+    });
+
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.tournaments.map((tournament: { name: string }) => tournament.name)).toEqual([
+      "Mine",
+    ]);
+    expect(getUserOrCreate).toHaveBeenCalledWith(1001);
+  });
+
+  it("uses the signed-in user even if the query asks for someone else", async () => {
+    const { GET } = require("@/app/api/tournaments/route");
+    const { getUserOrCreate } = require("@/lib/supabase");
+    mockGetAuthUser.mockResolvedValue({
+      data: { user: { id: "session-user" } },
+      error: null,
+    });
+
+    mockSupabase.setMockData([
+      { id: "s1", user_id: "session-user", name: "Session" },
+      { id: "o1", user_id: "other-user", name: "Other" },
+    ]);
+
+    const request = createMockRequest({
+      method: "GET",
+      url: "http://localhost:3000/api/tournaments?userId=1002",
+    });
+
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.tournaments).toEqual([
+      expect.objectContaining({ name: "Session" }),
+    ]);
+    expect(getUserOrCreate).not.toHaveBeenCalled();
+  });
+
+  it("refuses to update another user's tournament", async () => {
+    const { PUT } = require("@/app/api/tournaments/[id]/route");
+    const { getUserOrCreate } = require("@/lib/supabase");
+    getUserOrCreate.mockResolvedValue({ id: "intruder" });
+    mockSupabase.setMockData({
+      id: "private-tournament",
+      user_id: "owner",
+      buyin: 100,
+    });
+
+    const request = createMockRequest({
+      method: "PUT",
+      url: "http://localhost:3000/api/tournaments/private-tournament",
+      body: {
+        userId: "1003",
+        result: { position: 1, payout: 10 },
+      },
+    });
+
+    const response = await PUT(request, {
+      params: Promise.resolve({ id: "private-tournament" }),
+    });
+
+    expect(response.status).toBe(403);
+  });
+
+  it("refuses to delete another user's tournament", async () => {
+    const { TournamentService } = require("@/services/tournamentService");
+    const { DELETE } = require("@/app/api/tournaments/route");
+    const { getUserOrCreate } = require("@/lib/supabase");
+    getUserOrCreate.mockResolvedValue({ id: "intruder" });
+    mockSupabase.setMockData({
+      id: "private-tournament",
+      user_id: "owner",
+    });
+
+    const request = createMockRequest({
+      method: "DELETE",
+      url: "http://localhost:3000/api/tournaments?id=private-tournament&userId=1004",
+    });
+
+    const response = await DELETE(request);
+
+    expect(response.status).toBe(403);
+    expect(TournamentService.deleteTournament).not.toHaveBeenCalled();
   });
 });

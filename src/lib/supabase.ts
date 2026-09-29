@@ -67,19 +67,15 @@ export const createServerComponentClient = (cookieStore: any) => {
   });
 };
 
-// Admin client (for server-side operations with service role key)
+// Admin client uses the service role key and must stay on the server.
+// That key is not exposed to the browser, so a client import of this module
+// cannot create an admin client.
+const isBrowser = typeof window !== "undefined";
+
 export const createAdminClient = () => {
-  // Detailed diagnostic logging
-  console.warn("🔍 [Supabase Admin] Checking credentials:", {
-    hasUrl: !!supabaseUrl,
-    urlPreview: supabaseUrl ? `${supabaseUrl.substring(0, 30)}...` : "missing",
-    hasServiceKey: !!supabaseServiceKey,
-    keyPreview: supabaseServiceKey
-      ? `${supabaseServiceKey.substring(0, 20)}...`
-      : "missing",
-    isPlaceholder: supabaseServiceKey === "YOUR_SERVICE_ROLE_KEY_HERE",
-    env: process.env.NODE_ENV,
-  });
+  if (isBrowser) {
+    return null;
+  }
 
   if (
     !supabaseUrl ||
@@ -96,7 +92,6 @@ export const createAdminClient = () => {
     return null;
   }
 
-  console.warn("✅ [Supabase Admin] Creating admin client successfully");
   return createClient<Database>(supabaseUrl, supabaseServiceKey, {
     auth: {
       autoRefreshToken: false,
@@ -106,13 +101,15 @@ export const createAdminClient = () => {
 };
 
 // Backward compatibility export for admin client
-export const supabaseAdmin = (() => {
-  try {
-    return createAdminClient();
-  } catch {
-    return null;
-  }
-})();
+export const supabaseAdmin = isBrowser
+  ? null
+  : (() => {
+      try {
+        return createAdminClient();
+      } catch {
+        return null;
+      }
+    })();
 
 // Database types (based on our schema)
 export interface Database {
@@ -470,55 +467,6 @@ export async function isAdmin(userId: string): Promise<boolean> {
 }
 
 export async function getUserOrCreate(telegramId: number, username?: string) {
-  const adminClient = createAdminClient();
-  if (!adminClient) {
-    throw new Error("Supabase admin client not configured");
-  }
-
-  // Сначала попробуем найти существующего пользователя
-  let profile = await getProfileByTelegramId(telegramId);
-
-  if (profile) {
-    return profile;
-  }
-
-  // Для тестирования - ищем любого существующего пользователя из auth.users
-  try {
-    const { data: users, error: usersError } =
-      await adminClient.auth.admin.listUsers();
-
-    if (usersError) {
-      console.error("Error fetching users:", usersError);
-      throw usersError;
-    }
-
-    if (users && users.users.length > 0) {
-      // Берем первого пользователя (или ищем по email)
-      const existingUser =
-        users.users.find((u) => u.email === "mvalov78@gmail.com") ||
-        users.users[0];
-
-      // Проверяем есть ли уже профиль для этого пользователя
-      const existingProfile = await getProfile(existingUser.id);
-      if (existingProfile) {
-        return existingProfile;
-      }
-
-      // Создаем профиль для существующего пользователя
-      const newProfile = {
-        telegram_id: telegramId,
-        username:
-          username || existingUser.email?.split("@")[0] || `user_${telegramId}`,
-        role: "player" as const,
-      };
-
-      profile = await createProfile(existingUser.id, newProfile);
-      return profile;
-    } else {
-      throw new Error("No users found in auth.users");
-    }
-  } catch (error) {
-    console.error("Error creating user profile:", error);
-    throw error;
-  }
+  const { getOrCreateTelegramProfile } = await import("@/lib/telegramProfile");
+  return getOrCreateTelegramProfile(telegramId, username);
 }

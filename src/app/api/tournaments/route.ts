@@ -4,12 +4,15 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { TournamentService } from "@/services/tournamentService";
-import { getUserOrCreate, createAdminClient } from "@/lib/supabase";
+import { createAdminClient } from "@/lib/supabase";
+import {
+  filterOwnedTournaments,
+  resolveTournamentActor,
+} from "@/lib/tournamentAccess";
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get("userId");
     const supabase = createAdminClient();
 
     // Проверяем, настроен ли Supabase
@@ -23,23 +26,18 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    let actualUserId = userId;
-
-    // Если userId - это Telegram ID (число), найдем пользователя в БД
-    if (userId && /^\d+$/.test(userId)) {
-      const user = await getUserOrCreate(parseInt(userId));
-      actualUserId = user?.id || null;
-    }
-
-    // Если нет userId, используем тестового пользователя для демо
+    const actualUserId = await resolveTournamentActor(
+      request,
+      searchParams.get("userId"),
+    );
     if (!actualUserId) {
-      try {
-        const testUser = await getUserOrCreate(49767276, "test_user");
-        actualUserId = testUser.id;
-      } catch (userError) {
-        console.log("⚠️  Не удалось получить тестового пользователя");
-        actualUserId = "00000000-0000-0000-0000-000000000001";
-      }
+      return new NextResponse(
+        JSON.stringify({
+          success: false,
+          error: "Требуется авторизация",
+        }),
+        { status: 401, headers: { "content-type": "application/json" } },
+      );
     }
 
     // Получаем турниры напрямую через admin client
@@ -61,7 +59,7 @@ export async function GET(request: NextRequest) {
     return new NextResponse(
       JSON.stringify({
         success: true,
-        tournaments: tournaments || [],
+        tournaments: filterOwnedTournaments(tournaments, actualUserId),
       }),
       {
         status: 200,
@@ -99,13 +97,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Используем только Supabase
-    let userId = body.userId || "00000000-0000-0000-0000-000000000001";
-
-    // Если userId - это Telegram ID (число), найдем или создадим пользователя в БД
-    if (/^\d+$/.test(userId)) {
-      const user = await getUserOrCreate(parseInt(userId));
-      userId = user.id;
+    const userId = await resolveTournamentActor(request, body.userId);
+    if (!userId) {
+      return new NextResponse(
+        JSON.stringify({
+          success: false,
+          error: "Требуется авторизация",
+        }),
+        { status: 401, headers: { "content-type": "application/json" } },
+      );
     }
 
     // Создаем турнир через сервис
@@ -155,6 +155,7 @@ export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const tournamentId = searchParams.get("id");
+    const supabase = createAdminClient();
 
     if (!tournamentId) {
       return new NextResponse(
@@ -178,7 +179,47 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Используем только Supabase
+    if (!supabase) {
+      return new NextResponse(
+        JSON.stringify({
+          success: false,
+          error: "Supabase не настроен. Проверьте переменные окружения",
+        }),
+        { status: 500, headers: { "content-type": "application/json" } },
+      );
+    }
+
+    const actorId = await resolveTournamentActor(
+      request,
+      searchParams.get("userId"),
+    );
+    if (!actorId) {
+      return new NextResponse(
+        JSON.stringify({ success: false, error: "Требуется авторизация" }),
+        { status: 401, headers: { "content-type": "application/json" } },
+      );
+    }
+
+    const { data: existing, error: existingError } = await supabase
+      .from("tournaments")
+      .select("id, user_id")
+      .eq("id", tournamentId)
+      .single();
+
+    if (existingError || !existing) {
+      return new NextResponse(
+        JSON.stringify({ success: false, error: "Tournament not found" }),
+        { status: 404, headers: { "content-type": "application/json" } },
+      );
+    }
+
+    if (existing.user_id !== actorId) {
+      return new NextResponse(
+        JSON.stringify({ success: false, error: "Недостаточно прав" }),
+        { status: 403, headers: { "content-type": "application/json" } },
+      );
+    }
+
     const success = await TournamentService.deleteTournament(tournamentId);
 
     if (success) {

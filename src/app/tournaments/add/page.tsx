@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { ProtectedRoute } from "@/hooks/useAuth";
 
 interface TournamentFormData {
   name: string;
@@ -17,7 +18,7 @@ interface TournamentFormData {
   notes?: string;
 }
 
-export default function AddTournamentPage() {
+function AddTournamentPageContent() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState<TournamentFormData>({
@@ -46,15 +47,26 @@ export default function AddTournamentPage() {
     setIsLoading(true);
 
     try {
-      // Имитация сохранения
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const response = await fetch("/api/tournaments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...formData,
+          date: new Date(formData.date).toISOString(),
+        }),
+      });
+      const data = await response.json().catch(() => null);
 
-      console.log("Создание турнира:", formData);
+      if (response.status === 401) {
+        router.push("/auth");
+        return;
+      }
 
-      // Показываем успешное сообщение
+      if (!response.ok || !data?.success) {
+        throw new Error(data?.error || "Ошибка при создании турнира");
+      }
+
       alert("Турнир успешно создан!");
-
-      // Возвращаемся к списку турниров
       router.push("/tournaments");
     } catch (error) {
       console.error("Ошибка при создании турнира:", error);
@@ -346,5 +358,13 @@ export default function AddTournamentPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AddTournamentPage() {
+  return (
+    <ProtectedRoute>
+      <AddTournamentPageContent />
+    </ProtectedRoute>
   );
 }

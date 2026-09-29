@@ -6,7 +6,6 @@
 import type { BotContext } from "../index";
 import { processTicketImage } from "../../services/ocrService";
 import { UserSettingsService } from "@/services/userSettingsService";
-import { UserService } from "@/services/userService";
 import { escapeMarkdown } from "../utils";
 
 export class PhotoHandler {
@@ -319,23 +318,11 @@ export class PhotoHandler {
         return;
       }
 
-      // Создаем турнир через API
-      const telegramId = ctx.from?.id.toString() || "user-1";
-
-      // Получаем UUID пользователя по Telegram ID
-      console.warn(
-        "🔍 [confirmTournament] Получаем UUID пользователя по Telegram ID:",
-        telegramId,
-      );
-      const userUuid = await UserService.getUserUuidByTelegramId(telegramId);
-      console.warn("🔍 [confirmTournament] UUID пользователя:", userUuid);
-
-      // Если UUID не найден, используем Telegram ID - API создаст пользователя через getUserOrCreate
-      const finalUserId = userUuid || telegramId;
-      console.warn(
-        "🔍 [confirmTournament] Финальный ID для создания турнира:",
-        finalUserId,
-      );
+      const telegramId = ctx.from?.id.toString();
+      if (!telegramId) {
+        await ctx.reply("❌ Не удалось определить пользователя Telegram.");
+        return;
+      }
 
       // Используем текущую площадку пользователя, если установлена, иначе берем из OCR
       console.warn(
@@ -356,7 +343,7 @@ export class PhotoHandler {
       );
 
       const tournamentData = {
-        userId: finalUserId,
+        userId: telegramId,
         name: data.name || "Турнир из билета",
         date: data.date || new Date().toISOString(),
         buyin: data.buyin || 0,

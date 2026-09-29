@@ -625,6 +625,7 @@ ID турнира: \`${newTournament.id}\`
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           result: resultData,
+          userId: ctx.from?.id?.toString(),
         }),
       });
 

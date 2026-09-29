@@ -9,14 +9,14 @@ import { Breadcrumbs } from "@/components/ui/Navigation";
 import { useToast } from "@/components/ui/Toast";
 
 function SettingsContent() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { addToast } = useToast();
 
   const [isLoading, setIsLoading] = useState(false);
 
   // Profile Settings
   const [profileSettings, setProfileSettings] = useState({
-    username: user?.username || "",
+    username: profile?.username || user?.email?.split("@")[0] || "",
     email: user?.email || "",
     firstName: user?.firstName || "",
     lastName: user?.lastName || "",
@@ -159,7 +159,7 @@ function SettingsContent() {
       )
     ) {
       setProfileSettings({
-        username: user?.username || "",
+        username: profile?.username || user?.email?.split("@")[0] || "",
         email: user?.email || "",
         firstName: "",
         lastName: "",

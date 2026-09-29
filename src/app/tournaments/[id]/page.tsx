@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { getTournamentById, deleteTournament } from "@/data/mockData";
+import { ProtectedRoute } from "@/hooks/useAuth";
 import type { Tournament } from "@/types";
 
-export default function TournamentDetailPage() {
+function TournamentDetailPageContent() {
   const params = useParams();
   const router = useRouter();
   const tournamentId = params.id as string;
@@ -43,17 +43,7 @@ export default function TournamentDetailPage() {
         console.error("Ошибка загрузки турнира через API:", error);
       }
 
-      // Fallback на localStorage
-      const foundTournament = getTournamentById(tournamentId);
-
-      if (!foundTournament) {
-        // Турнир не найден, перенаправляем на список
-        router.push("/tournaments");
-        return;
-      }
-
-      setTournament(foundTournament);
-      setIsLoading(false);
+      router.push("/tournaments");
     };
 
     loadTournament();
@@ -74,13 +64,22 @@ export default function TournamentDetailPage() {
     );
 
     if (confirmDelete) {
-      const success = deleteTournament(tournament.id);
-      if (success) {
-        alert(`Турнир "${tournament.name}" успешно удален`);
-        router.push("/tournaments");
-      } else {
-        alert("Ошибка при удалении турнира");
-      }
+      fetch(`/api/tournaments?id=${tournament.id}`, { method: "DELETE" })
+        .then(async (response) => {
+          if (response.ok) {
+            alert(`Турнир "${tournament.name}" успешно удален`);
+            router.push("/tournaments");
+            return;
+          }
+          if (response.status === 403) {
+            alert("Этот турнир принадлежит другому пользователю");
+            return;
+          }
+          alert("Ошибка при удалении турнира");
+        })
+        .catch(() => {
+          alert("Ошибка при удалении турнира");
+        });
     }
   };
 
@@ -697,5 +696,13 @@ export default function TournamentDetailPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function TournamentDetailPage() {
+  return (
+    <ProtectedRoute>
+      <TournamentDetailPageContent />
+    </ProtectedRoute>
   );
 }

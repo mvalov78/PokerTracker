@@ -2,45 +2,39 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getAllTournaments, deleteTournament } from "@/data/mockData";
+import { ProtectedRoute } from "@/hooks/useAuth";
 import type { Tournament } from "@/types";
 
-export default function TournamentsPage() {
+function TournamentsPageContent() {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Загружаем турниры при монтировании компонента
   useEffect(() => {
     const loadTournaments = async () => {
       try {
-        // Сначала пробуем загрузить через API
         const response = await fetch("/api/tournaments");
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success) {
-            console.warn("[WEB] Загружено турниров:", data.tournaments.length);
-            data.tournaments.forEach((t: any) => {
-              console.warn("[WEB] Турнир:", {
-                name: t.name,
-                id: t.id,
-                has_result: !!t.result,
-                has_tournament_results: !!t.tournament_results,
-                tournament_results_type: typeof t.tournament_results,
-                tournament_results_value: t.tournament_results,
-              });
-            });
-            setTournaments(data.tournaments);
-            return;
-          }
+        const data = await response.json().catch(() => null);
+
+        if (response.status === 401) {
+          setTournaments([]);
+          setLoadError("Войдите в аккаунт, чтобы увидеть свои турниры");
+          return;
         }
+
+        if (!response.ok || !data?.success) {
+          throw new Error(data?.error || `HTTP ${response.status}`);
+        }
+
+        setLoadError(null);
+        setTournaments(data.tournaments);
       } catch (error) {
         console.error("Ошибка загрузки турниров через API:", error);
+        setTournaments([]);
+        setLoadError("Не удалось загрузить турниры");
       }
-
-      // Fallback на localStorage
-      const allTournaments = getAllTournaments();
-      setTournaments(allTournaments);
     };
 
     loadTournaments();
@@ -68,27 +62,19 @@ export default function TournamentsPage() {
         });
 
         if (response.ok) {
-          // Обновляем список турниров немедленно
           const updatedTournaments = tournaments.filter(
             (t) => t.id !== tournament.id,
           );
           setTournaments(updatedTournaments);
           alert(`Турнир "${tournament.name}" успешно удален`);
+        } else if (response.status === 403) {
+          alert("Этот турнир принадлежит другому пользователю");
         } else {
           throw new Error("API deletion failed");
         }
       } catch (error) {
-        console.error("Ошибка удаления через API, пробуем fallback:", error);
-
-        // Fallback на localStorage
-        const success = deleteTournament(tournament.id);
-        if (success) {
-          const updatedTournaments = getAllTournaments();
-          setTournaments(updatedTournaments);
-          alert(`Турнир "${tournament.name}" успешно удален`);
-        } else {
-          alert("Ошибка при удалении турнира");
-        }
+        console.error("Ошибка удаления через API:", error);
+        alert("Ошибка при удалении турнира");
       }
     }
   };
@@ -96,7 +82,7 @@ export default function TournamentsPage() {
   const filteredTournaments = tournaments.filter(
     (tournament) =>
       tournament.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      tournament.venue.toLowerCase().includes(searchTerm.toLowerCase()),
+      (tournament.venue || "").toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   return (
@@ -181,7 +167,8 @@ export default function TournamentsPage() {
                 Турниры не найдены
               </h3>
               <p className="text-gray-500 mb-6">
-                Попробуйте изменить поиск или добавить новый турнир
+                {loadError ||
+                  "Попробуйте изменить поиск или добавить новый турнир"}
               </p>
               <button
                 onClick={() => router.push("/tournaments/add")}
@@ -404,5 +391,13 @@ export default function TournamentsPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function TournamentsPage() {
+  return (
+    <ProtectedRoute>
+      <TournamentsPageContent />
+    </ProtectedRoute>
   );
 }

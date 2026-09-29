@@ -331,8 +331,13 @@ describe("PhotoHandler", () => {
 
       await handler.confirmTournament(ctx as any);
 
-      // Should use telegram ID as fallback
-      expect(global.fetch).toHaveBeenCalled();
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining("/api/tournaments"),
+        expect.objectContaining({
+          method: "POST",
+          body: expect.stringContaining('"userId":"123456789"'),
+        }),
+      );
     });
   });
 

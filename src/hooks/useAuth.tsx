@@ -285,12 +285,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Sign out
   const signOut = async () => {
-    try {
-      await supabase.auth.signOut();
-      router.push("/auth");
-    } catch (error) {
-      console.error("Error signing out:", error);
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      throw error;
     }
+    setUser(null);
+    setProfile(null);
+    router.push("/auth");
   };
 
   // Update profile

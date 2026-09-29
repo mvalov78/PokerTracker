@@ -4,6 +4,8 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase";
+import { resolveTournamentActor } from "@/lib/tournamentAccess";
+import { TournamentService } from "@/services/tournamentService";
 
 export async function GET(
   request: NextRequest,
@@ -12,11 +14,23 @@ export async function GET(
   try {
     const { id: tournamentId } = await params;
     const supabase = createAdminClient();
+    const { searchParams } = new URL(request.url);
 
     if (!supabase) {
       return new NextResponse(
         JSON.stringify({ success: false, error: "Database unavailable" }),
         { status: 503, headers: { "content-type": "application/json" } },
+      );
+    }
+
+    const actorId = await resolveTournamentActor(
+      request,
+      searchParams.get("userId"),
+    );
+    if (!actorId) {
+      return new NextResponse(
+        JSON.stringify({ success: false, error: "Требуется авторизация" }),
+        { status: 401, headers: { "content-type": "application/json" } },
       );
     }
 
@@ -38,6 +52,13 @@ export async function GET(
         );
       }
       throw error;
+    }
+
+    if (data.user_id !== actorId) {
+      return new NextResponse(
+        JSON.stringify({ success: false, error: "Недостаточно прав" }),
+        { status: 403, headers: { "content-type": "application/json" } },
+      );
     }
 
     return new NextResponse(
@@ -82,39 +103,44 @@ export async function PUT(
 
     console.log("[API PUT] Admin client создан успешно");
 
+    const actorId = await resolveTournamentActor(request, body.userId);
+    if (!actorId) {
+      return new NextResponse(
+        JSON.stringify({ success: false, error: "Требуется авторизация" }),
+        { status: 401, headers: { "content-type": "application/json" } },
+      );
+    }
+
+    const { data: tournament, error: fetchError } = await supabase
+      .from("tournaments")
+      .select("*")
+      .eq("id", tournamentId)
+      .single();
+
+    if (fetchError || !tournament) {
+      return new NextResponse(
+        JSON.stringify({
+          success: false,
+          error: "Tournament not found",
+          details: fetchError?.message,
+        }),
+        { status: 404, headers: { "content-type": "application/json" } },
+      );
+    }
+
+    if (tournament.user_id !== actorId) {
+      return new NextResponse(
+        JSON.stringify({ success: false, error: "Недостаточно прав" }),
+        { status: 403, headers: { "content-type": "application/json" } },
+      );
+    }
+
     // Если есть результат в теле запроса, обрабатываем его отдельно
     if (body.result) {
       console.log("[API] Обработка результата для турнира:", tournamentId);
       console.log("[API] Данные результата:", body.result);
 
       const resultData = body.result;
-
-      // Получаем турнир для вычисления profit и ROI
-      const { data: tournament, error: fetchError } = await supabase
-        .from("tournaments")
-        .select("*")
-        .eq("id", tournamentId)
-        .single();
-
-      if (fetchError) {
-        console.error("[API] Ошибка получения турнира:", fetchError);
-        return new NextResponse(
-          JSON.stringify({
-            success: false,
-            error: "Tournament not found",
-            details: fetchError.message,
-          }),
-          { status: 404, headers: { "content-type": "application/json" } },
-        );
-      }
-
-      if (!tournament) {
-        console.error("[API] Турнир не найден:", tournamentId);
-        return new NextResponse(
-          JSON.stringify({ success: false, error: "Tournament not found" }),
-          { status: 404, headers: { "content-type": "application/json" } },
-        );
-      }
 
       console.log("[API] Турнир найден:", {
         id: tournament.id,
@@ -291,6 +317,46 @@ export async function DELETE(
 ) {
   try {
     const { id: tournamentId } = await params;
+    const supabase = createAdminClient();
+    const { searchParams } = new URL(request.url);
+
+    if (!supabase) {
+      return new NextResponse(
+        JSON.stringify({ success: false, error: "Database unavailable" }),
+        { status: 503, headers: { "content-type": "application/json" } },
+      );
+    }
+
+    const actorId = await resolveTournamentActor(
+      request,
+      searchParams.get("userId"),
+    );
+    if (!actorId) {
+      return new NextResponse(
+        JSON.stringify({ success: false, error: "Требуется авторизация" }),
+        { status: 401, headers: { "content-type": "application/json" } },
+      );
+    }
+
+    const { data: existing, error: existingError } = await supabase
+      .from("tournaments")
+      .select("id, user_id")
+      .eq("id", tournamentId)
+      .single();
+
+    if (existingError || !existing) {
+      return new NextResponse(
+        JSON.stringify({ success: false, error: "Tournament not found" }),
+        { status: 404, headers: { "content-type": "application/json" } },
+      );
+    }
+
+    if (existing.user_id !== actorId) {
+      return new NextResponse(
+        JSON.stringify({ success: false, error: "Недостаточно прав" }),
+        { status: 403, headers: { "content-type": "application/json" } },
+      );
+    }
 
     const success = await TournamentService.deleteTournament(tournamentId);
 

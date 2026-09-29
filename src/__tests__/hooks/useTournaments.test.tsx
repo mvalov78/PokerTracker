@@ -139,4 +139,48 @@ describe("useTournaments", () => {
       { timeout: 3000 },
     );
   });
+
+  it("maps database tournament_results onto result", async () => {
+    mockFetch({
+      success: true,
+      tournaments: [
+        {
+          id: "1",
+          name: "Live",
+          venue: "SPF",
+          buyin: 100,
+          date: "2024-01-01T00:00:00Z",
+          user_id: "user-1",
+          tournament_results: [
+            {
+              id: "r1",
+              tournament_id: "1",
+              position: 3,
+              payout: 250,
+              profit: 150,
+              roi: 150,
+              rebuy_count: 1,
+              final_table_reached: true,
+            },
+          ],
+        },
+      ],
+    });
+
+    const { result } = renderHook(() => useTournaments());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.tournaments[0].result).toEqual(
+      expect.objectContaining({
+        position: 3,
+        payout: 250,
+        profit: 150,
+        rebuyCount: 1,
+        finalTableReached: true,
+      }),
+    );
+  });
 });

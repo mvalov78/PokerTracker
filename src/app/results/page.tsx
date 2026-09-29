@@ -34,7 +34,7 @@ function ResultsContent() {
       filtered = filtered.filter(
         (tournament) =>
           tournament.name.toLowerCase().includes(query) ||
-          tournament.venue.toLowerCase().includes(query) ||
+          (tournament.venue || "").toLowerCase().includes(query) ||
           tournament.result?.notes?.toLowerCase().includes(query),
       );
     }
